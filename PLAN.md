@@ -14,6 +14,8 @@ Sistema web (PWA) para organizar consultorios de **ortodoncia / odontología** y
 | País | **Perú** — moneda PEN, zona horaria `America/Lima`, facturación electrónica SUNAT, Ley 29733 (datos personales) |
 | Stack | **Next.js + TypeScript + Tailwind + Supabase + Vercel** |
 | Piloto | En negociación; se construye con datos de ejemplo y se ajusta al confirmarse |
+| Supabase | Proyecto **DentAssist**, región `sa-east-1` (São Paulo), ref `wqfcatarukeobrxgokbx`, org PMAVILA Org |
+| Vercel | Proyecto `asistente_consultorio` en PMAVILA Org, conectado a este repo (renombrar a `dentassist` más adelante) |
 
 ---
 
