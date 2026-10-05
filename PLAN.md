@@ -55,6 +55,32 @@ Un solo lugar donde el consultorio:
 - Búsqueda rápida, importación desde Excel/CSV, deduplicación.
 - *Ortodoncia:* plan de tratamiento, fases, controles mensuales, fotos antes/después, mensualidades.
 
+### 2.3.1 Historia clínica / historial del paciente
+Línea de tiempo cronológica de todo lo que ha pasado con el paciente, visible desde su ficha:
+- **Anamnesis inicial**: motivo de consulta, antecedentes médicos, alergias, medicación, hábitos (editable y versionada).
+- **Evolución por visita** (nota SOAP simplificada): qué se hizo, hallazgos, diagnóstico, procedimiento, materiales usados, indicaciones, próxima cita.
+- **Tratamientos realizados y en curso**, con fecha, profesional, pieza dental (si aplica) y costo.
+- **Adjuntos en la línea de tiempo**: radiografías, fotos, estudios, consentimientos firmados.
+- **Pagos y saldo** ligados a cada tratamiento.
+- Filtros por tipo (tratamiento, nota, pago, archivo, comunicación) y por profesional.
+- **Inmutabilidad y auditoría**: las notas firmadas no se editan; las correcciones se agregan como *adenda* con autor y fecha. Registro de quién consultó la historia.
+- Exportar/imprimir resumen clínico en PDF (para derivaciones o solicitud del paciente).
+
+### 2.3.2 Planes de tratamiento y series de citas
+Para tratamientos de largo plazo (ortodoncia, endodoncia por fases, implantes, blanqueamientos por sesiones, etc.):
+- **Plan de tratamiento**: nombre, diagnóstico, objetivo, fases/etapas, duración estimada, costo total y forma de pago, estado (`propuesto → aceptado → en curso → pausado → completado | cancelado`).
+- **Fases y sesiones**: cada fase tiene N sesiones con servicio, duración y notas previstas.
+- **Generador de citas en serie** (lo que describes): el doctor indica *"5 sábados, 10:00, desde el 12/10"* y el sistema:
+  - propone todas las fechas según un patrón (semanal, cada 2 semanas, mensual, días específicos);
+  - **valida disponibilidad** y marca los choques (feriados, bloqueos, citas existentes);
+  - permite **ajustar individualmente** las que choquen (mover a otro horario o saltar la fecha);
+  - muestra una **vista previa** y crea todas las citas de una vez, ligadas al plan.
+- **Edición de la serie**: mover "solo esta", "esta y las siguientes" o "toda la serie"; si se cancela una, ofrecer agregar una al final para completar las sesiones previstas.
+- **Avance del plan**: sesiones realizadas / total, próximas citas, saldo, alertas si el paciente se atrasa o no tiene siguiente cita agendada.
+- **Presupuesto y aceptación**: el paciente ve y acepta el plan (con firma digital) antes de arrancar; el plan alimenta cobros por sesión o por mensualidad.
+- **Recordatorios en bloque**: el paciente recibe el calendario completo del tratamiento (WhatsApp/correo/archivo .ics) y recordatorios individuales por sesión.
+- **Plantillas de plan** por tratamiento (ej. "Ortodoncia 24 meses", "Blanqueamiento 3 sesiones") para crear planes en segundos.
+
 ### 2.4 Inventario de materiales
 - Catálogo de insumos (SKU, unidad, proveedor, costo, stock mínimo, vencimiento/lote).
 - Movimientos: entradas (compras), salidas (consumo), ajustes y mermas.
@@ -99,7 +125,10 @@ Un solo lugar donde el consultorio:
 5. **PWA antes que app nativa**: instalable en celular, notificaciones, un solo código. App nativa solo si hay necesidad real.
 6. **Mobile-first para recepción y doctor**: la agenda se consulta desde el teléfono entre pacientes.
 7. **Ortodoncia merece un módulo propio** (plan de tratamiento, controles recurrentes, mensualidades). Es el mejor diferenciador frente a software genérico de agenda médica.
-8. **Empezar con un consultorio piloto real** y desplegar rápido: validar flujos con gente usándolo antes de construir todos los módulos.
+8. **Plan de tratamiento como eje del sistema**: la historia clínica, la agenda, los cobros y los recordatorios deben colgar del plan. Así "agendar 5 sábados" no es crear 5 citas sueltas, sino una **serie ligada a un plan** que se puede mover, medir y cobrar como un todo. Es el diferenciador más fuerte del producto.
+9. **Historia clínica inmutable**: las notas firmadas no se editan, se corrigen con adendas. Protege al doctor legalmente y es requisito en muchos países. Definir los campos obligatorios según la normativa local (ej. NOM-004 en México).
+10. **Citas en serie con revisión humana**: el sistema propone y valida, pero el asistente confirma la vista previa. Evita agendar sobre feriados o choques sin darse cuenta.
+11. **Empezar con un consultorio piloto real** y desplegar rápido: validar flujos con gente usándolo antes de construir todos los módulos.
 
 ---
 
@@ -120,6 +149,12 @@ Un solo lugar donde el consultorio:
 | 11 | Integración con Google Calendar del doctor | Medio | Bajo |
 | 12 | Programa de referidos / fidelización | Medio | Medio |
 | 13 | Modo offline básico para agenda | Bajo-medio | Alto |
+| 14 | Plantillas de plan de tratamiento (ej. "Ortodoncia 24 meses") para crear planes en segundos | Alto | Bajo |
+| 15 | Alerta de abandono: paciente en tratamiento sin próxima cita o con retraso → aviso al asistente y mensaje automático | Alto | Bajo |
+| 16 | Archivo .ics / enlace de calendario con todas las citas del tratamiento para el paciente | Medio | Bajo |
+| 17 | Dictado por voz de notas clínicas con transcripción y resumen por IA (el doctor revisa y firma) | Alto | Medio |
+| 18 | Comparador de fotos/radiografías en línea de tiempo (antes/después) | Medio-alto | Medio |
+| 19 | Presupuestos con opciones (A/B) que el paciente acepta desde su celular | Alto | Medio |
 
 ---
 
@@ -167,8 +202,17 @@ appointments(id, clinic_id, patient_id, professional_id, chair_id, service_id,
 appointment_events(id, appointment_id, type, from, to, reason, by_user, at)  -- historial/reprogramaciones
 waitlist(id, clinic_id, patient_id, service_id, preferred_window)
 
-treatment_plans(id, patient_id, name, total, status)              -- ortodoncia
-treatment_visits(id, plan_id, appointment_id, notes, next_visit_in_days)
+medical_history(id, patient_id, version, data jsonb, updated_by, at)   -- anamnesis versionada
+clinical_entries(id, clinic_id, patient_id, appointment_id, professional_id, type,
+                 soap jsonb, tooth, service_id, signed_at, addendum_of)  -- línea de tiempo; firmada = inmutable
+
+treatment_plan_templates(id, clinic_id, name, phases jsonb)
+treatment_plans(id, clinic_id, patient_id, professional_id, name, diagnosis, total,
+                payment_mode, status, accepted_at, signature_path, starts_on, est_end_on)
+treatment_phases(id, plan_id, position, name, planned_sessions, status)
+treatment_sessions(id, phase_id, service_id, planned_duration, appointment_id, status)
+appointment_series(id, plan_id, rule jsonb, created_by)           -- patrón: ej. {freq: weekly, byday: SA, count: 5}
+-- appointments.series_id y appointments.session_id enlazan cada cita con su serie/sesión
 
 materials(id, clinic_id, name, sku, unit, cost, min_stock, supplier_id)
 inventory_lots(id, material_id, lot, expires_at, qty)
@@ -205,6 +249,13 @@ Seguridad: **RLS por `clinic_id`** en todas las tablas; el portal público solo 
 - Agenda interna: crear, mover, cancelar, reprogramar, estados, historial.
 - **Entregable:** el consultorio piloto reemplaza su agenda actual.
 
+### Fase 1.5 — Historia clínica y planes de tratamiento (2–3 semanas)
+- Anamnesis y línea de tiempo clínica con notas firmadas, adendas y adjuntos.
+- Planes de tratamiento con fases y sesiones.
+- **Generador de citas en serie** (patrones, validación de choques, vista previa, edición "esta / siguientes / todas").
+- Avance del plan y alerta de pacientes sin próxima cita.
+- **Entregable:** el doctor agenda un tratamiento completo en menos de un minuto y el historial queda registrado.
+
 ### Fase 2 — Portal del paciente y recordatorios (2 semanas)
 - Disponibilidad pública y reserva online.
 - Link de confirmar/cancelar/reprogramar.
@@ -223,7 +274,8 @@ Seguridad: **RLS por `clinic_id`** en todas las tablas; el portal público solo 
 - **Entregable:** primera campaña real a pacientes con consentimiento.
 
 ### Fase 5 — Ortodoncia y analítica (2–3 semanas)
-- Planes de tratamiento, mensualidades, fotos, odontograma (opcional).
+- Mensualidades ligadas a planes, fotos comparativas antes/después, odontograma (opcional).
+- Aceptación de presupuesto con firma digital y cobro automático por sesión/mensualidad.
 - Reportes de servicios, margen, ocupación, retención.
 
 ### Fase 6 — Producto SaaS (continuo)
@@ -268,6 +320,8 @@ Convenciones propuestas:
 | Fuga de datos de pacientes | RLS, cifrado, auditoría, pruebas de acceso, mínimos privilegios. |
 | Alcance demasiado grande | MVP por fases; piloto real; lo no crítico queda en el backlog. |
 | Choques/doble reserva | Restricción en BD (exclusion constraint) además de validación en UI. |
+| Series de citas mal generadas (feriados, zonas horarias, cambios de horario) | Vista previa obligatoria, calendario de feriados por país, generación en la zona del consultorio y pruebas de casos borde. |
+| Pérdida o alteración de la historia clínica | Notas firmadas inmutables, adendas, auditoría, respaldos y exportación en PDF. |
 | Zonas horarias / horario de verano | Guardar en UTC, mostrar en zona del consultorio. |
 | Costos de WhatsApp no previstos | Medir por conversación, mostrar consumo, incluirlo en el precio del plan. |
 | Cumplimiento legal (datos de salud, facturación) | Definir país objetivo pronto y revisar con asesoría legal. |
@@ -286,6 +340,10 @@ Convenciones propuestas:
 8. ¿Idioma único (español) o multi-idioma?
 9. Modelo de negocio: ¿suscripción mensual por consultorio? ¿Cobro por doctor/usuario?
 10. ¿Algún nombre de producto o marca ya definido?
+11. **Historia clínica:** ¿qué formato usa hoy el doctor (odontograma, hoja de evolución, SOAP libre)? ¿Hay que importar historiales en papel o PDF?
+12. **Series de citas:** ¿los patrones suelen ser semanales (ej. "cada sábado") o variables (ej. controles cada 4–6 semanas)? ¿Se agenda todo el tratamiento al inicio o por tandas?
+13. **Planes:** ¿el paciente debe firmar la aceptación del presupuesto? ¿El cobro es por sesión, por fase o mensualidad fija?
+14. ¿Habrá **varios doctores** que atiendan a un mismo paciente (ej. ortodoncista + endodoncista) y compartan historia, o cada uno tiene la suya?
 
 ---
 
