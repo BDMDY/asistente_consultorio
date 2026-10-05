@@ -105,6 +105,43 @@ Para tratamientos de largo plazo (ortodoncia, endodoncia por fases, implantes, b
 - Mensajes **automáticos transaccionales**: recordatorio 24 h / 2 h, confirmación, post-cita, cobro pendiente.
 - Opt-in / opt-out obligatorio, y límite de envío.
 
+### 2.7.1 Sistema de notificaciones (consultorio ↔ paciente)
+Motor único de notificaciones, **bidireccional**: el consultorio informa y el paciente responde, y esa respuesta actualiza la cita automáticamente.
+
+**Eventos que notifican al paciente**
+| Evento | Mensaje | Respuesta del paciente |
+|---|---|---|
+| Cita creada / plan agendado | Confirmación con fecha, hora, doctor, dirección y enlace al mapa. Para series: calendario completo. | Confirmar |
+| **Cita reprogramada** por el consultorio | "Tu cita pasó de X a Y" | Aceptar nueva fecha / Pedir otra |
+| Cita cancelada por el consultorio | Aviso + opciones para reagendar | Reagendar |
+| **Cuenta regresiva / recordatorios** | Configurables: 7 días, 48 h, 24 h, 2 h antes ("faltan 2 días para tu cita") | Confirmar / Reprogramar / Cancelar |
+| Cita sin confirmar | Insistencia escalonada (WhatsApp → correo → llamada sugerida a recepción) | Confirmar |
+| Hueco liberado (lista de espera) | "Se liberó un espacio hoy a las 4 pm" | Tomar / Rechazar |
+| Post-cita | Indicaciones, encuesta, solicitud de reseña, próxima cita | Calificar |
+| Cobro pendiente / mensualidad | Recordatorio de pago con enlace | Pagar |
+| Paciente atrasado en su tratamiento | "Hace 6 semanas que no vienes, agenda tu control" | Agendar |
+
+**Respuestas del paciente** (por botones de WhatsApp o por enlace único, sin crear cuenta):
+- **Confirmar** → la cita pasa a `confirmada`.
+- **Reprogramar** → ve solo huecos libres y elige; el sistema valida reglas (anticipación mínima, máximo de reprogramaciones) y puede pedir aprobación del asistente.
+- **Cancelar** → pide motivo opcional, libera el espacio y activa la lista de espera.
+- **Sin respuesta** → regla configurable (recordar de nuevo, marcar "sin confirmar", alertar a recepción).
+- Si el paciente responde texto libre ("llego 10 min tarde"), llega a una **bandeja de entrada** de recepción en vez de perderse.
+
+**Para el consultorio (notificaciones internas)**
+- Aviso en el panel/PWA/correo: paciente confirmó, canceló, pidió reprogramar, no responde, llegó tarde; stock bajo; pagos recibidos.
+- Bandeja de entrada de mensajes de pacientes con estados (nuevo / atendido).
+- Preferencias por usuario (qué eventos y por qué canal recibe cada rol).
+
+**Cómo funciona (arquitectura)**
+- Cada cambio relevante (cita creada/movida/cancelada) emite un **evento de dominio**; un **motor de reglas** decide qué plantilla enviar, a quién, por qué canal y cuándo.
+- **Cola con reintentos** y programación (recordatorios se calculan desde `starts_at` y se **recalculan/cancelan** si la cita se mueve).
+- **Canales y fallback**: WhatsApp → SMS/correo si falla o el paciente no tiene WhatsApp. Push web (PWA) para el personal.
+- Respeto de **horario de silencio** (no enviar de noche), **zona horaria** del consultorio y **preferencias/opt-out** del paciente.
+- **Idempotencia** (no enviar dos veces el mismo recordatorio) y **registro completo** de entrega/lectura/respuesta en `message_log`.
+- Plantillas editables por consultorio con variables (`{{paciente}}`, `{{fecha}}`, `{{doctor}}`, `{{enlace}}`) y aprobación de WhatsApp.
+- Enlaces de acción **firmados y con vencimiento** (un solo uso para cancelar/confirmar) para evitar suplantación.
+
 ### 2.8 Reportes y panel
 - Dashboard del día: citas, ocupación, ingresos, faltantes de inventario.
 - Reportes diarios consolidados (inventario + finanzas) enviados al doctor por correo/WhatsApp.
@@ -224,6 +261,15 @@ payments(id, clinic_id, patient_id, appointment_id|plan_id, amount, method, at, 
 expenses(id, clinic_id, category, amount, method, description, at, by_user)
 daily_financial_reports(id, clinic_id, date, income, expenses, snapshot jsonb)
 
+notification_rules(id, clinic_id, event, offset_minutes, channel_order[], template_id, active)
+                                                                  -- ej. cita.starts_at - 24h → WhatsApp, fallback correo
+notification_queue(id, clinic_id, appointment_id, patient_id, rule_id, channel, send_at,
+                   status, attempts, dedupe_key)                  -- recalculada si la cita se mueve
+patient_responses(id, appointment_id, patient_id, action, payload, via, at)  -- confirmó/canceló/reprogramó/texto libre
+action_links(token_hash, appointment_id, action, expires_at, used_at)
+inbox_messages(id, clinic_id, patient_id, direction, body, status, handled_by, at)
+user_notifications(id, user_id, type, payload, read_at, at)       -- notificaciones internas
+notification_prefs(id, patient_id|user_id, channel, event_type, enabled, quiet_hours)
 message_templates(id, clinic_id, name, channel, body, wa_template_id, status)
 campaigns(id, clinic_id, name, template_id, segment jsonb, scheduled_at, status)
 message_log(id, clinic_id, campaign_id, patient_id, channel, status, error, at)
@@ -256,11 +302,14 @@ Seguridad: **RLS por `clinic_id`** en todas las tablas; el portal público solo 
 - Avance del plan y alerta de pacientes sin próxima cita.
 - **Entregable:** el doctor agenda un tratamiento completo en menos de un minuto y el historial queda registrado.
 
-### Fase 2 — Portal del paciente y recordatorios (2 semanas)
+### Fase 2 — Portal del paciente y notificaciones (3 semanas)
 - Disponibilidad pública y reserva online.
-- Link de confirmar/cancelar/reprogramar.
-- Recordatorios por correo (y WhatsApp transaccional si ya está aprobada la cuenta).
-- **Entregable:** reducción medible de no-shows.
+- Enlaces firmados de confirmar / cancelar / reprogramar.
+- **Motor de notificaciones**: eventos, reglas, cola con reintentos, recálculo al mover citas, plantillas con variables.
+- Canales: correo + push para el personal; WhatsApp transaccional en cuanto esté aprobada la cuenta.
+- Avisos de reprogramación, cuenta regresiva (7 d / 48 h / 24 h / 2 h) y bandeja de respuestas para recepción.
+- Notificaciones internas (confirmó, canceló, sin respuesta).
+- **Entregable:** reducción medible de no-shows y cero llamadas manuales para confirmar.
 
 ### Fase 3 — Inventario y finanzas (3 semanas)
 - Materiales, movimientos, lotes, stock mínimo, consumo por servicio.
@@ -323,6 +372,9 @@ Convenciones propuestas:
 | Series de citas mal generadas (feriados, zonas horarias, cambios de horario) | Vista previa obligatoria, calendario de feriados por país, generación en la zona del consultorio y pruebas de casos borde. |
 | Pérdida o alteración de la historia clínica | Notas firmadas inmutables, adendas, auditoría, respaldos y exportación en PDF. |
 | Zonas horarias / horario de verano | Guardar en UTC, mostrar en zona del consultorio. |
+| Recordatorios duplicados, tardíos o de citas ya movidas | Cola idempotente (`dedupe_key`), recálculo/cancelación al reprogramar, pruebas con reloj simulado. |
+| Suplantación al confirmar/cancelar por enlace | Tokens firmados, de un solo uso, con vencimiento; validar contra el teléfono del paciente. |
+| Pacientes molestos por exceso de mensajes | Horario de silencio, tope de mensajes por paciente/día, opt-out fácil. |
 | Costos de WhatsApp no previstos | Medir por conversación, mostrar consumo, incluirlo en el precio del plan. |
 | Cumplimiento legal (datos de salud, facturación) | Definir país objetivo pronto y revisar con asesoría legal. |
 
@@ -344,6 +396,9 @@ Convenciones propuestas:
 12. **Series de citas:** ¿los patrones suelen ser semanales (ej. "cada sábado") o variables (ej. controles cada 4–6 semanas)? ¿Se agenda todo el tratamiento al inicio o por tandas?
 13. **Planes:** ¿el paciente debe firmar la aceptación del presupuesto? ¿El cobro es por sesión, por fase o mensualidad fija?
 14. ¿Habrá **varios doctores** que atiendan a un mismo paciente (ej. ortodoncista + endodoncista) y compartan historia, o cada uno tiene la suya?
+15. **Notificaciones:** ¿con cuánta anticipación quieren recordar (ej. 48 h y 2 h)? ¿Qué pasa si el paciente no confirma: se libera el espacio o solo se avisa a recepción?
+16. ¿El paciente puede **reprogramar solo** o debe aprobarlo recepción? ¿Hay límite de reprogramaciones o penalización por cancelar tarde?
+17. ¿Qué canales usan más sus pacientes: WhatsApp, SMS, correo, llamada? ¿Hay pacientes sin WhatsApp (adultos mayores, menores con tutor)?
 
 ---
 
