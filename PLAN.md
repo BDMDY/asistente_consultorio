@@ -1,8 +1,19 @@
-# Asistente de Consultorio — Plan de trabajo
+# DentAssist — Plan de trabajo
 
 Sistema web (PWA) para organizar consultorios de **ortodoncia / odontología** y, más adelante, **consultorios médicos** en general. Pensado desde el inicio como producto **multi-consultorio** (SaaS), aunque el primer cliente sea uno solo.
 
 > Estado: borrador v0.1 — para discutir y ajustar antes de escribir código.
+
+---
+
+## 0. Decisiones tomadas
+
+| Tema | Decisión |
+|---|---|
+| Nombre del producto | **DentAssist** |
+| País | **Perú** — moneda PEN, zona horaria `America/Lima`, facturación electrónica SUNAT, Ley 29733 (datos personales) |
+| Stack | **Next.js + TypeScript + Tailwind + Supabase + Vercel** |
+| Piloto | En negociación; se construye con datos de ejemplo y se ajusta al confirmarse |
 
 ---
 
