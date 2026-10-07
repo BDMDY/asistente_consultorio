@@ -7,7 +7,8 @@ export interface Quote { id: number; t: string; a: string }
 export interface Doctor { id: number; name: string; spec: string; cop: string; photo: string }
 export interface Facility { id: number; cap: string; photo: string }
 export interface BeforeAfter { id: number; label: string; before: string; after: string }
-export interface Service { id: number; name: string; desc: string; price: string }
+/** Catálogo único: lo editan el módulo Servicios y Medios de marca; lo usan landing, reserva y agenda. */
+export interface Service { id: number; name: string; desc: string; price: string; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean }
 export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string }
 
 export interface Media {
@@ -40,10 +41,10 @@ export const DEFAULT_MEDIA: Media = {
   facs: [{ id: 1, cap: "Recepción", photo: "" }],
   cases: [{ id: 1, label: "Ortodoncia · 14 meses", before: "", after: "" }],
   services: [
-    { id: 1, name: "Ortodoncia", desc: "Brackets y alineadores a tu medida.", price: "150" },
-    { id: 2, name: "Limpieza dental", desc: "Profilaxis y control preventivo.", price: "90" },
-    { id: 3, name: "Blanqueamiento", desc: "Resultados visibles en una sesión.", price: "350" },
-    { id: 4, name: "Implantes", desc: "Recupera función y estética.", price: "1,800" },
+    { id: 1, name: "Ortodoncia", desc: "Brackets y alineadores a tu medida.", price: "150", dur: 45 },
+    { id: 2, name: "Limpieza dental", desc: "Profilaxis y control preventivo.", price: "90", dur: 30 },
+    { id: 3, name: "Blanqueamiento", desc: "Resultados visibles en una sesión.", price: "350", dur: 60 },
+    { id: 4, name: "Implantes", desc: "Recupera función y estética.", price: "1,800", dur: 90 },
   ],
 };
 
@@ -66,8 +67,11 @@ export function useMedia(): Media {
   return useMemo(() => resolveMedia(p), [p]);
 }
 
-/** Duración por defecto (en tramos de 15 min) según la posición del servicio en la lista. */
-export const serviceDuration = (i: number) => [3, 2, 4, 6][i] ?? 3;
+/** Duración en tramos de 15 min: la configurada en el servicio o, si falta, un valor por defecto según su posición. */
+export const serviceSlots = (svc: Pick<Service, "dur"> | undefined, index = 0) => (svc?.dur ? Math.max(1, Math.round(svc.dur / 15)) : ([3, 2, 4, 6][index] ?? 3));
+
+/** Servicios que se ofrecen (activos). */
+export const activeServices = (m: Media) => m.services.filter((x) => x.on !== false);
 
 export function parsePrice(price: string): number {
   const n = parseFloat(String(price).replace(/,/g, ""));

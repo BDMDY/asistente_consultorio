@@ -1,14 +1,14 @@
 "use client";
 import { useMemo } from "react";
 import { defineStore } from "./store";
+import { toast } from "./toast";
 
 /** Datos de los módulos de la intranet (planes, inventario, finanzas, servicios, campañas, personal, sedes…). */
-export interface PlanDiscount { label: string; amt: number }
-export interface Plan { id: string; pac: string; trat: string; n: number; paid: number; cuota: number; disc?: PlanDiscount }
+export interface PlanDiscount { t?: string; label: string; amt: number }
+export interface Plan { id: string; pac: string; trat: string; svcs?: string[]; n: number; paid: number; cuota: number; base?: number; disc?: PlanDiscount }
 export interface InvItem { id: string; n: string; u: string; qty: number; min: number; venc: string }
 export type FinStatus = "pagado" | "pendiente" | "vencido" | "anulado";
-export interface FinItem { id: string; c: string; m: string; a: number; st: FinStatus; disc?: PlanDiscount }
-export interface ServItem { id: string; n: string; dur: number; price: number; on: boolean }
+export interface FinItem { id: string; c: string; m: string; a: number; st: FinStatus; base?: number; disc?: PlanDiscount }
 export type MsgStatus = "activa" | "pausada" | "borrador";
 export interface MsgSeg { t: "Todos" | "Inactivos" | "Edad" | "Inconclusos" | "Citas"; a: number; b: number }
 export interface Msg { id: string; n: string; seg?: MsgSeg; aud: string; link?: string; lp?: string; txt: string; st: MsgStatus; sent: number }
@@ -23,7 +23,6 @@ export interface ModData {
   planes: Plan[];
   inv: InvItem[];
   fin: FinItem[];
-  serv: ServItem[];
   msg: Msg[];
   users: StaffUser[];
   sedes: Sede[];
@@ -50,12 +49,6 @@ export const seedMod = (): ModData => ({
     { id: "f2", c: "Carlos Vera · Implante", m: "Tarjeta", a: 1200, st: "pagado" },
     { id: "f3", c: "Ana Cruz · Saldo", m: "", a: 280, st: "pendiente" },
     { id: "f4", c: "Mario Soto · Cuota 3", m: "", a: 400, st: "vencido" },
-  ],
-  serv: [
-    { id: "s1", n: "Limpieza dental", dur: 45, price: 80, on: true },
-    { id: "s2", n: "Control de ortodoncia", dur: 30, price: 120, on: true },
-    { id: "s3", n: "Blanqueamiento", dur: 60, price: 450, on: true },
-    { id: "s4", n: "Evaluación inicial", dur: 30, price: 0, on: true },
   ],
   msg: [
     { id: "m1", n: "Recordatorio de cita", seg: { t: "Citas", a: 0, b: 2 }, aud: "Cita en 0–2 días", link: "Confirmar cita", lp: "", txt: "Hola {nombre}, te esperamos pronto a las {hora}. Confirma tu cita aquí:", st: "activa", sent: 0 },
@@ -100,3 +93,12 @@ export function useMod() {
 /** Administrador activo (perfil que se muestra en el menú). */
 export const adminOf = (m: ModData) => m.users.find((u) => u.rol === "Administrador" && u.on);
 export const initialsOf = (name: string) => name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+/** Guarda cambios del módulo y avisa; si se pasa `undo` (estado previo) ofrece deshacer. */
+export function saveMod(next: ModData, msg?: string, undo?: ModData) {
+  modStore.set(next);
+  if (msg) toast(msg, undo ? () => modStore.set(undo) : undefined);
+}
+
+export const money0 = (n: number) => "S/ " + Number(n || 0).toLocaleString("en-US");
+export const uid = () => "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);

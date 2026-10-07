@@ -5,7 +5,7 @@ import { type Appt, type SeriesRule, SLOTS, checkReschedule, clash, freeStarts, 
 import { CANCEL_REASONS, type NewApptForm, cancelAppt, chargeAppt, createAppts, priceFor, rescheduleAppt, validateNew } from "@/lib/agenda-actions";
 import { agendaStore } from "@/lib/agenda-store";
 import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
-import { type Doctor, serviceDuration, useMedia } from "@/lib/media";
+import { type Doctor, activeServices, serviceSlots, useMedia } from "@/lib/media";
 import { PAY_METHODS, type PayMethod, type Payment, money } from "@/lib/payments";
 import { patientsStore } from "@/lib/patients";
 import { toast } from "@/lib/toast";
@@ -30,12 +30,12 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
   const media = useMedia();
   const [{ appts }] = agendaStore.useStore();
   const [patients] = patientsStore.useStore();
-  const services = media.services.length ? media.services : [{ id: 0, name: "Consulta", desc: "", price: "" }];
+  const services = activeServices(media).length ? activeServices(media) : [{ id: 0, name: "Consulta", desc: "", price: "" }];
 
   const [mode, setMode] = useState(initial.mode);
   const [f, setF] = useState<NewApptForm & { picked: boolean }>({
     patient: initial.patient, picked: !!initial.patient, isNew: false, svc: services[0].name, doc: initial.doc,
-    date: initial.date, time: initial.time, dur: serviceDuration(0), notes: "",
+    date: initial.date, time: initial.time, dur: serviceSlots(services[0], 0), notes: "",
   });
   const [rule, setRule] = useState<SeriesRule>({
     freq: "weekly", days: [0, 1, 2, 3, 4, 5, 6].map((d) => d === weekday(initial.date)), endMode: "count", count: 5, until: "", onClash: "skip",
@@ -95,8 +95,8 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <label style={labelStyle}>Servicio
-          <select value={f.svc} onChange={(e) => { const i = services.findIndex((s) => s.name === e.target.value); patch({ svc: e.target.value, dur: serviceDuration(Math.max(0, i)) }); }} style={fieldStyle}>
-            {services.map((s, i) => <option key={s.id} value={s.name}>{s.name} · {serviceDuration(i) * 15} min</option>)}
+          <select value={f.svc} onChange={(e) => { const i = services.findIndex((s) => s.name === e.target.value); patch({ svc: e.target.value, dur: serviceSlots(services[Math.max(0, i)], Math.max(0, i)) }); }} style={fieldStyle}>
+            {services.map((s, i) => <option key={s.id} value={s.name}>{s.name} · {serviceSlots(s, i) * 15} min</option>)}
           </select>
         </label>
         <label style={labelStyle}>Doctor

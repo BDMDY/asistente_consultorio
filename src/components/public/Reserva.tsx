@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
@@ -9,7 +9,7 @@ import { firstFreeDoctor, hm, isClosedDay, isSlotTaken } from "@/lib/agenda";
 import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, labelLong, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
-import { doctorsOf, initials, serviceDuration, useMedia } from "@/lib/media";
+import { activeServices, doctorsOf, initials, serviceSlots, useMedia } from "@/lib/media";
 import { ensurePatient } from "@/lib/patients";
 import { defineStore } from "@/lib/store";
 
@@ -39,7 +39,8 @@ export default function Reserva() {
   const media = useMedia();
   const [{ appts }] = agendaStore.useStore();
   const docs = doctorsOf(media);
-  const doctorIds = useMemo(() => docs.map((d) => d.id), [docs]);
+  const services = activeServices(media);
+  const doctorIds = docs.map((d) => d.id);
 
   const [d] = draftStore.useStore();
   const [tried, setTried] = useState(false);
@@ -48,19 +49,18 @@ export default function Reserva() {
   const today = useToday();
 
   const patch = (p: Partial<Draft>) => draftStore.update((x) => ({ ...x, ...p }));
-  const svc = media.services.find((s) => s.id === d.svcId) ?? null;
-  const svcIndex = svc ? media.services.indexOf(svc) : -1;
-  const dur = svcIndex >= 0 ? serviceDuration(svcIndex) : 0;
+  const svc = services.find((s) => s.id === d.svcId) ?? null;
+  const dur = svc ? serviceSlots(svc, media.services.indexOf(svc)) : 0;
 
-  const days = useMemo(() => (today ? Array.from({ length: 6 }, (_, i) => addDays(today, i)) : []), [today]);
-  const slots = useMemo(() => {
+  const days = today ? Array.from({ length: 6 }, (_, i) => addDays(today, i)) : [];
+  const slots = (() => {
     if (!today || !d.date || !svc || d.doc === null || isClosedDay(d.date)) return [];
     const nowMin = limaMinutesNow();
     return Array.from({ length: 16 }, (_, i) => i * 2).filter((sl) => {
       if (d.date === today && 540 + sl * 15 <= nowMin) return false;
       return !isSlotTaken(appts, doctorIds, d.date!, d.doc === "any" ? null : d.doc, sl, dur);
     });
-  }, [today, d.date, d.doc, svc, appts, doctorIds, dur]);
+  })();
 
   const valid = {
     name: d.f.name.trim().length > 4,
@@ -135,16 +135,16 @@ export default function Reserva() {
 
         {d.step === 0 && (
           <>
-            {media.services.map((o, i) => (
+            {services.map((o) => (
               <button key={o.id} type="button" style={choiceStyle(d.svcId === o.id)} onClick={() => patch({ svcId: o.id, slot: null })}>
-                <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={ICONS[i % 5]} /></span>
+                <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={ICONS[media.services.indexOf(o) % 5]} /></span>
                 <span style={{ flex: 1 }}>
                   <b>{o.name}</b>
-                  <span className="tnum" style={{ display: "block", fontSize: 12, color: "var(--ink-500)" }}>{o.price ? `Desde S/ ${o.price} · ` : ""}{serviceDuration(i) * 15} min</span>
+                  <span className="tnum" style={{ display: "block", fontSize: 12, color: "var(--ink-500)" }}>{o.price ? `Desde S/ ${o.price} · ` : ""}{serviceSlots(o, media.services.indexOf(o)) * 15} min</span>
                 </span>
               </button>
             ))}
-            {media.services.length === 0 && (
+            {services.length === 0 && (
               <div style={{ padding: 16, borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14 }}>Por ahora no hay servicios disponibles para reservar en línea. Escríbenos por WhatsApp.</div>
             )}
           </>
