@@ -1,5 +1,6 @@
 "use client";
 import { useMemo } from "react";
+import { isRemote } from "./backend/config";
 import { defineStore } from "./store";
 import { toast } from "./toast";
 
@@ -80,7 +81,15 @@ export const seedMod = (): ModData => ({
   sent: 0,
 });
 
-export const modStore = defineStore<ModData>("da-mod-v2", seedMod);
+/** Empresa nueva (modo remoto): sin datos de ejemplo. */
+export const emptyMod = (): ModData => ({
+  planes: [], inv: [], fin: [], msg: [], users: [], sedes: [],
+  notif: { wa24: true, wa2: true, mail: false, resumen: true },
+  desc: { codes: [], camps: [] },
+  sent: 0,
+});
+
+export const modStore = defineStore<ModData>("da-mod-v2", seedMod, { remote: { name: "mod", empty: emptyMod } });
 
 export const stockLow = (m: ModData) => m.inv.filter((i) => i.qty < i.min);
 export const pendingCharges = (m: ModData) => m.fin.filter((f) => f.st === "pendiente" || f.st === "vencido");
@@ -101,4 +110,5 @@ export function saveMod(next: ModData, msg?: string, undo?: ModData) {
 }
 
 export const money0 = (n: number) => "S/ " + Number(n || 0).toLocaleString("en-US");
-export const uid = () => "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+/** Identificador de registros de módulos; en modo remoto es un UUID (las fichas de personal lo exigen). */
+export const uid = () => (isRemote ? crypto.randomUUID() : "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));

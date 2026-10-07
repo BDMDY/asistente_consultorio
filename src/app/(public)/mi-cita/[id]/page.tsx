@@ -5,5 +5,5 @@ export const metadata: Metadata = { title: "Mi cita" };
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <MiCita id={Number(id)} />;
+  return <MiCita id={id} />;
 }

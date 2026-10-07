@@ -1,4 +1,5 @@
 "use client";
+import { newId } from "./ids";
 import { defineStore } from "./store";
 
 // ───────────── Notas de la historia clínica ─────────────
@@ -9,28 +10,28 @@ export const notesStore = defineStore<Record<number, ClinicalNote[]>>("da-notes-
     { id: 2, t: "Colocación de brackets · Metálicos, ambas arcadas.", date: "2026-04-10" },
     { id: 1, t: "Primera consulta · Evaluación y plan de tratamiento.", date: "2026-03-20" },
   ],
-}));
+}), { remote: { name: "notes", empty: () => ({}) } });
 
 export function addNote(patientId: number, t: string, date: string) {
-  notesStore.update((all) => ({ ...all, [patientId]: [{ id: Date.now(), t, date }, ...(all[patientId] ?? [])] }));
+  notesStore.update((all) => ({ ...all, [patientId]: [{ id: newId(), t, date }, ...(all[patientId] ?? [])] }));
 }
 
 // ───────────── Plan de tratamiento (por paciente) ─────────────
 export interface TreatmentPlan { name: string; total: number; done: number; price: number; paidBase: number }
 export const plansStore = defineStore<Record<number, TreatmentPlan>>("da-plans-v1", () => ({
   1: { name: "Ortodoncia con brackets", total: 18, done: 9, price: 4800, paidBase: 2400 },
-}));
+}), { remote: { name: "plans", empty: () => ({}) } });
 
 // ───────────── Archivos (metadatos; el binario irá a Supabase Storage) ─────────────
 export interface PatientFile { id: number; n: string; s: string; date: string }
 export const filesStore = defineStore<Record<number, PatientFile[]>>("da-files-v1", () => ({
   1: [{ id: 1, n: "panoramica.jpg", s: "2.4 MB", date: "2026-09-02" }],
-}));
+}), { remote: { name: "files", empty: () => ({}) } });
 
 // ───────────── Historia inicial (anamnesis) ─────────────
 export type YN = "si" | "no";
 export interface Anamnesis { v: Record<string, string>; yn: Record<string, YN>; done?: boolean; at?: number }
-export const anamnesisStore = defineStore<Record<number, Anamnesis>>("da-anamnesis-v1", () => ({}));
+export const anamnesisStore = defineStore<Record<number, Anamnesis>>("da-anamnesis-v1", () => ({}), { remote: { name: "anamnesis", empty: () => ({}) } });
 
 export const emptyAnam = (): Anamnesis => ({ v: {}, yn: {} });
 export function patchAnam(patientId: number, patch: Partial<Anamnesis>) {
@@ -105,7 +106,7 @@ export type Surface = "V" | "P" | "L" | "M" | "D" | "O";
 export interface Tooth { s: Partial<Record<Surface, Tool>>; w: Tool | null; n: string }
 export type Teeth = Record<string, Tooth>;
 export interface Odontogram { t: Teeth; at?: number }
-export const odontogramStore = defineStore<Record<number, Odontogram>>("da-odontogram-v1", () => ({}));
+export const odontogramStore = defineStore<Record<number, Odontogram>>("da-odontogram-v1", () => ({}), { remote: { name: "odontogram", empty: () => ({}) } });
 
 /** [clave, etiqueta, color, tipo (s = superficie, w = diente completo, x = borrar), glifo] */
 export const ODO_TOOLS: [Tool, string, string, ToothKind, string][] = [

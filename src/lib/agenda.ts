@@ -37,6 +37,8 @@ export interface Appt {
   notes?: string;
   dni?: string;
   phone?: string;
+  /** enlace único de "Mi cita" (solo modo remoto) */
+  token?: string;
 }
 
 export interface AgendaState {

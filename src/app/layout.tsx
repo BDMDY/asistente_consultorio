@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import BackendBoot from "@/components/BackendBoot";
 import BrandProvider from "@/components/BrandProvider";
 import "@/styles/globals.css";
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
       </head>
       <body>
+        <BackendBoot />
         <BrandProvider />
         {children}
       </body>

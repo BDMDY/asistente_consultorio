@@ -45,7 +45,7 @@ export const DEFAULT_BRAND: BrandConfig = {
 const HEAD_FONTS = ["'Plus Jakarta Sans',sans-serif", "'Lora',serif", "'Source Serif 4',serif"];
 const BODY_FONTS = ["'Plus Jakarta Sans',sans-serif", "'Inter',sans-serif", "'DM Sans',sans-serif"];
 
-export const brandStore = defineStore<Partial<BrandConfig>>("da-brand-v1", () => ({}));
+export const brandStore = defineStore<Partial<BrandConfig>>("da-brand-v1", () => ({}), { remote: { name: "brand", empty: () => ({}) } });
 
 export interface ResolvedBrand extends BrandConfig {
   vars: BrandVars;

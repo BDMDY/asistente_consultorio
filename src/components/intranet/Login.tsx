@@ -1,9 +1,12 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon from "@/components/ui/Icon";
+import { sendReset, signInWithPassword, useAuth } from "@/lib/backend/auth";
+import { isRemote } from "@/lib/backend/config";
 import { useMounted } from "@/lib/hooks";
 import { isEmail, sessionStore, signIn } from "@/lib/session";
 import { toast } from "@/lib/toast";
@@ -19,7 +22,9 @@ const h1: React.CSSProperties = { fontSize: 32, fontWeight: 800, letterSpacing: 
 export default function Login() {
   const router = useRouter();
   const mounted = useMounted();
+  const auth = useAuth();
   const [session] = sessionStore.useStore();
+  const [busy, setBusy] = useState(false);
   const [view, setView] = useState<View>("login");
   const [f, setF] = useState({ email: "", pass: "", rec: "" });
   const [error, setError] = useState("");
@@ -29,20 +34,28 @@ export default function Login() {
     if (mounted && session) router.replace("/intranet/inicio");
   }, [mounted, session, router]);
 
-  function login(e: React.FormEvent) {
+  async function login(e: React.FormEvent) {
     e.preventDefault();
     if (!isEmail(f.email) || !f.pass) {
       setError("Ingresa tu correo y contraseña");
       return;
     }
     setError("");
+    if (isRemote) {
+      setBusy(true);
+      const err = await signInWithPassword(f.email.trim(), f.pass);
+      setBusy(false);
+      if (err) setError(/not confirmed/i.test(err.message) ? "Confirma tu correo con el enlace que te enviamos" : "Correo o contraseña incorrectos");
+      return; // al iniciar sesión se cargan los datos y esta pantalla redirige sola
+    }
     signIn(f.email);
     router.push("/intranet/inicio");
   }
 
-  function recover() {
+  async function recover() {
     if (!isEmail(f.rec)) return setRecErr(true);
     setRecErr(false);
+    if (isRemote) await sendReset(f.rec.trim()); // no revela si el correo existe
     setView("sent");
   }
 
@@ -69,7 +82,8 @@ export default function Login() {
               <button type="button" style={link} onClick={() => { setF({ ...f, rec: f.email }); setView("recover"); }}>Recuperar contraseña</button>
             </div>
             {error && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>{error}</div>}
-            <button type="submit" style={primary}>Iniciar sesión</button>
+            {isRemote && auth.status === "denied" && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>Tu cuenta aún no está asociada a una clínica. Pide a tu administrador que te registre con este correo. Si eres quien configura la clínica por primera vez, <Link href="/intranet/registro" style={{ color: "var(--brand-text)" }}>crea la clínica aquí</Link>.</div>}
+            <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? "Ingresando…" : "Iniciar sesión"}</button>
             <button type="button" onClick={() => toast("El acceso con Google se activa al conectar la autenticación")} style={{ ...primary, background: "var(--surface)", color: "inherit", boxShadow: "inset 0 0 0 1px var(--line)", fontWeight: 600, gap: 8 }}>
               <GoogleG />Entrar con Google
             </button>

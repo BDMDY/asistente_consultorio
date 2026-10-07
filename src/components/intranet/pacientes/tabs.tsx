@@ -3,6 +3,7 @@ import Icon, { type IconName } from "@/components/ui/Icon";
 import { STATUS_LABEL, hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
 import { type ClinicalNote, type PatientFile, type TreatmentPlan, addNote, filesStore, notesStore, plansStore } from "@/lib/clinical";
+import { newId } from "@/lib/ids";
 import { isISODate, labelDate, labelShort, todayISO } from "@/lib/dates";
 import { type Patient, patchPatient, samePatientName } from "@/lib/patients";
 import { money, paymentsStore } from "@/lib/payments";
@@ -134,7 +135,7 @@ export function TabArchivos({ p }: { p: Patient }) {
     e.target.value = "";
     if (!f) return;
     const kb = f.size / 1024;
-    const item: PatientFile = { id: Date.now(), n: f.name, s: kb > 1024 ? (kb / 1024).toFixed(1) + " MB" : Math.round(kb) + " KB", date: todayISO() };
+    const item: PatientFile = { id: newId(), n: f.name, s: kb > 1024 ? (kb / 1024).toFixed(1) + " MB" : Math.round(kb) + " KB", date: todayISO() };
     filesStore.update((all) => ({ ...all, [p.id]: [...(all[p.id] ?? []), item] }));
     toast("Archivo agregado");
   }

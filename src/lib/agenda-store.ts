@@ -2,7 +2,7 @@
 import { type Appt, type AgendaState, seedAgenda } from "./agenda";
 import { defineStore } from "./store";
 
-export const agendaStore = defineStore<AgendaState>("da-agenda-v2", () => seedAgenda());
+export const agendaStore = defineStore<AgendaState>("da-agenda-v2", () => seedAgenda(), { remote: { name: "agenda", empty: () => ({ appts: [], nid: 0 }) } });
 
 export function addAppts(items: Omit<Appt, "id">[]): Appt[] {
   let created: Appt[] = [];

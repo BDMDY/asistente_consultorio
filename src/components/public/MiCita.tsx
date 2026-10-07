@@ -5,6 +5,8 @@ import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { agendaStore, patchAppt } from "@/lib/agenda-store";
+import { actMine, useMine } from "@/lib/backend/public-api";
+import { isRemote } from "@/lib/backend/config";
 import { type Appt, apptWhenLong, freeStarts, hm, isClosedDay } from "@/lib/agenda";
 import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, diffDays, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
@@ -28,13 +30,15 @@ const chip = (on: boolean, extra: React.CSSProperties = {}): React.CSSProperties
   cursor: "pointer", border: 0, borderRadius: 12, background: on ? "var(--grad-btn)" : "var(--surface)", color: on ? "#fff" : "var(--ink-900)", boxShadow: on ? "none" : "inset 0 0 0 1px var(--line)", ...extra,
 });
 
-export default function MiCita({ id }: { id: number }) {
+export default function MiCita({ id }: { id: string }) {
   const brand = useBrand();
   const media = useMedia();
   const wide = useMediaQuery("(min-width: 900px)");
-  const [{ appts }] = agendaStore.useStore();
+  const [{ appts: localAppts }] = agendaStore.useStore();
+  const mine = useMine(id);
   const docs = doctorsOf(media);
   const [ready, setReady] = useState(false);
+  const appts = isRemote ? (mine.appt ? [...mine.busy, mine.appt] : mine.busy) : localAppts;
   const today = useToday();
   const [sheet, setSheet] = useState<null | "resched" | "cancel">(null);
   const [rs, setRs] = useState<{ date: string | null; slot: number | null; doc: number | null }>({ date: null, slot: null, doc: null });
@@ -50,7 +54,7 @@ export default function MiCita({ id }: { id: number }) {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const a = appts.find((x) => x.id === id);
+  const a = isRemote ? mine.appt ?? undefined : localAppts.find((x) => x.id === Number(id));
   const rsDate = rs.date ?? (a && today ? (a.date >= today ? a.date : today) : today);
   const rsDoc = rs.doc ?? a?.doc ?? docs[0]?.id ?? 0;
   const nowMin = limaMinutesNow();
@@ -58,6 +62,17 @@ export default function MiCita({ id }: { id: number }) {
     ? freeStarts(appts, rsDate, rsDoc, a.dur, { step: 2, ignoreId: a.id }).filter((s) => !(rsDate === today && 540 + s * 15 <= nowMin))
     : [];
   const days = today ? Array.from({ length: 12 }, (_, i) => addDays(today, i)).filter((d) => !isClosedDay(d)) : [];
+
+  /** Aplica la acción en el servidor (modo remoto) o en el almacén local (demo). */
+  async function act(action: Parameters<typeof actMine>[1], patch: Partial<Appt>, ok: string, closeSheet = false) {
+    if (!a) return;
+    if (isRemote) {
+      const err = await actMine(id, action);
+      if (err) return setToast(err);
+    } else patchAppt(a.id, patch);
+    if (closeSheet) setSheet(null);
+    setToast(ok);
+  }
 
   const shell = (children: React.ReactNode) => (
     <div style={{ maxWidth: wide ? undefined : 460, margin: "0 auto", minHeight: "100vh", background: "var(--grad-hero)", display: "flex", flexDirection: "column", position: "relative" }}>
@@ -70,7 +85,7 @@ export default function MiCita({ id }: { id: number }) {
     </div>
   );
 
-  if (!ready || !today) {
+  if (!ready || !today || (isRemote && mine.loading)) {
     return shell(
       <div className="da-skeleton" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ height: 130, borderRadius: 18, background: "var(--muted)" }} />
@@ -122,7 +137,7 @@ export default function MiCita({ id }: { id: number }) {
               {canAct && (
                 <>
                   <div style={{ height: 6 }} />
-                  {canConfirm && <button type="button" onClick={() => { patchAppt(a.id, { st: "confirmada" }); setToast("¡Asistencia confirmada!"); }} style={{ ...btn, minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff" }}>Confirmar asistencia</button>}
+                  {canConfirm && <button type="button" onClick={() => { void act({ kind: "confirm" }, { st: "confirmada" }, "¡Asistencia confirmada!"); }} style={{ ...btn, minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff" }}>Confirmar asistencia</button>}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     <button type="button" onClick={() => { setRs({ date: null, slot: null, doc: null }); setSheet("resched"); }} style={{ ...btn, minHeight: 48, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", background: "var(--surface)" }}>Reprogramar</button>
                     <button type="button" onClick={() => setSheet("cancel")} style={{ ...btn, minHeight: 48, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)", color: "var(--error-fg)", background: "var(--surface)" }}>Cancelar</button>
@@ -150,7 +165,7 @@ export default function MiCita({ id }: { id: number }) {
         {canAct && (
           <>
             <div style={{ flex: 1 }} />
-            {canConfirm && <button type="button" onClick={() => { patchAppt(a.id, { st: "confirmada" }); setToast("¡Asistencia confirmada!"); }} style={{ ...btn, minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff" }}>Confirmar asistencia</button>}
+            {canConfirm && <button type="button" onClick={() => { void act({ kind: "confirm" }, { st: "confirmada" }, "¡Asistencia confirmada!"); }} style={{ ...btn, minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff" }}>Confirmar asistencia</button>}
             <a href={ics} download="cita-dentassist.ics" style={{ ...btn, minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", textDecoration: "none" }}><Icon name="calendar-plus" />Agregar al calendario</a>
             <button type="button" onClick={() => { setRs({ date: null, slot: null, doc: null }); setSheet("resched"); }} style={{ ...btn, minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", background: "var(--surface)" }}>Reprogramar</button>
             <button type="button" onClick={() => setSheet("cancel")} style={{ ...btn, minHeight: 44, color: "var(--error-fg)", background: "transparent" }}>Cancelar cita</button>
@@ -187,13 +202,13 @@ export default function MiCita({ id }: { id: number }) {
                   ))}
                 </div>
                 {chips.length === 0 && <div style={{ fontSize: 13, color: "var(--warning-fg)", background: "var(--warning-bg)", padding: "10px 12px", borderRadius: 10, fontWeight: 600 }}>No hay horarios libres ese día. Prueba otro.</div>}
-                <button type="button" disabled={!rsOk} onClick={() => { if (!rsOk || rs.slot === null) return; patchAppt(a.id, { date: rsDate, slot: rs.slot, doc: rsDoc, st: "reprogramada" }); setSheet(null); setToast(`Cita reprogramada · ${docs.find((x) => x.id === rsDoc)?.name ?? ""}`); }} style={{ ...btn, minHeight: 50, borderRadius: 12, background: rsOk ? "var(--grad-btn)" : "var(--muted)", color: rsOk ? "#fff" : "var(--ink-300)", cursor: rsOk ? "pointer" : "not-allowed" }}>Confirmar nuevo horario</button>
+                <button type="button" disabled={!rsOk} onClick={() => { if (!rsOk || rs.slot === null) return; void act({ kind: "reschedule", date: rsDate, slot: rs.slot, doc: rsDoc }, { date: rsDate, slot: rs.slot, doc: rsDoc, st: "reprogramada" }, `Cita reprogramada · ${docs.find((x) => x.id === rsDoc)?.name ?? ""}`, true); }} style={{ ...btn, minHeight: 50, borderRadius: 12, background: rsOk ? "var(--grad-btn)" : "var(--muted)", color: rsOk ? "#fff" : "var(--ink-300)", cursor: rsOk ? "pointer" : "not-allowed" }}>Confirmar nuevo horario</button>
               </>
             ) : (
               <>
                 <b style={{ fontSize: 20 }}>¿Cancelar tu cita?</b>
                 <span style={{ fontSize: 14, color: "var(--ink-500)", lineHeight: 1.5 }}>Liberaremos el horario. Puedes reservar otro cuando quieras.</span>
-                <button type="button" onClick={() => { patchAppt(a.id, { st: "cancelada" }); setSheet(null); setToast("Cita cancelada"); }} style={{ ...btn, minHeight: 50, borderRadius: 12, background: "var(--error-fg)", color: "#fff" }}>Sí, cancelar cita</button>
+                <button type="button" onClick={() => { void act({ kind: "cancel" }, { st: "cancelada" }, "Cita cancelada", true); }} style={{ ...btn, minHeight: 50, borderRadius: 12, background: "var(--error-fg)", color: "#fff" }}>Sí, cancelar cita</button>
                 <button type="button" onClick={() => setSheet(null)} style={{ ...btn, minHeight: 46, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)", background: "transparent", color: "inherit" }}>Volver</button>
               </>
             )}

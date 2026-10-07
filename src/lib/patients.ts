@@ -1,4 +1,5 @@
 "use client";
+import { newId } from "./ids";
 import { defineStore } from "./store";
 
 export interface Patient {
@@ -25,12 +26,12 @@ export const seedPatients = (): Patient[] => [
   { id: 9, name: "Tomás Luna", dni: "48890123", phone: "979 888 999", alerts: [] },
 ];
 
-export const patientsStore = defineStore<Patient[]>("da-patients-v1", seedPatients);
+export const patientsStore = defineStore<Patient[]>("da-patients-v1", seedPatients, { remote: { name: "patients", empty: () => [] } });
 
 /** Crea el paciente si el DNI no existe todavía. */
 export function ensurePatient(p: Pick<Patient, "name" | "dni" | "phone"> & { web?: boolean }) {
   patientsStore.update((list) =>
-    list.some((x) => x.dni === p.dni) ? list : [...list, { id: Date.now(), name: p.name, dni: p.dni, phone: p.phone, web: p.web, alerts: [] }],
+    list.some((x) => x.dni === p.dni) ? list : [...list, { id: newId(), name: p.name, dni: p.dni, phone: p.phone, web: p.web, alerts: [] }],
   );
 }
 

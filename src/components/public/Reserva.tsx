@@ -4,13 +4,12 @@ import { useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
-import { addAppts, agendaStore } from "@/lib/agenda-store";
-import { firstFreeDoctor, hm, isClosedDay, isSlotTaken } from "@/lib/agenda";
+import { hm, isClosedDay, isSlotTaken } from "@/lib/agenda";
+import { bookPublic, useBusy } from "@/lib/backend/public-api";
 import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, labelLong, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
 import { activeServices, doctorsOf, initials, serviceSlots, useMedia } from "@/lib/media";
-import { ensurePatient } from "@/lib/patients";
 import { defineStore } from "@/lib/store";
 
 const ICONS: IconName[] = ["smile", "sparkles", "sun", "shield-check", "stethoscope"];
@@ -37,7 +36,7 @@ const chipStyle = (on: boolean): React.CSSProperties => ({
 export default function Reserva() {
   const brand = useBrand();
   const media = useMedia();
-  const [{ appts }] = agendaStore.useStore();
+  const appts = useBusy();
   const docs = doctorsOf(media);
   const services = activeServices(media);
   const doctorIds = docs.map((d) => d.id);
@@ -45,7 +44,9 @@ export default function Reserva() {
   const [d] = draftStore.useStore();
   const [tried, setTried] = useState(false);
   const [race, setRace] = useState(false);
-  const [booked, setBooked] = useState<{ id: number; doc: number } | null>(null);
+  const [booked, setBooked] = useState<{ ref: string; doc: number } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [bookErr, setBookErr] = useState("");
   const today = useToday();
 
   const patch = (p: Partial<Draft>) => draftStore.update((x) => ({ ...x, ...p }));
@@ -70,26 +71,28 @@ export default function Reserva() {
   const can = [d.svcId !== null, d.doc !== null, d.slot !== null, true, false][d.step];
   const formOk = valid.name && valid.dni && valid.phone && d.consent;
 
-  function book() {
-    if (!d.date || d.slot === null || !svc || d.doc === null) return;
-    // Releer la agenda: otra persona pudo reservar mientras se llenaba el formulario.
-    const fresh = agendaStore.get().appts;
-    const doc = d.doc === "any" ? firstFreeDoctor(fresh, doctorIds, d.date, d.slot, dur) : d.doc;
-    if (doc === null || isSlotTaken(fresh, doctorIds, d.date, doc, d.slot, dur)) {
-      setRace(true);
-      patch({ step: 2, slot: null });
+  async function book() {
+    if (!d.date || d.slot === null || !svc || d.doc === null || sending) return;
+    setSending(true);
+    setBookErr("");
+    // El servidor valida de nuevo: otra persona pudo reservar mientras se llenaba el formulario.
+    const res = await bookPublic({ doc: d.doc === "any" ? null : d.doc, date: d.date, slot: d.slot, dur, service: svc.name, name: d.f.name.trim(), dni: d.f.dni, phone: d.f.phone }, doctorIds);
+    setSending(false);
+    if (!res.ok) {
+      if (res.taken) {
+        setRace(true);
+        patch({ step: 2, slot: null });
+      } else setBookErr(res.error);
       return;
     }
-    const [a] = addAppts([{ date: d.date, doc, slot: d.slot, dur, p: d.f.name.trim(), s: svc.name, st: "pendiente", web: true, dni: d.f.dni, phone: d.f.phone }]);
-    ensurePatient({ name: d.f.name.trim(), dni: d.f.dni, phone: d.f.phone, web: true });
-    setBooked({ id: a.id, doc });
+    setBooked({ ref: res.ref, doc: res.doc });
     patch({ step: 4 });
   }
 
   function next() {
     if (d.step === 3) {
       if (!formOk) return setTried(true);
-      return book();
+      return void book();
     }
     if (!can) return;
     setRace(false);
@@ -101,6 +104,7 @@ export default function Reserva() {
     setTried(false);
     setRace(false);
     setBooked(null);
+    setBookErr("");
   }
 
   const bd = (ok: boolean) => (tried && !ok ? "2px solid var(--error-fg)" : "1px solid var(--line)");
@@ -223,7 +227,7 @@ export default function Reserva() {
               ))}
             </div>
             {d.doc === "any" && <div style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center" }}>Como no elegiste doctor, te asignamos a {bookedDoc?.name}.</div>}
-            <Link href={`/mi-cita/${booked.id}`} style={{ minHeight: 50, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>Ver mi cita</Link>
+            <Link href={`/mi-cita/${booked.ref}`} style={{ minHeight: 50, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>Ver mi cita</Link>
             <button type="button" onClick={reset} style={{ cursor: "pointer", minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: 0, fontSize: 16 }}>Reservar otra cita</button>
           </>
         )}
@@ -231,8 +235,9 @@ export default function Reserva() {
 
       {d.step < 4 && (
         <div style={{ position: "sticky", bottom: 0, padding: "12px 20px", background: "var(--surface)", borderTop: "1px solid var(--line)" }}>
+          {bookErr && <div role="alert" style={{ marginBottom: 10, fontSize: 13, color: "var(--error-fg)", fontWeight: 600, lineHeight: 1.4 }}>{bookErr}</div>}
           <button type="button" onClick={next} disabled={!(can || d.step === 3)} style={{ cursor: can || d.step === 3 ? "pointer" : "not-allowed", width: "100%", minHeight: 52, borderRadius: 12, border: 0, fontSize: 16, background: can || d.step === 3 ? "var(--grad-btn)" : "var(--muted)", color: can || d.step === 3 ? "#fff" : "var(--ink-300)", fontWeight: 700 }}>
-            {d.step === 3 ? "Reservar cita" : "Continuar"}
+            {d.step === 3 ? (sending ? "Reservando…" : "Reservar cita") : "Continuar"}
           </button>
         </div>
       )}

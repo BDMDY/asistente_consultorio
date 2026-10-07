@@ -1,4 +1,5 @@
 "use client";
+import { newId } from "./ids";
 import { defineStore } from "./store";
 
 /**
@@ -16,8 +17,8 @@ export interface OutboxItem {
   status: "en-cola" | "enviado";
 }
 
-export const outboxStore = defineStore<OutboxItem[]>("da-outbox-v1", () => []);
+export const outboxStore = defineStore<OutboxItem[]>("da-outbox-v1", () => [], { remote: { name: "outbox", empty: () => [] } });
 
 export function enqueue(item: Omit<OutboxItem, "id" | "at" | "status">) {
-  outboxStore.update((l) => [...l, { ...item, id: Date.now() + l.length, at: new Date().toISOString(), status: "en-cola" }]);
+  outboxStore.update((l) => [...l, { ...item, id: newId(), at: new Date().toISOString(), status: "en-cola" }]);
 }

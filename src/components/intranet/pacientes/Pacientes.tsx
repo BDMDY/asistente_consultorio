@@ -1,4 +1,5 @@
 "use client";
+import { newId } from "@/lib/ids";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -145,7 +146,7 @@ function NewPatientDialog({ sheet, onClose, onCreated }: { sheet: boolean; onClo
   function save() {
     if (!(v.name && v.dni && v.phone)) return setTried(true);
     if (patientsStore.get().some((p) => p.dni === f.dni)) return toast("Ya existe un paciente con ese DNI");
-    const np: Patient = { id: Date.now(), name: f.name.trim(), dni: f.dni, phone: f.phone, alerts: f.alerts.split(",").map((x) => x.trim()).filter(Boolean) };
+    const np: Patient = { id: newId(), name: f.name.trim(), dni: f.dni, phone: f.phone, alerts: f.alerts.split(",").map((x) => x.trim()).filter(Boolean) };
     patientsStore.update((l) => [...l, np]);
     onCreated(np.id);
     onClose();

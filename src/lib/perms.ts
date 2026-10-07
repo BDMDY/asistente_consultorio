@@ -17,7 +17,7 @@ export const seedPerms = (): PermRow[] => [
   ["Configuración", 1, 0, 0],
 ];
 
-export const permsStore = defineStore<PermRow[]>("da-perms-v1", seedPerms);
+export const permsStore = defineStore<PermRow[]>("da-perms-v1", seedPerms, { remote: { name: "perms", empty: seedPerms } });
 
 const COL: Record<Role, 1 | 2 | 3> = { Administrador: 1, Doctor: 2, Asistente: 3 };
 

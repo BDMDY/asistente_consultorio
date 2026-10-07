@@ -1,11 +1,13 @@
 "use client";
 import { type ModData, type StaffUser, modStore } from "./mod";
+import { signOutRemote } from "./backend/auth";
+import { isRemote } from "./backend/config";
 import { defineStore } from "./store";
 
 export interface Session { userId: string; email: string }
 
 /** Sesión de demostración. Se reemplaza por Supabase Auth en la fase de backend. */
-export const sessionStore = defineStore<Session | null>("da-session-v1", () => null);
+export const sessionStore = defineStore<Session | null>("da-session-v1", () => null, { memory: isRemote });
 
 export const sedeStore = defineStore<string>("da-sede-v1", () => "Sede Miraflores");
 
@@ -18,7 +20,10 @@ export function demoLogin(email: string, mod: ModData): Session {
 }
 
 export const signIn = (email: string) => sessionStore.set(demoLogin(email, modStore.get()));
-export const signOut = () => sessionStore.set(null);
+export function signOut() {
+  if (isRemote) void signOutRemote();
+  sessionStore.set(null);
+}
 
 export function currentUser(s: Session | null, mod: ModData): StaffUser | undefined {
   return s ? mod.users.find((u) => u.id === s.userId) : undefined;

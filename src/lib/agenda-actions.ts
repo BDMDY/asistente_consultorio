@@ -2,6 +2,7 @@
 import { type Appt, type ApptStatus, STATUS_LABEL, apptWhenShort, clash, generateSeries, hm, isClosedDay, slotOf, SLOTS, type SeriesRule } from "./agenda";
 import { addAppts, agendaStore, patchAppt, removeAppts } from "./agenda-store";
 import { isISODate } from "./dates";
+import { newId } from "./ids";
 import { mediaStore, parsePrice, resolveMedia } from "./media";
 import { enqueue } from "./outbox";
 import { type PayMethod, addPayment, paymentsStore } from "./payments";
@@ -97,7 +98,7 @@ export function createAppts(f: NewApptForm, mode: "single" | "series", rule: Ser
   const skipped = plan.length - items.length;
   if (f.isNew) {
     const name = base.p.toLowerCase();
-    patientsStore.update((l) => (l.some((p) => p.name.toLowerCase() === name) ? l : [...l, { id: Date.now(), name: base.p, dni: "", phone: "", alerts: [] }]));
+    patientsStore.update((l) => (l.some((p) => p.name.toLowerCase() === name) ? l : [...l, { id: newId(), name: base.p, dni: "", phone: "", alerts: [] }]));
   }
   const created = addAppts(items);
   return { created, skipped, undo: () => removeAppts(created.map((c) => c.id)) };

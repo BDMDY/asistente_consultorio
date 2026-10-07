@@ -48,7 +48,7 @@ export const DEFAULT_MEDIA: Media = {
   ],
 };
 
-export const mediaStore = defineStore<Partial<Media>>("da-media-v2", () => ({}));
+export const mediaStore = defineStore<Partial<Media>>("da-media-v2", () => ({}), { remote: { name: "media", empty: () => ({}) } });
 
 export function resolveMedia(p: Partial<Media>): Media {
   return {
