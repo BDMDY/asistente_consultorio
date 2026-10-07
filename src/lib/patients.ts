@@ -42,3 +42,15 @@ export function alertsFor(list: Patient[], name: string): string[] {
   const p = list.find((x) => x.name.toLowerCase() === n) ?? list.find((x) => x.name.toLowerCase().split(" ").pop() === last && x.name.toLowerCase()[0] === n[0]);
   return p?.alerts ?? [];
 }
+
+/** Las citas y pagos guardan el nombre; "M. Soto" corresponde a "Mario Soto" (inicial + apellido). */
+export function samePatientName(stored: string, full: string): boolean {
+  const a = stored.toLowerCase().trim(), b = full.toLowerCase().trim();
+  if (a === b) return true;
+  if (a.includes(".")) return a[0] === b[0] && a.split(" ").pop() === b.split(" ").pop();
+  return false;
+}
+
+export function patchPatient(id: number, patch: Partial<Patient>) {
+  patientsStore.update((l) => l.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+}

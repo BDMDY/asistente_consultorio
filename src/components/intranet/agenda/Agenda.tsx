@@ -48,7 +48,7 @@ export default function Agenda() {
   const [selId, setSel] = useState<number | null>(null);
   const [dialog, setDialog] = useState<Dialog>(() => {
     const n = params.get("nueva");
-    return n ? { kind: "new", mode: "single", patient: n === "1" ? "" : n } : null;
+    return n ? { kind: "new", mode: params.get("serie") ? "series" : "single", patient: n === "1" ? "" : n } : null;
   });
 
   const sel = appts.find((a) => a.id === selId) ?? null;

@@ -1,0 +1,180 @@
+"use client";
+import Icon, { type IconName } from "@/components/ui/Icon";
+import { STATUS_LABEL, hm } from "@/lib/agenda";
+import { agendaStore } from "@/lib/agenda-store";
+import { type ClinicalNote, type PatientFile, type TreatmentPlan, addNote, filesStore, notesStore, plansStore } from "@/lib/clinical";
+import { isISODate, labelDate, labelShort, todayISO } from "@/lib/dates";
+import { type Patient, patchPatient, samePatientName } from "@/lib/patients";
+import { money, paymentsStore } from "@/lib/payments";
+import { toast } from "@/lib/toast";
+import { useState } from "react";
+import Link from "next/link";
+import s from "./pac.module.css";
+
+const payLabel = (d: string) => (isISODate(d) ? labelDate(d) : d);
+const primaryBtn: React.CSSProperties = { cursor: "pointer", padding: "12px 16px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" };
+const outlineBtn: React.CSSProperties = { cursor: "pointer", padding: "12px 16px", borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-700)", fontWeight: 700, fontSize: 14, background: "transparent", border: 0, fontFamily: "inherit" };
+
+// ───────────── Historia clínica (línea de tiempo) ─────────────
+export function TabHistoria({ p }: { p: Patient }) {
+  const [notes] = notesStore.useStore();
+  const [payments] = paymentsStore.useStore();
+  const [{ appts }] = agendaStore.useStore();
+  const [text, setText] = useState("");
+  const can = text.trim().length > 2;
+
+  const mine = appts.filter((a) => samePatientName(a.p, p.name));
+  const next = mine.filter((a) => !["atendida", "cancelada", "no-show"].includes(a.st)).sort((x, y) => x.date.localeCompare(y.date) || x.slot - y.slot);
+  const done = mine.filter((a) => a.st === "atendida");
+  const pays = payments.filter((x) => samePatientName(x.patient, p.name));
+  type Item = { ord: string; icon: IconName; t: string; d: string };
+  const timeline: Item[] = [
+    ...(notes[p.id] ?? []).map((n: ClinicalNote): Item => ({ ord: n.date + String(n.id).padStart(16, "0"), icon: "notebook-pen", t: n.t, d: labelDate(n.date) })),
+    ...pays.map((x): Item => ({ ord: (isISODate(x.date) ? x.date : x.at.slice(0, 10)) + String(x.id).padStart(16, "0"), icon: "banknote", t: `Pago registrado · ${money(x.amount)} (${x.method})`, d: payLabel(x.date) })),
+    ...done.map((a): Item => ({ ord: a.date + "0".repeat(16), icon: "stethoscope", t: `${a.s} · atendida`, d: labelShort(a.date) })),
+  ].sort((a, b) => b.ord.localeCompare(a.ord));
+
+  function add() {
+    if (!can) return;
+    addNote(p.id, text.trim(), todayISO());
+    setText("");
+    toast("Nota agregada");
+  }
+
+  return (
+    <>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} aria-label="Nueva nota clínica" placeholder="Agregar nota clínica (ej. control, indicaciones, dolor)" className={s.input} style={{ height: 44, fontSize: 14, flex: 1 }} />
+        <button type="button" disabled={!can} onClick={add} style={{ cursor: can ? "pointer" : "not-allowed", padding: "0 18px", minHeight: 44, display: "flex", alignItems: "center", borderRadius: 12, background: can ? "var(--grad-btn)" : "var(--muted)", color: can ? "#fff" : "var(--ink-300)", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>Agregar</button>
+      </div>
+      {timeline.map((t) => (
+        <div key={t.ord + t.t} style={{ display: "flex", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={t.icon} size={16} /></span>
+            <span style={{ flex: 1, width: 2, background: "var(--line)" }} />
+          </div>
+          <div style={{ paddingBottom: 14 }}>
+            <b style={{ fontSize: 15 }}>{t.t}</b>
+            <div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{t.d}</div>
+          </div>
+        </div>
+      ))}
+      {timeline.length === 0 && <div style={{ color: "var(--ink-500)", fontSize: 14 }}>Aún no hay registros en la historia clínica.</div>}
+      <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>Próximas citas</div>
+      {next.map((c) => (
+        <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+          <span className="tnum"><b>{labelShort(c.date)} {hm(c.slot)}</b> · {c.s}</span>
+          <span style={{ padding: "3px 9px", borderRadius: 999, fontSize: 12, fontWeight: 700, background: `var(--st-${c.st}-bg)`, color: `var(--st-${c.st}-fg)` }}>{STATUS_LABEL[c.st]}</span>
+        </div>
+      ))}
+      {next.length === 0 && <span style={{ fontSize: 13, color: "var(--ink-500)" }}>Sin citas próximas</span>}
+    </>
+  );
+}
+
+// ───────────── Datos ─────────────
+export function TabDatos({ p }: { p: Patient }) {
+  const field = (label: string, value: string, set: (v: string) => void) => (
+    <label key={label} className={s.field}>{label}<input value={value} onChange={(e) => set(e.target.value)} className={s.input} style={{ height: 46, fontSize: 15, borderRadius: 12, padding: "0 14px" }} /></label>
+  );
+  return (
+    <>
+      <div className={s.g2}>
+        {field("Nombre completo", p.name, (v) => patchPatient(p.id, { name: v }))}
+        {field("DNI", p.dni, (v) => patchPatient(p.id, { dni: v.replace(/\D/g, "").slice(0, 8) }))}
+        {field("Celular", p.phone, (v) => patchPatient(p.id, { phone: v }))}
+        {field("Correo", p.email ?? "", (v) => patchPatient(p.id, { email: v }))}
+        {field("Alertas médicas", p.alerts.join(", "), (v) => patchPatient(p.id, { alerts: v.split(",").map((x) => x.trim()).filter(Boolean) }))}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Las alertas se separan con comas. Los cambios se guardan automáticamente.</div>
+    </>
+  );
+}
+
+// ───────────── Plan de tratamiento ─────────────
+export function TabPlan({ p, plan, onCreate, onPay }: { p: Patient; plan: TreatmentPlan | undefined; onCreate: () => void; onPay: () => void }) {
+  const [payments] = paymentsStore.useStore();
+  if (!plan) {
+    return (
+      <div style={{ padding: 24, borderRadius: 16, border: "1.5px dashed var(--brand-200)", textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+        <b>Sin plan de tratamiento</b>
+        <span style={{ fontSize: 14, color: "var(--ink-500)" }}>Crea un plan para seguir el avance y los pagos.</span>
+        <button type="button" onClick={onCreate} style={primaryBtn}>Crear plan</button>
+      </div>
+    );
+  }
+  const paid = plan.paidBase + payments.filter((x) => samePatientName(x.patient, p.name)).reduce((t, x) => t + x.amount, 0);
+  const pct = Math.min(100, Math.round((plan.done / plan.total) * 100));
+  function addControl() {
+    if (plan!.done >= plan!.total) return toast("El plan ya está completo");
+    plansStore.update((all) => ({ ...all, [p.id]: { ...plan!, done: plan!.done + 1 } }));
+    toast("Control registrado");
+  }
+  return (
+    <div style={{ borderRadius: 16, boxShadow: "inset 0 0 0 1px var(--line)", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+      <b style={{ fontSize: 18 }}>{plan.name}</b>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ink-500)" }}><span>Avance</span><b className="tnum" style={{ color: "var(--ink-900)" }}>{plan.done} de {plan.total} controles · {pct}%</b></div>
+      <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} style={{ height: 10, borderRadius: 5, background: "var(--brand-100)" }}><div style={{ width: `${pct}%`, height: "100%", borderRadius: 5, background: "var(--grad-accent)" }} /></div>
+      <div className="tnum" style={{ fontSize: 14, color: "var(--ink-500)" }}>Pagado {money(paid)} de {money(plan.price)}</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" onClick={addControl} style={primaryBtn}>Registrar control</button>
+        <button type="button" onClick={onPay} style={outlineBtn}>Registrar pago</button>
+        <Link href={`/intranet/agenda?nueva=${encodeURIComponent(p.name)}&serie=1`} style={{ ...outlineBtn, display: "flex", alignItems: "center" }}>Agendar controles en serie</Link>
+      </div>
+    </div>
+  );
+}
+
+// ───────────── Archivos ─────────────
+export function TabArchivos({ p }: { p: Patient }) {
+  const [files] = filesStore.useStore();
+  const list: PatientFile[] = files[p.id] ?? [];
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const kb = f.size / 1024;
+    const item: PatientFile = { id: Date.now(), n: f.name, s: kb > 1024 ? (kb / 1024).toFixed(1) + " MB" : Math.round(kb) + " KB", date: todayISO() };
+    filesStore.update((all) => ({ ...all, [p.id]: [...(all[p.id] ?? []), item] }));
+    toast("Archivo agregado");
+  }
+  return (
+    <>
+      <label style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 64, borderRadius: 14, border: "1.5px dashed var(--brand-300)", color: "var(--brand-700)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+        <input type="file" onChange={onFile} aria-label="Subir archivo" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }} />
+        <Icon name="upload" />Subir radiografía, foto o documento
+      </label>
+      {list.map((f) => (
+        <div key={f.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 14px", borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
+          <Icon name="file-image" style={{ color: "var(--brand-600)" }} />
+          <div style={{ flex: 1, fontSize: 14, minWidth: 0 }}><b>{f.n}</b><div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{f.s} · {labelDate(f.date)}</div></div>
+          <button type="button" aria-label={`Quitar ${f.n}`} onClick={() => filesStore.update((all) => ({ ...all, [p.id]: (all[p.id] ?? []).filter((x) => x.id !== f.id) }))} style={{ cursor: "pointer", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--error-fg)", background: "transparent", border: 0 }}><Icon name="trash-2" /></button>
+        </div>
+      ))}
+      {list.length === 0 && <div style={{ color: "var(--ink-500)", fontSize: 14 }}>Sin archivos todavía.</div>}
+      <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Modo demo: se registra el nombre y el tamaño. El archivo se guardará en almacenamiento privado al conectar Supabase.</div>
+    </>
+  );
+}
+
+// ───────────── Pagos ─────────────
+export function TabPagos({ p, onPay }: { p: Patient; onPay: () => void }) {
+  const [payments] = paymentsStore.useStore();
+  const pays = payments.filter((x) => samePatientName(x.patient, p.name)).slice().reverse();
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <b className="tnum" style={{ fontSize: 18 }}>Total pagado {money(pays.reduce((t, x) => t + x.amount, 0))}</b>
+        <button type="button" onClick={onPay} style={primaryBtn}>Registrar pago</button>
+      </div>
+      {pays.map((x) => (
+        <div key={x.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 14px", borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
+          <Icon name="banknote" style={{ color: "var(--brand-600)" }} />
+          <div style={{ flex: 1, fontSize: 14 }}><b>{x.concept}</b><div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{x.no} · {payLabel(x.date)} · {x.method}</div></div>
+          <b className="tnum">{money(x.amount)}</b>
+        </div>
+      ))}
+      {pays.length === 0 && <div style={{ color: "var(--ink-500)", fontSize: 14 }}>Sin pagos registrados.</div>}
+    </>
+  );
+}

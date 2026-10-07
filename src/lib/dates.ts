@@ -58,3 +58,9 @@ export function limaMinutesNow(now: Date = new Date()): number {
   const get = (t: string) => +(p.find((x) => x.type === t)?.value ?? 0);
   return get("hour") * 60 + get("minute");
 }
+
+/** "14 oct 2026" */
+export function labelDate(iso: string) {
+  const p = parts(iso);
+  return p ? `${p.d} ${MONTHS_SHORT[p.mo - 1]} ${p.y}` : iso;
+}
