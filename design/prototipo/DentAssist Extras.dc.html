@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Lora:wght@500;700&family=DM+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:#E9EEEB;color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:18px;line-height:1}input{font-family:inherit}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+
+<section style="display:flex;flex-direction:column;gap:10px"><b style="font-size:14px;color:var(--brand-700)">5a · Banner de consentimiento (Ley 29733) · escritorio</b>
+<div style="width:1440px;height:360px;background:var(--grad-hero);box-shadow:var(--shadow-lg);position:relative;overflow:hidden">
+<div style="padding:60px 72px;display:flex;flex-direction:column;gap:14px;max-width:640px"><div style="font-size:48px;font-weight:800;line-height:1.05;letter-spacing:-.025em">Sonrisas que cuidamos contigo</div><div style="color:var(--ink-500);font-size:17px">Reserva en menos de un minuto.</div></div>
+<div style="position:absolute;left:24px;right:24px;bottom:24px;background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);padding:20px 24px;display:flex;align-items:center;gap:24px"><span style="width:44px;height:44px;border-radius:12px;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center"><i class="icon-shield-check"></i></span><div style="flex:1;font-size:14px;line-height:1.5;color:var(--ink-700)"><b>Cuidamos tus datos.</b> Usamos tus datos personales solo para gestionar tu cita, según la Ley 29733 de Protección de Datos Personales. <a href="DentAssist%20Privacidad.dc.html">Aviso de privacidad</a></div><span style="padding:12px 18px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700;font-size:14px">Solo necesarias</span><span style="padding:12px 20px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px">Aceptar</span></div></div></section>
+
+<section style="display:flex;flex-direction:column;gap:10px"><b style="font-size:14px;color:var(--brand-700)">5b · "Mi cita" · escritorio (enlace único, sin login)</b>
+<div style="width:1440px;height:720px;background:var(--grad-hero);box-shadow:var(--shadow-lg);display:flex;flex-direction:column">
+<div style="padding:18px 72px;background:#fff;border-bottom:1px solid var(--line);font-weight:800;font-size:18px;display:flex;align-items:center;gap:10px"><span style="width:34px;height:34px;border-radius:10px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile"></i></span>Clínica Sonríe</div>
+<div style="flex:1;display:flex;align-items:center;justify-content:center"><div style="width:880px;background:#fff;border-radius:20px;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1fr 1fr;overflow:hidden">
+<div style="background:var(--brand-900);color:#fff;padding:36px;display:flex;flex-direction:column;gap:8px;justify-content:center"><span style="align-self:flex-start;padding:4px 10px;border-radius:999px;background:var(--st-pendiente-bg);color:var(--st-pendiente-fg);font-size:12px;font-weight:700">Pendiente de confirmar</span><div style="font-size:56px;font-weight:800;line-height:1.05;letter-spacing:-.02em;margin-top:10px">Faltan 2 días</div><div class="tnum" style="color:var(--brand-200);font-size:17px">Sábado 17 oct · 10:30</div></div>
+<div style="padding:32px;display:flex;flex-direction:column;gap:14px"><b style="font-size:20px">Tu cita</b>
+<sc-for list="{{ miCita }}" as="r" hint-placeholder-count="4"><div style="display:flex;gap:12px;align-items:center;font-size:15px"><i class="{{ r.i }}" style="color:var(--brand-600)"></i>{{ r.t }}</div></sc-for>
+<div style="height:6px"></div><div style="padding:15px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;text-align:center">Confirmar asistencia</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><span style="padding:13px;border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--brand-200);color:var(--brand-700);font-weight:700;text-align:center">Reprogramar</span><span style="padding:13px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);color:var(--error-fg);font-weight:700;text-align:center">Cancelar</span></div></div></div></div></div></section>
+
+<section style="display:flex;flex-direction:column;gap:10px"><b style="font-size:14px;color:var(--brand-700)">5c · Landing móvil 390 · consentimiento, reserva (pasos 1, 2, 4, 5), equipo/casos y ubicación/pie</b>
+<div style="display:flex;gap:24px;align-items:flex-start">
+<sc-for list="{{ phones }}" as="p" hint-placeholder-count="7">
+<div data-screen-label="{{ p.t }}" style="width:390px;height:780px;background:var(--bone);border-radius:28px;overflow:hidden;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;position:relative">
+<div style="padding:14px 20px;background:#fff;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center"><b style="display:flex;gap:8px;align-items:center"><span style="width:28px;height:28px;border-radius:8px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile" style="font-size:16px"></i></span>Clínica Sonríe</b><span style="font-size:12px;font-weight:700;color:var(--ink-500)">{{ p.t }}</span></div>
+<div style="flex:1;padding:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+<sc-if value="{{ p.step }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px"><sc-for list="{{ p.bar }}" as="b" hint-placeholder-count="5"><div style="flex:1;height:6px;border-radius:3px;background:{{ b }}"></div></sc-for></div><div style="font-size:12px;font-weight:600;color:var(--ink-500)">{{ p.stepLbl }}</div><b style="font-size:24px">{{ p.h }}</b></sc-if>
+<sc-for list="{{ p.items }}" as="it" hint-placeholder-count="4"><div style="display:flex;gap:12px;align-items:center;background:{{ it.bg }};border-radius:14px;padding:12px 14px;min-height:56px;box-shadow:{{ it.sh }}"><span style="width:40px;height:40px;border-radius:12px;background:{{ it.ibg }};color:var(--brand-700);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="{{ it.icon }}"></i></span><div style="flex:1;font-size:14px"><b>{{ it.t }}</b><div class="tnum" style="font-size:12px;color:var(--ink-500);line-height:1.4">{{ it.s }}</div></div><i class="{{ it.end }}" style="color:var(--brand-600)"></i></div></sc-for>
+<sc-if value="{{ p.form }}" hint-placeholder-val="{{ false }}"><label style="font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:5px">Nombre completo<input value="Lucía Rojas" style="height:48px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:15px"></label><label style="font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:5px">DNI<input value="45821367" style="height:48px;border-radius:12px;border:2px solid var(--brand-500);padding:0 12px;font-size:15px"></label><label style="font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:5px">Celular (WhatsApp)<input value="+51 987 654 321" style="height:48px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:15px"></label>
+<div style="display:flex;gap:10px;font-size:12px;color:var(--ink-500);align-items:flex-start"><span style="width:20px;height:20px;border-radius:6px;background:var(--brand-600);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="icon-check" style="font-size:13px"></i></span>Acepto el tratamiento de mis datos personales (Ley 29733).</div></sc-if>
+<sc-if value="{{ p.done }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:30px"><span style="width:76px;height:76px;border-radius:50%;background:var(--grad-accent);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-check" style="font-size:40px"></i></span><b style="font-size:24px">¡Cita reservada!</b><span class="tnum" style="color:var(--ink-500)">Sáb 17 oct · 10:30 · Dra. Quispe</span><span style="font-size:13px;color:var(--ink-500);max-width:260px">Te enviamos el enlace de tu cita por WhatsApp.</span></div></sc-if>
+<sc-if value="{{ p.team }}" hint-placeholder-val="{{ false }}"><b style="font-size:20px">Nuestro equipo</b><div style="display:flex;gap:10px"><sc-for list="{{ docs }}" as="d" hint-placeholder-count="2"><div style="flex:1;background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-md)"><div style="height:110px;background:repeating-linear-gradient(135deg,var(--brand-100) 0 10px,var(--brand-50) 10px 20px)"></div><div style="padding:10px;font-size:13px"><b>{{ d.n }}</b><div style="color:var(--ink-500)">{{ d.e }}</div></div></div></sc-for></div><b style="font-size:20px;margin-top:6px">Casos y testimonios</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="height:110px;border-radius:12px;background:var(--muted);padding:8px;font-size:12px;font-weight:700;color:var(--ink-500);display:flex;align-items:flex-end">ANTES</div><div style="height:110px;border-radius:12px;background:var(--brand-50);padding:8px;font-size:12px;font-weight:700;color:var(--brand-700);display:flex;align-items:flex-end">DESPUÉS</div></div><div style="background:var(--grad-hero);box-shadow:inset 0 0 0 1px var(--brand-100);border-radius:14px;padding:14px;font-size:14px;line-height:1.5">“Reservé desde mi celular y la atención fue excelente.” <b>· Lucía R.</b></div></sc-if>
+<sc-if value="{{ p.loc }}" hint-placeholder-val="{{ false }}"><b style="font-size:20px">Ubicación</b><div style="height:130px;border-radius:14px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)"><iframe title="Mapa de la clínica" src="https://www.openstreetmap.org/export/embed.html?bbox=-77.0337%2C-12.1249%2C-77.0257%2C-12.1189&amp;layer=mapnik&amp;marker=-12.1219%2C-77.0297" style="width:100%;height:100%;border:0" loading="lazy"></iframe></div><div class="tnum" style="font-size:13px;color:var(--ink-500);line-height:1.6">Av. Larco 345, Miraflores<br>Lun–Vie 9:00–19:00 · Sáb 9:00–13:00</div><sc-for list="{{ faq }}" as="q" hint-placeholder-count="3"><div style="background:#fff;border-radius:12px;padding:13px 14px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;box-shadow:inset 0 0 0 1px var(--line);min-height:44px;align-items:center">{{ q }}<i class="icon-plus"></i></div></sc-for><div style="margin:auto -18px -18px;background:var(--brand-950);color:var(--brand-200);padding:20px;font-size:12px;line-height:1.6"><b style="color:#fff;font-size:15px">Clínica Sonríe</b><br><a href="DentAssist%20Privacidad.dc.html" style="color:#fff">Aviso de privacidad (Ley 29733)</a> · Términos · Instagram · Facebook</div></sc-if>
+</div>
+<sc-if value="{{ p.cta }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 18px;background:#fff;border-top:1px solid var(--line)"><div style="min-height:50px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">{{ p.ctaT }}</div></div></sc-if>
+<sc-if value="{{ p.consent }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:12px;right:12px;bottom:12px;background:#fff;border-radius:18px;box-shadow:var(--shadow-lg);padding:16px;display:flex;flex-direction:column;gap:10px"><b style="font-size:15px">Cuidamos tus datos</b><span style="font-size:13px;line-height:1.5;color:var(--ink-500)">Usamos tus datos solo para gestionar tu cita (Ley 29733). <a href="DentAssist%20Privacidad.dc.html">Aviso de privacidad</a></span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><span style="min-height:46px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">Solo necesarias</span><span style="min-height:46px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">Aceptar</span></div></div></sc-if>
+<sc-if value="{{ p.wa }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:16px;bottom:{{ p.waB }}px;width:52px;height:52px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-lg)"><i class="icon-message-circle" style="font-size:26px"></i></div></sc-if>
+</div></sc-for></div></section>
+
+<section style="display:flex;flex-direction:column;gap:10px"><b style="font-size:14px;color:var(--brand-700)">5d · Modo oscuro (data-theme="dark") · dashboard</b>
+<div data-theme="dark" style="width:1100px;height:520px;background:var(--bone);box-shadow:var(--shadow-lg);padding:28px;display:flex;flex-direction:column;gap:16px;color:var(--ink-900)">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:26px;font-weight:800">Buenos días, Ana</div><span style="padding:12px 18px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px">+ Nueva cita</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px"><sc-for list="{{ kp }}" as="k" hint-placeholder-count="4"><div style="background:var(--surface);border-radius:16px;padding:18px;box-shadow:inset 0 0 0 1px var(--line)"><div style="font-size:13px;color:var(--ink-500);font-weight:600">{{ k.l }}</div><div class="tnum" style="font-size:28px;font-weight:800">{{ k.v }}</div></div></sc-for></div>
+<div style="background:var(--surface);border-radius:16px;padding:20px;box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;gap:4px"><b style="margin-bottom:6px">Citas de hoy</b>
+<sc-for list="{{ today }}" as="a" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--line);font-size:14px"><span class="tnum" style="width:52px;font-weight:700">{{ a.h }}</span><span style="flex:1;font-weight:600">{{ a.p }}</span><span style="padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ a.bg }};color:{{ a.fg }}">{{ a.st }}</span></div></sc-for></div></div></section>
+
+<section style="display:flex;flex-direction:column;gap:10px"><b style="font-size:14px;color:var(--brand-700)">5e · Tipografía opcional por empresa (elige una combinación)</b>
+<div style="width:1100px;background:#fff;border-radius:20px;box-shadow:var(--shadow-lg);padding:28px;display:grid;grid-template-columns:260px 1fr;gap:28px">
+<div style="display:flex;flex-direction:column;gap:10px"><sc-for list="{{ fonts }}" as="f" hint-placeholder-count="3"><div role="button" tabIndex="0" onClick="{{ f.pick }}" style="cursor:pointer;padding:14px;border-radius:12px;box-shadow:{{ f.sh }};min-height:44px"><b>{{ f.n }}</b><div style="font-size:12px;color:var(--ink-500)">{{ f.d }}</div></div></sc-for></div>
+<div style="border-radius:16px;background:var(--grad-hero);box-shadow:inset 0 0 0 1px var(--brand-100);padding:36px;display:flex;flex-direction:column;gap:14px"><div style="font-family:{{ head }};font-size:44px;font-weight:700;line-height:1.08;letter-spacing:-.02em">Sonrisas que cuidamos contigo</div><div style="font-family:{{ body }};font-size:17px;line-height:1.6;color:var(--ink-500);max-width:560px">Ortodoncia, odontología general y estética dental con atención personalizada. <span class="tnum">Lun–Sáb · S/ 150</span></div><span style="align-self:flex-start;padding:14px 22px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-family:{{ body }}">Reservar cita</span></div></div></section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { this._f = setTimeout(() => this.forceUpdate(), 300); }
+  state = { f: 0 };
+  renderVals() {
+    const F = [['Plus Jakarta Sans', 'Títulos y texto · predeterminada', "'Plus Jakarta Sans',sans-serif", "'Plus Jakarta Sans',sans-serif"], ['Inter + Lora', 'Texto Inter · títulos Lora (serif cálido)', "'Lora',serif", "'Inter',sans-serif"], ['DM Sans + Source Serif', 'Títulos Source Serif · texto DM Sans', "'Source Serif 4',serif", "'DM Sans',sans-serif"]];
+    const st = k => ({ bg: `var(--st-${k}-bg)`, fg: `var(--st-${k}-fg)` });
+    const it = (t, s, icon, o) => Object.assign({ t, s, icon, end: 'icon-chevron-right', bg: '#fff', sh: 'var(--shadow-md)', ibg: 'var(--brand-50)' }, o || {});
+    const sel = { bg: 'var(--brand-50)', sh: 'inset 0 0 0 2px var(--brand-500)', end: 'icon-circle-check' };
+    const bar = n => [0, 1, 2, 3, 4].map(i => i < n ? 'var(--brand-500)' : 'var(--line)');
+    const ph = (t, o) => Object.assign({ t, step: false, form: false, done: false, team: false, loc: false, cta: false, consent: false, wa: false, waB: 90, items: [], bar: [], h: '', stepLbl: '', ctaT: 'Continuar' }, o);
+    return {
+      rootStyle: Object.assign({ padding: 40, display: 'flex', flexDirection: 'column', gap: 48, width: 'max-content' }, window.DA ? window.DA.brand().vars : {}),
+      miCita: [['Ortodoncia · control mensual', 'icon-smile'], ['Dra. Ana Quispe', 'icon-user'], ['Av. Larco 345, Miraflores', 'icon-map-pin'], ['Paciente: Lucía Rojas', 'icon-id-card']].map(r => ({ t: r[0], i: r[1] })),
+      phones: [
+        ph('Consentimiento', { consent: true, wa: true, waB: 190, team: false, items: [] , step: false }),
+        ph('Reserva · 1', { step: true, bar: bar(1), stepLbl: 'PASO 1 DE 5', h: 'Elige un servicio', cta: true, items: [it('Ortodoncia', 'Desde S/ 150 · 45 min', 'icon-smile', sel), it('Limpieza dental', 'Desde S/ 90 · 30 min', 'icon-sparkles'), it('Blanqueamiento', 'Desde S/ 350 · 60 min', 'icon-sun'), it('Implantes', 'Desde S/ 1,800 · 90 min', 'icon-shield-check')] }),
+        ph('Reserva · 2', { step: true, bar: bar(2), stepLbl: 'PASO 2 DE 5 · OPCIONAL', h: '¿Con qué doctor?', cta: true, items: [it('Sin preferencia', 'Primer horario disponible', 'icon-users'), it('Dra. Ana Quispe', 'Ortodoncista · COP 12345', 'icon-user', sel), it('Dr. Luis Paredes', 'Odontólogo · COP 23456', 'icon-user')] }),
+        ph('Reserva · 4', { step: true, bar: bar(4), stepLbl: 'PASO 4 DE 5', h: 'Tus datos', form: true, cta: true, ctaT: 'Reservar cita' }),
+        ph('Reserva · 5', { done: true, step: false, wa: true, waB: 24 }),
+        ph('Equipo y casos', { team: true, wa: true }),
+        ph('Ubicación y pie', { loc: true })
+      ],
+      docs: (() => { try { const m = JSON.parse(localStorage.getItem('da-media-v2') || 'null'); if (m && m.docs) return m.docs.slice(0, 3).map(d => ({ n: d.name, e: d.spec })); } catch (e) {} return [{ n: 'Dra. Ana Quispe', e: 'Ortodoncista' }, { n: 'Dr. Luis Paredes', e: 'Odontólogo' }]; })(),
+      faq: ['¿Atienden emergencias?', '¿Qué medios de pago aceptan?', '¿Cómo reprogramo mi cita?'],
+      kp: [['Citas de hoy', '14'], ['Ocupación', '82%'], ['Ingresos', 'S/ 2,350'], ['Sin confirmar', '4']].map(k => ({ l: k[0], v: k[1] })),
+      today: [['09:00', 'M. Soto', 'atendida', 'Atendida'], ['09:30', 'C. Díaz', 'en-sala', 'En sala'], ['10:30', 'Lucía Rojas', 'pendiente', 'Pendiente'], ['11:00', 'P. Vera', 'confirmada', 'Confirmada']].map(r => Object.assign({ h: r[0], p: r[1], st: r[3] }, st(r[2]))),
+      fonts: F.map((f, i) => ({ n: f[0], d: f[1], sh: this.state.f === i ? 'inset 0 0 0 2px var(--brand-500)' : 'inset 0 0 0 1px var(--line)', pick: () => this.setState({ f: i }) })),
+      head: F[this.state.f][2], body: F[this.state.f][3]
+    };
+  }
+}
+</script>
+</body>
+</html>

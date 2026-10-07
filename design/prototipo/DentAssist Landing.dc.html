@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Lora:wght@500;700&family=DM+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:#E9EEEB;color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:20px;line-height:1}</style>
+</helmet>
+<sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+<div data-theme="{{ theme }}" style="{{ root }}">
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:14px;color:var(--brand-700)">Landing público · datos de la intranet (Configuración de marca y Medios de marca)</b>
+<sc-for list="{{ demos }}" as="d" hint-placeholder-count="2"><span role="button" tabIndex="0" onClick="{{ d.pick }}" style="cursor:pointer;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:700;background:{{ d.bg }};color:{{ d.fg }};box-shadow:{{ d.sh }}">{{ d.t }}</span></sc-for></div>
+
+<section data-screen-label="Landing escritorio" style="display:flex;flex-direction:column;gap:12px">
+<div style="width:100%;max-width:1440px;box-sizing:border-box;background:var(--bone);display:flex;flex-direction:column;box-shadow:var(--shadow-lg);position:relative;font-family:{{ body }};overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:16px {{ ph }}px;background:var(--surface);border-bottom:1px solid var(--line);gap:12px">
+<div style="display:{{ logo.show }};width:220px;height:40px;background-image:{{ logo.bgi }};background-repeat:no-repeat;background-size:contain;background-position:left center"></div>
+<div style="display:{{ logo.up }};align-items:center;gap:10px;font-weight:800;font-size:20px"><span style="width:36px;height:36px;border-radius:10px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile"></i></span>{{ name }}</div>
+<nav style="display:{{ navDisp }};gap:32px;font-size:15px;font-weight:600"><a href="#servicios" style="color:var(--ink-700);text-decoration:none">Servicios</a><a href="#equipo" style="color:var(--ink-700);text-decoration:none">Equipo</a><a href="#casos" style="color:var(--ink-700);text-decoration:none">Casos</a><a href="#ubicacion" style="color:var(--ink-700);text-decoration:none">Ubicación</a><a href="#faq" style="color:var(--ink-700);text-decoration:none">Preguntas</a></nav>
+<span role="button" tabIndex="0" aria-label="Menú" aria-expanded="{{ menuOpen }}" onClick="{{ toggleMenu }}" style="display:{{ menuBtn }};cursor:pointer;width:44px;height:44px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);align-items:center;justify-content:center;margin-left:auto"><i class="{{ menuIcon }}"></i></span><a href="DentAssist%20Reserva.dc.html" style="padding:12px 20px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:600;font-size:15px;text-decoration:none;white-space:nowrap">Reservar cita</a></div>
+<sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--line)"><sc-for list="{{ menuLinks }}" as="l" hint-placeholder-count="5"><a href="{{ l.h }}" onClick="{{ closeMenu }}" style="min-height:48px;padding:0 {{ ph }}px;display:flex;align-items:center;font-weight:600;color:var(--ink-900);text-decoration:none;border-top:1px solid var(--line)">{{ l.t }}</a></sc-for></div></sc-if>
+
+<div style="background:var(--grad-hero);padding:{{ pv }}px {{ ph }}px;display:grid;grid-template-columns:{{ g2h }};gap:{{ gh }}px;align-items:center"><div style="display:flex;flex-direction:column;gap:22px">
+<div style="font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--brand-700)">{{ kicker }}</div>
+<div style="font-family:{{ head }};font-size:{{ h1 }}px;font-weight:800;line-height:1.05;letter-spacing:-.025em">{{ slogan }}</div>
+<div style="font-size:19px;line-height:1.55;color:var(--ink-500);max-width:520px">{{ heroSub }}</div>
+<div style="display:flex;gap:12px"><a href="DentAssist%20Reserva.dc.html" style="padding:16px 26px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:16px;text-decoration:none;box-shadow:0 6px 16px rgba(0,0,0,.15)">Reservar cita</a><a href="{{ waLink }}" style="padding:15px 26px;border-radius:12px;background:var(--surface);color:var(--brand-700);font-weight:700;font-size:16px;border:1.5px solid var(--brand-200);display:flex;gap:8px;align-items:center;text-decoration:none"><i class="icon-message-circle"></i>WhatsApp</a></div>
+<div style="display:flex;gap:10px;align-items:center;font-size:14px;color:var(--ink-500)"><i class="icon-star" style="color:var(--accent-500)"></i><b style="color:var(--ink-900)">{{ rating }}</b> · {{ patients }} pacientes · {{ hours }}</div></div>
+<div style="height:{{ heroH }}px;border-radius:20px;overflow:hidden;background:repeating-linear-gradient(135deg,var(--brand-100) 0 14px,var(--brand-50) 14px 28px)"><div style="width:100%;height:100%;display:{{ hero.show }};background-image:{{ hero.bgi }};background-size:cover;background-position:center"></div></div></div>
+
+<sc-if value="{{ hasSv }}" hint-placeholder-val="{{ true }}"><div id="servicios" style="padding:{{ pv }}px {{ ph }}px 24px;display:flex;flex-direction:column;gap:28px"><div style="font-family:{{ head }};font-size:36px;font-weight:800;letter-spacing:-.02em">{{ servicesTitle }}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px"><sc-for list="{{ sv }}" as="s" hint-placeholder-count="4"><div style="background:var(--surface);border-radius:16px;padding:24px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:10px"><span style="width:48px;height:48px;border-radius:12px;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center"><i class="{{ s.icon }}" style="font-size:24px"></i></span><b style="font-size:18px">{{ s.name }}</b><span style="font-size:14px;line-height:1.5;color:var(--ink-500)">{{ s.desc }}</span><span class="tnum" style="font-size:14px;font-weight:700;color:var(--brand-700)">{{ s.price }}</span></div></sc-for></div></div></sc-if>
+
+<div style="background:var(--brand-900);color:#fff;padding:40px {{ ph }}px;display:grid;grid-template-columns:{{ gStat }};gap:24px;margin-top:48px"><sc-for list="{{ stats }}" as="s" hint-placeholder-count="4"><div><div class="tnum" style="font-size:44px;font-weight:800">{{ s.n }}</div><div style="font-size:15px;color:var(--brand-200)">{{ s.l }}</div></div></sc-for></div>
+
+<sc-if value="{{ hasDocs }}" hint-placeholder-val="{{ true }}"><div id="equipo" style="padding:{{ pv }}px {{ ph }}px 24px;display:flex;flex-direction:column;gap:28px"><div style="font-family:{{ head }};font-size:36px;font-weight:800;letter-spacing:-.02em">{{ teamTitle }}</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px"><sc-for list="{{ docs }}" as="d" hint-placeholder-count="3"><div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-md)"><div style="height:220px;background:repeating-linear-gradient(135deg,var(--brand-100) 0 12px,var(--brand-50) 12px 24px)"><div style="width:100%;height:100%;display:{{ d.show }};background-image:{{ d.bgi }};background-size:cover;background-position:center"></div></div><div style="padding:18px;display:flex;flex-direction:column;gap:2px"><b style="font-size:18px">{{ d.name }}</b><span style="color:var(--ink-500);font-size:14px">{{ d.spec }}</span><span class="tnum" style="font-size:13px;color:var(--ink-500)">{{ d.cop }}</span></div></div></sc-for></div></div></sc-if>
+
+<sc-if value="{{ hasFacs }}" hint-placeholder-val="{{ true }}"><div style="padding:40px {{ ph }}px 24px;display:flex;flex-direction:column;gap:28px"><div style="font-family:{{ head }};font-size:36px;font-weight:800;letter-spacing:-.02em">Nuestras instalaciones</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px"><sc-for list="{{ facs }}" as="d" hint-placeholder-count="2"><div style="height:200px;border-radius:16px;overflow:hidden;position:relative;background:repeating-linear-gradient(135deg,var(--muted) 0 12px,var(--surface) 12px 24px)"><div style="width:100%;height:100%;display:{{ d.show }};background-image:{{ d.bgi }};background-size:cover;background-position:center"></div><span style="position:absolute;left:12px;bottom:12px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.92);color:#10241B;font-size:13px;font-weight:700">{{ d.cap }}</span></div></sc-for></div></div></sc-if>
+
+<div id="casos" style="padding:40px {{ ph }}px {{ pv }}px;display:grid;grid-template-columns:{{ gCasos }};gap:24px">
+<sc-if value="{{ hasCases }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:20px"><div style="font-family:{{ head }};font-size:36px;font-weight:800;letter-spacing:-.02em">Casos antes / después</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px"><sc-for list="{{ cases }}" as="c" hint-placeholder-count="2"><div style="background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow-md)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="height:170px;border-radius:12px;background:var(--muted);overflow:hidden;position:relative"><div style="width:100%;height:100%;display:{{ c.showB }};background-image:{{ c.bgB }};background-size:cover;background-position:center"></div><span style="position:absolute;left:8px;bottom:8px;font-size:12px;font-weight:700;color:var(--ink-500)">ANTES</span></div><div style="height:170px;border-radius:12px;background:var(--brand-50);overflow:hidden;position:relative"><div style="width:100%;height:100%;display:{{ c.showA }};background-image:{{ c.bgA }};background-size:cover;background-position:center"></div><span style="position:absolute;left:8px;bottom:8px;font-size:12px;font-weight:700;color:var(--brand-700)">DESPUÉS</span></div></div><div style="font-size:14px;font-weight:600;margin-top:10px">{{ c.label }}</div></div></sc-for></div></div></sc-if>
+<div style="display:flex;flex-direction:column;gap:14px"><div style="font-family:{{ head }};font-size:36px;font-weight:800;letter-spacing:-.02em">{{ quotesTitle }}</div>
+<sc-for list="{{ quotes }}" as="q" hint-placeholder-count="2"><div style="background:var(--grad-hero);border-radius:16px;padding:22px;box-shadow:inset 0 0 0 1px var(--brand-100);display:flex;flex-direction:column;gap:10px"><div style="color:var(--accent-500);letter-spacing:2px">★★★★★</div><div style="font-size:16px;line-height:1.5;font-weight:500">“{{ q.t }}”</div><span style="font-size:14px;color:var(--ink-500)">{{ q.a }}</span></div></sc-for></div></div>
+
+<div style="background:var(--grad-hero);padding:{{ pv }}px {{ ph }}px;display:grid;grid-template-columns:{{ g2 }};gap:32px;align-items:center"><div style="display:flex;flex-direction:column;gap:14px"><div style="font-family:{{ head }};font-size:36px;font-weight:800;letter-spacing:-.02em">Reserva tu cita en 5 pasos</div><div style="color:var(--ink-500);font-size:16px">Solo mostramos horarios libres, en hora de Lima. Sin llamadas ni registro.</div></div>
+<div style="background:var(--surface);border-radius:20px;padding:28px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:12px"><sc-for list="{{ steps }}" as="s" hint-placeholder-count="5"><div style="display:flex;gap:12px;align-items:center;font-size:15px;font-weight:600"><span style="width:28px;height:28px;border-radius:50%;background:var(--brand-100);color:var(--brand-800);display:flex;align-items:center;justify-content:center;font-size:13px">{{ s.i }}</span>{{ s.t }}</div></sc-for><a href="DentAssist%20Reserva.dc.html" style="margin-top:6px;padding:15px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;text-align:center;text-decoration:none">Reservar ahora</a></div></div>
+
+<div id="ubicacion" style="padding:{{ pv }}px {{ ph }}px;display:grid;grid-template-columns:{{ g2 }};gap:32px"><div style="display:flex;flex-direction:column;gap:16px"><div style="font-family:{{ head }};font-size:32px;font-weight:800">Ubicación y contacto</div>
+<div style="height:260px;border-radius:16px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line);background:var(--muted)"><iframe title="Mapa de la clínica" src="https://www.openstreetmap.org/export/embed.html?bbox=-77.0337%2C-12.1249%2C-77.0257%2C-12.1189&amp;layer=mapnik&amp;marker=-12.1219%2C-77.0297" style="width:100%;height:100%;border:0" loading="lazy"></iframe></div>
+<div style="font-size:15px;color:var(--ink-700);line-height:1.9;display:flex;flex-direction:column"><span><i class="icon-map-pin" style="font-size:16px"></i> {{ address }}</span><span class="tnum"><i class="icon-clock" style="font-size:16px"></i> {{ hours }}</span><a href="{{ telLink }}" class="tnum" style="text-decoration:none"><i class="icon-phone" style="font-size:16px"></i> {{ phone }}</a><a href="{{ waLink }}" class="tnum" style="text-decoration:none"><i class="icon-message-circle" style="font-size:16px"></i> {{ whatsapp }}</a></div></div>
+<div id="faq" style="display:flex;flex-direction:column;gap:10px"><div style="font-family:{{ head }};font-size:32px;font-weight:800;margin-bottom:6px">Preguntas frecuentes</div>
+<sc-for list="{{ faq }}" as="q" hint-placeholder-count="4"><div style="background:var(--surface);border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden"><div role="button" tabIndex="0" onClick="{{ q.toggle }}" style="cursor:pointer;padding:16px 20px;font-weight:600;display:flex;justify-content:space-between;align-items:center;min-height:24px">{{ q.q }}<i class="{{ q.icon }}"></i></div><div style="display:{{ q.show }};padding:0 20px 16px;font-size:14px;line-height:1.6;color:var(--ink-500)">{{ q.a }}</div></div></sc-for></div></div>
+
+<div style="background:var(--brand-950);padding:32px {{ ph }}px;display:grid;grid-template-columns:{{ g2 }};gap:20px;font-size:14px;color:var(--brand-200)"><div style="display:flex;flex-direction:column;gap:8px"><div style="display:{{ logoD.show }};width:220px;height:36px;background-image:{{ logoD.bgi }};background-repeat:no-repeat;background-size:contain;background-position:left center"></div><b style="display:{{ logoD.up }};color:#fff;font-size:18px">{{ name }}</b><span>{{ address }}</span></div>
+<div style="display:flex;flex-direction:column;gap:8px;align-items:{{ fAlign }}"><span style="display:flex;gap:18px;flex-wrap:wrap"><span>Instagram {{ instagram }}</span><span>Facebook {{ facebook }}</span></span><a href="DentAssist%20Privacidad.dc.html" style="color:#fff;font-weight:600">Aviso de privacidad (Ley 29733)</a></div></div>
+<div style="position:sticky;bottom:24px;height:0;display:flex;justify-content:flex-end;padding-right:28px"><a href="{{ waLink }}" aria-label="Escribir por WhatsApp" style="position:relative;top:-56px;width:56px;height:56px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-lg)"><i class="icon-message-circle" style="font-size:28px"></i></a></div>
+</div></section>
+
+<section style="display:flex;flex-direction:column;gap:12px">
+<b style="font-size:14px;color:var(--brand-700)">Móvil 390 · inicio, reserva (paso 3) y "Mi cita"</b>
+<div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+<sc-for list="{{ phones }}" as="p" hint-placeholder-count="3">
+<div data-screen-label="{{ p.label }}" style="width:390px;height:780px;background:var(--bone);border-radius:28px;overflow:hidden;box-shadow:var(--shadow-lg);position:relative;display:flex;flex-direction:column;font-family:{{ body }}">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--line)"><b style="display:flex;gap:8px;align-items:center"><span style="width:28px;height:28px;border-radius:8px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile" style="font-size:16px"></i></span>{{ name }}</b><i class="icon-menu"></i></div>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column">{{ p.kind }}</div>
+</div></sc-for>
+</div></section>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { menu: false, vw: 1440, demo: 'mine', faq: 0, t: 0 };
+  componentDidMount() { this._vw = () => this.setState({ vw: window.innerWidth }); this._vw(); window.addEventListener('resize', this._vw); this._h = () => this.setState(s => ({ t: s.t + 1 })); window.addEventListener('storage', this._h); window.addEventListener('focus', this._h); }
+  componentWillUnmount() { window.removeEventListener('storage', this._h); window.removeEventListener('focus', this._h); clearTimeout(this._r); }
+  renderVals() {
+    const DA = window.DA;
+    if (!DA) { clearTimeout(this._r); this._r = setTimeout(() => this.setState(s => ({ t: s.t + 1 })), 150); return { ready: false }; }
+    const B = DA.brand(), M = DA.media(), I = M.img, S = this.state, azul = S.demo === 'azul'; const nr = S.vw < 760;
+    const bg = p => p ? 'url("' + p + '")' : 'none', sh = p => p ? 'block' : 'none';
+    const img = k => ({ show: sh(I[k]), bgi: bg(I[k]), up: I[k] ? 'none' : 'flex' });
+    const vars = azul ? DA.azul() : B.vars, name = azul ? 'Dental Norte' : B.name, kicker = azul ? 'ODONTOLOGÍA INTEGRAL · LIMA' : B.kicker;
+    const ic = ['icon-smile', 'icon-sparkles', 'icon-sun', 'icon-shield-check', 'icon-stethoscope'];
+    const h = React.createElement, Ic = (c, s) => h('i', { className: c, style: s });
+    const btn = (t, st) => h('div', { style: Object.assign({ padding: 15, borderRadius: 12, background: 'var(--grad-btn)', color: '#fff', fontWeight: 700, textAlign: 'center', minHeight: 44 }, st) }, t);
+    const col = (st, ...c) => h('div', { style: Object.assign({ display: 'flex', flexDirection: 'column' }, st) }, ...c);
+    const home = col({ flex: 1 },
+      col({ background: 'var(--grad-hero)', padding: '28px 20px', gap: 14 },
+        h('div', { style: { fontSize: 12, fontWeight: 700, letterSpacing: '.1em', color: 'var(--brand-700)' } }, kicker),
+        h('div', { style: { fontFamily: B.head, fontSize: 34, fontWeight: 800, lineHeight: 1.08, letterSpacing: '-.02em' } }, B.slogan),
+        h('div', { style: { fontSize: 15, color: 'var(--ink-500)', lineHeight: 1.5 } }, B.heroSub),
+        h('div', { style: { height: 100, borderRadius: 16, backgroundImage: I.hero ? 'url("' + I.hero + '")' : 'repeating-linear-gradient(135deg,var(--brand-100) 0 12px,var(--brand-50) 12px 24px)', backgroundSize: 'cover', backgroundPosition: 'center' } }),
+        btn('Reservar cita'),
+        h('div', { style: { padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1.5px solid var(--brand-200)', color: 'var(--brand-700)', fontWeight: 700, textAlign: 'center' } }, 'WhatsApp')),
+      col({ padding: 20, gap: 10 }, h('b', { style: { fontSize: 20 } }, B.servicesTitle),
+        ...M.services.slice(0, 2).map((s, i) =>
+          h('div', { key: s.id, style: { display: 'flex', gap: 12, alignItems: 'center', background: 'var(--surface)', borderRadius: 14, padding: 14, boxShadow: 'var(--shadow-md)' } },
+            h('span', { style: { width: 44, height: 44, borderRadius: 12, background: 'var(--brand-50)', color: 'var(--brand-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, Ic(ic[i % 5])),
+            h('div', { style: { flex: 1 } }, h('b', null, s.name), h('div', { className: 'tnum', style: { fontSize: 13, color: 'var(--ink-500)' } }, s.price ? 'Desde S/ ' + s.price : '')), Ic('icon-chevron-right')))));
+    const chip = (t, on, off) => h('div', { key: t, className: 'tnum', style: { minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, fontWeight: 600, background: on ? 'var(--grad-btn)' : off ? 'var(--muted)' : 'var(--surface)', color: on ? '#fff' : off ? 'var(--ink-300)' : 'var(--ink-900)', boxShadow: on ? 'none' : 'inset 0 0 0 1px var(--line)', textDecoration: off ? 'line-through' : 'none' } }, t);
+    const book = col({ flex: 1, padding: 20, gap: 16 },
+      h('div', { style: { display: 'flex', gap: 6 } }, ...[1, 1, 1, 0, 0].map((a, i) => h('div', { key: i, style: { flex: 1, height: 6, borderRadius: 3, background: a ? 'var(--brand-500)' : 'var(--line)' } }))),
+      h('div', { style: { fontSize: 12, color: 'var(--ink-500)', fontWeight: 600 } }, 'PASO 3 DE 5'),
+      h('b', { style: { fontSize: 24 } }, 'Elige día y hora'),
+      h('div', { style: { display: 'flex', gap: 6 } }, ...[['Lun', 12], ['Mar', 13], ['Mié', 14], ['Jue', 15], ['Vie', 16]].map((d, i) => h('div', { key: i, style: { flex: 1, minHeight: 60, borderRadius: 12, textAlign: 'center', padding: '8px 0', background: i === 2 ? 'var(--grad-btn)' : 'var(--surface)', color: i === 2 ? '#fff' : 'var(--ink-900)', boxShadow: i === 2 ? 'none' : 'inset 0 0 0 1px var(--line)' } }, h('div', { style: { fontSize: 12 } }, d[0]), h('div', { className: 'tnum', style: { fontSize: 18, fontWeight: 700 } }, d[1])))),
+      h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 } }, chip('09:00'), chip('09:30', 0, 1), chip('10:30', 1), chip('11:30'), chip('12:00', 0, 1), chip('15:00'), chip('15:30'), chip('16:30')),
+      h('div', { style: { fontSize: 13, color: 'var(--ink-500)' } }, DA.docs()[0].name + ' · ' + M.services[0].name + ' · 45 min'),
+      h('div', { style: { flex: 1 } }), btn('Continuar'));
+    const cita = col({ flex: 1, padding: 20, gap: 16 },
+      h('div', { style: { background: 'var(--grad-hero)', borderRadius: 16, padding: 20, boxShadow: 'inset 0 0 0 1px var(--brand-100)', display: 'flex', flexDirection: 'column', gap: 6 } },
+        h('span', { style: { alignSelf: 'flex-start', padding: '4px 10px', borderRadius: 999, background: 'var(--st-pendiente-bg)', color: 'var(--st-pendiente-fg)', fontSize: 12, fontWeight: 700 } }, 'Pendiente de confirmar'),
+        h('div', { style: { fontSize: 40, fontWeight: 800, color: 'var(--brand-700)' } }, 'Faltan 2 días'), h('div', { className: 'tnum', style: { color: 'var(--ink-500)' } }, 'Sábado 17 oct · 10:30')),
+      col({ gap: 12, background: 'var(--surface)', padding: 18, borderRadius: 16, boxShadow: 'var(--shadow-md)' },
+        ...[[M.services[0].name + ' · control', 'icon-smile'], [DA.docs()[0].name, 'icon-user'], [B.address, 'icon-map-pin'], ['Paciente: Lucía Rojas', 'icon-id-card']].map(r => h('div', { key: r[0], style: { display: 'flex', gap: 12, alignItems: 'center', fontSize: 15 } }, Ic(r[1], { color: 'var(--brand-600)' }), r[0]))),
+      h('div', { style: { flex: 1 } }), btn('Confirmar asistencia'),
+      h('div', { style: { padding: 14, borderRadius: 12, boxShadow: 'inset 0 0 0 1.5px var(--brand-200)', color: 'var(--brand-700)', fontWeight: 700, textAlign: 'center' } }, 'Reprogramar'),
+      h('div', { style: { padding: 10, color: 'var(--error-fg)', fontWeight: 700, textAlign: 'center' } }, 'Cancelar cita'));
+    const wa = h('a', { href: B.waLink, 'aria-label': 'WhatsApp', style: { position: 'absolute', right: 16, bottom: 16, width: 52, height: 52, borderRadius: '50%', background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-lg)' } }, Ic('icon-message-circle', { fontSize: 26 }));
+    const faqs = [['¿Atienden emergencias?', 'Sí. Escríbenos por WhatsApp y te damos el primer horario disponible el mismo día.'], ['¿Qué medios de pago aceptan?', 'Efectivo, tarjetas, Yape y Plin. Emitimos boleta o factura.'], ['¿Cómo reprogramo mi cita?', 'Desde el enlace "Mi cita" que recibes por WhatsApp, sin necesidad de llamar.'], ['¿Cuánto dura la primera consulta?', 'Entre 30 y 45 minutos, según el servicio elegido.']];
+    return {
+      menuBtn: nr ? 'flex' : 'none', menuOpen: nr && S.menu, menuIcon: S.menu ? 'icon-x' : 'icon-menu', toggleMenu: () => this.setState({ menu: !S.menu }), closeMenu: () => this.setState({ menu: false }), menuLinks: [['Servicios', '#servicios'], ['Equipo', '#equipo'], ['Casos', '#casos'], ['Ubicación', '#ubicacion'], ['Preguntas', '#faq']].map(x => ({ t: x[0], h: x[1] })),
+      ready: true, ph: nr ? 20 : 72, pv: nr ? 40 : 72, gh: nr ? 28 : 56, h1: nr ? 36 : 56, heroH: nr ? 240 : 440, g2: nr ? 'minmax(0,1fr)' : '1fr 1fr', g2h: nr ? 'minmax(0,1fr)' : '1.1fr 1fr', gStat: nr ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))', gCasos: nr ? 'minmax(0,1fr)' : '1.4fr 1fr', navDisp: S.vw < 1000 ? 'none' : 'flex', fAlign: nr ? 'flex-start' : 'flex-end', root: Object.assign({ padding: S.vw < 760 ? 12 : 40, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 40, width: '100%', maxWidth: '100%' }, vars),
+      demos: [['Mi marca', 'mine'], ['Variante de ejemplo · azul', 'azul']].map(d => ({ t: d[0], pick: () => this.setState({ demo: d[1] }), bg: S.demo === d[1] ? 'var(--grad-btn)' : '#fff', fg: S.demo === d[1] ? '#fff' : '#10241B', sh: S.demo === d[1] ? 'none' : 'inset 0 0 0 1px var(--line)' })).concat([{ t: DA.theme() === 'dark' ? 'Modo claro' : 'Modo oscuro', pick: () => { DA.setTheme(DA.theme() === 'dark' ? 'light' : 'dark'); this.setState(s => ({ t: s.t + 1 })); }, bg: '#fff', fg: '#10241B', sh: 'inset 0 0 0 1px var(--line)' }]),
+      theme: DA.theme(), rating: (M.stats[2] || { n: '' }).n, patients: (M.stats[1] || { n: '' }).n, quotesTitle: M.quotes.length ? 'Lo que dicen' : '',
+      name, kicker, slogan: B.slogan, heroSub: B.heroSub, head: B.head, body: B.body, servicesTitle: B.servicesTitle, teamTitle: B.teamTitle,
+      hours: B.hours, address: B.address, phone: B.phone, whatsapp: B.whatsapp, instagram: B.instagram, facebook: B.facebook, waLink: B.waLink, telLink: 'tel:' + B.phone.replace(/[^\d+]/g, ''),
+      logo: img('logoL'), logoD: img('logoD'), hero: img('hero'),
+      sv: M.services.map((s, i) => ({ name: s.name, desc: s.desc, icon: ic[i % 5], price: s.price ? 'Desde S/ ' + s.price : '' })), hasSv: M.services.length > 0,
+      docs: M.docs.map(d => ({ name: d.name, spec: d.spec, cop: d.cop ? 'COP ' + d.cop : '', show: sh(d.photo), bgi: bg(d.photo) })), hasDocs: M.docs.length > 0,
+      facs: M.facs.map(d => ({ cap: d.cap, show: sh(d.photo), bgi: bg(d.photo) })), hasFacs: M.facs.length > 0,
+      cases: M.cases.map(d => ({ label: d.label, showB: sh(d.before), bgB: bg(d.before), showA: sh(d.after), bgA: bg(d.after) })), hasCases: M.cases.length > 0,
+      stats: M.stats.map(s => ({ n: s.n, l: s.l })),
+      quotes: M.quotes.map(q => ({ t: q.t, a: q.a })),
+      steps: ['Elige el servicio', 'Elige doctor (opcional)', 'Elige día y hora libres', 'Ingresa tus datos', 'Recibe tu confirmación'].map((t, i) => ({ t, i: i + 1 })),
+      faq: faqs.map((q, i) => ({ q: q[0], a: q[1], show: S.faq === i ? 'block' : 'none', icon: S.faq === i ? 'icon-minus' : 'icon-plus', toggle: () => this.setState({ faq: S.faq === i ? -1 : i }) })),
+      phones: [{ label: 'Móvil inicio', kind: h(React.Fragment, null, home, wa) }, { label: 'Móvil reserva', kind: book }, { label: 'Móvil Mi cita', kind: cita }]
+    };
+  }
+}
+</script>
+</body>
+</html>

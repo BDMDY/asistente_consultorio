@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--bone);color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:20px;line-height:1}</style>
+</helmet>
+<div style="max-width:430px;margin:0 auto;min-height:100vh;box-sizing:border-box;padding:20px 16px 90px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:10px"><div style="display:flex;flex-direction:column;gap:2px"><b style="font-size:22px;letter-spacing:-.02em">Buenos días, Ana</b><span style="font-size:13px;color:var(--ink-500)">Martes 6 de octubre · Sede Miraflores</span></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<div style="background:var(--surface);border-radius:16px;padding:16px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-500);font-weight:700">Citas hoy</span><b class="tnum" style="font-size:28px">14</b></div>
+<div style="background:var(--surface);border-radius:16px;padding:16px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-500);font-weight:700">Ingresos del día</span><b class="tnum" style="font-size:28px">S/ 1,860</b></div>
+<div style="background:var(--surface);border-radius:16px;padding:16px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-500);font-weight:700">Sin confirmar</span><b class="tnum" style="font-size:28px;color:var(--warning-fg)">3</b></div>
+<div style="background:var(--surface);border-radius:16px;padding:16px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-500);font-weight:700">Stock bajo</span><b class="tnum" style="font-size:28px;color:var(--error-fg)">{{ stockN }}</b></div>
+</div>
+<sc-if value="{{ hasStock }}" hint-placeholder-val="{{ true }}"><a href="DentAssist%20Modulos%20Movil.dc.html#inventario" style="text-decoration:none;color:inherit;background:var(--error-bg);border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center;min-height:44px"><i class="icon-triangle-alert" style="color:var(--error-fg)"></i><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14px;color:var(--error-fg)">{{ stockT }}</b><span style="font-size:12px;color:var(--ink-700)">{{ stockS }}</span></span><i class="icon-chevron-right"></i></a></sc-if>
+<div style="display:flex;flex-direction:column;gap:10px">
+<a href="DentAssist%20Agenda%20Movil.dc.html" style="min-height:52px;border-radius:14px;background:var(--grad-btn);color:#fff;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:10px;padding:0 18px"><i class="icon-calendar-plus"></i>Nueva cita</a>
+<a href="DentAssist%20Pacientes.dc.html#movil" style="min-height:52px;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-900);font-weight:700;text-decoration:none;display:flex;align-items:center;gap:10px;padding:0 18px"><i class="icon-user-plus"></i>Buscar o crear paciente</a>
+</div>
+<div style="background:var(--surface);border-radius:16px;padding:16px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px"><b>Próximas citas</b>
+<sc-for list="{{ next }}" as="a" hint-placeholder-count="3"><div style="display:flex;gap:12px;align-items:center;min-height:44px"><b class="tnum" style="width:52px;font-size:14px">{{ a.t }}</b><div style="flex:1;display:flex;flex-direction:column"><span style="font-weight:700;font-size:14px">{{ a.p }}</span><span style="font-size:12px;color:var(--ink-500)">{{ a.s }}</span></div></div></sc-for></div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:780}}">
+class Component extends DCLogic {
+  renderVals() { let d = window.daData ? window.daData() : null; const low = ((d && d.inv) || []).filter(i => i.qty < i.min); return { hasStock: low.length > 0, stockN: String(low.length), stockT: low.length + (low.length === 1 ? ' producto con stock bajo' : ' productos con stock bajo'), stockS: low.slice(0, 3).map(i => i.n).join(', '), openMenu: () => window.daOpenMenu && window.daOpenMenu(), next: [{ t: '10:00', p: 'M. Soto', s: 'Control de brackets' }, { t: '10:45', p: 'L. Rojas', s: 'Limpieza' }, { t: '11:30', p: 'C. Vera', s: 'Evaluación inicial' }] }; }
+}
+</script>
+</body>
+</html>

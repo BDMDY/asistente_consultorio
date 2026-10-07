@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>body{margin:0;font-family:'Plus Jakarta Sans',sans-serif;color:#10241b;background:#FBFAF7}a{color:#00704A}a:hover{color:#005A3C}</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:56px;width:1480px;font-feature-settings:'tnum'">
+<header style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:13px;font-weight:700;letter-spacing:.12em;color:#00704A">DENTASSIST · DIRECCIÓN VISUAL · APROBADA (HERO 1A)</div>
+<h1 style="margin:0;font-size:44px;line-height:1.1;font-weight:800;letter-spacing:-.02em">Clínica moderna, cálida y confiable</h1>
+<p style="margin:0;max-width:720px;font-size:17px;line-height:1.55;color:#4a5f55">Jade como base white-label: toda la marca nace de <b>--brand-500</b> y su escala. Dirección aprobada: jade, esquinas redondeadas de 8 a 16 px, Plus Jakarta Sans y el hero dividido 1a. Cada consultorio cambia color, tipografía y textos desde Configuración de marca.</p>
+</header>
+
+<div style="padding:16px 20px;border-radius:14px;background:#E6F7EF;box-shadow:inset 0 0 0 1px #C6EEDC;font-size:15px;line-height:1.5"><b>Dirección aprobada (hero 1a).</b> Aplicada a todo el sistema: navegación de intranet con barra delgada y menú de tres rayas, modo oscuro, módulos funcionales y personal con DNI y colegiatura. Todas las pantallas están en el <a href="DentAssist%20%C3%8Dndice.dc.html">Índice</a>.</div>
+<section style="display:flex;flex-direction:column;gap:20px">
+<h2 style="margin:0;font-size:22px">1 · Paleta jade (--brand-50 … 950)</h2>
+<div style="display:grid;grid-template-columns:repeat(11,1fr);gap:8px">
+<sc-for list="{{ scale }}" as="s" hint-placeholder-count="11">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="height:88px;border-radius:12px;background:{{ s.hex }};box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)"></div>
+<div style="font-size:13px;font-weight:700">{{ s.n }}</div>
+<div style="font-size:12px;color:#4a5f55">{{ s.hex }}</div>
+</div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<div style="height:84px;border-radius:16px;background:linear-gradient(135deg,#E6F7EF,#FFFFFF);box-shadow:inset 0 0 0 1px #C6EEDC;padding:16px;box-sizing:border-box;font-size:13px;font-weight:600">Gradiente hero · 50 → blanco</div>
+<div style="height:84px;border-radius:16px;background:linear-gradient(135deg,#34C58B,#00A86B);padding:16px;box-sizing:border-box;font-size:13px;font-weight:600;color:#002A1C">Gradiente de acento · 400 → 500 (texto oscuro)</div>
+<div style="height:84px;border-radius:16px;background:linear-gradient(135deg,#008C59,#00704A);padding:16px;box-sizing:border-box;font-size:13px;font-weight:600;color:#fff">Botón primario · 600 → 700 (blanco, AA ≥ 4.5:1)</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:700">Semánticos y neutros verdosos</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ sem }}" as="c" hint-placeholder-count="8">
+<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};font-size:13px;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:{{ c.fg }}"></span>{{ c.n }}</div>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:700">Estados de cita</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ states }}" as="c" hint-placeholder-count="7">
+<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};font-size:13px;font-weight:600"><span style="width:8px;height:8px;border-radius:50%;background:{{ c.fg }}"></span>{{ c.n }}</div>
+</sc-for>
+</div>
+</div>
+</div>
+</section>
+
+<section style="display:grid;grid-template-columns:1fr 1fr;gap:40px">
+<div style="display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:22px">2 · Tipografía · Plus Jakarta Sans</h2>
+<div style="font-size:48px;font-weight:800;letter-spacing:-.02em;line-height:1.05">Tu sonrisa, en buenas manos</div>
+<div style="font-size:28px;font-weight:700">Agenda de hoy · 12 citas</div>
+<div style="font-size:17px;line-height:1.6;color:#4a5f55;max-width:520px">Texto de cuerpo 17/28. Ortodoncia, odontología general y estética dental con atención personalizada en Lima.</div>
+<div style="font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">09:30 · 10:15 · 11:00 &nbsp; S/ 1,250.00 &nbsp; S/ 85.50</div>
+<div style="font-size:13px;color:#4a5f55">Alternativas white-label: Inter + Source Serif · DM Sans + Fraunces-free (Lora)</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:22px">3 · Formas y componentes</h2>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+<button style="border:0;border-radius:12px;padding:14px 22px;font:600 15px 'Plus Jakarta Sans';color:#fff;background:linear-gradient(135deg,#008C59,#00704A);box-shadow:0 6px 16px rgba(0,112,74,.25);cursor:pointer" style-hover="filter:brightness(1.08)">Reservar cita</button>
+<button style="border:1.5px solid #94E0BF;border-radius:12px;padding:13px 22px;font:600 15px 'Plus Jakarta Sans';color:#00704A;background:#fff;cursor:pointer">WhatsApp</button>
+<button style="border:0;border-radius:12px;padding:14px 18px;font:600 15px 'Plus Jakarta Sans';color:#00704A;background:transparent;cursor:pointer">Ver servicios</button>
+<button style="border:0;border-radius:12px;padding:14px 18px;font:600 15px 'Plus Jakarta Sans';color:#fff;background:#B42318;cursor:pointer">Cancelar</button>
+</div>
+<div style="display:flex;gap:16px">
+<div style="flex:1;background:#fff;border-radius:16px;padding:18px;box-shadow:0 1px 2px rgba(16,36,27,.06),0 8px 24px rgba(16,36,27,.06);display:flex;flex-direction:column;gap:6px"><b>Ortodoncia</b><span style="font-size:14px;color:#4a5f55">Desde S/ 150</span></div>
+<div style="flex:1;border-radius:16px;padding:18px;background:linear-gradient(135deg,#E6F7EF,#fff);box-shadow:inset 0 0 0 1px #C6EEDC;display:flex;flex-direction:column;gap:6px"><b>Destacado</b><span style="font-size:14px;color:#4a5f55">Radio 12–16 · sombra suave</span></div>
+</div>
+<div style="font-size:13px;color:#4a5f55">Radios 8 / 12 / 16 · foco: anillo 2px --brand-500 con offset · objetivos táctiles ≥ 44px · iconos de línea 1.75px (Lucide).</div>
+</div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:20px">
+<h2 style="margin:0;font-size:22px">4 · Tres variantes de hero (desktop)</h2>
+<div style="display:flex;gap:28px;flex-wrap:wrap">
+
+<div id="1a" style="width:700px;display:flex;flex-direction:column;gap:8px"><b style="font-size:13px;color:#00704A">1a · Dividido con foto · ELEGIDO ✓</b>
+<div style="height:420px;border-radius:20px;overflow:hidden;background:linear-gradient(135deg,#E6F7EF,#fff);display:grid;grid-template-columns:1.1fr 1fr;box-shadow:inset 0 0 0 1px #C6EEDC">
+<div style="padding:40px;display:flex;flex-direction:column;justify-content:center;gap:16px">
+<div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#00704A">ORTODONCIA · LIMA</div>
+<div style="font-size:38px;font-weight:800;line-height:1.08;letter-spacing:-.02em">Sonrisas que cuidamos contigo</div>
+<div style="font-size:15px;line-height:1.55;color:#4a5f55">Atención cálida y tecnología moderna. Reserva en menos de un minuto.</div>
+<div style="display:flex;gap:10px"><span style="padding:12px 18px;border-radius:12px;color:#fff;font-weight:600;font-size:14px;background:linear-gradient(135deg,#008C59,#00704A)">Reservar cita</span><span style="padding:11px 18px;border-radius:12px;color:#00704A;font-weight:600;font-size:14px;background:#fff;border:1.5px solid #94E0BF">WhatsApp</span></div></div>
+<div style="margin:24px 24px 24px 0;border-radius:16px;background:repeating-linear-gradient(135deg,#D3F0E2 0 12px,#E6F7EF 12px 24px);display:flex;align-items:center;justify-content:center;color:#00704A;font-size:13px;font-weight:600">foto del consultorio</div></div></div>
+
+<div id="1b" style="width:700px;display:flex;flex-direction:column;gap:8px"><b style="font-size:13px;color:#00704A">1b · Centrado con reserva rápida</b>
+<div style="height:420px;border-radius:20px;background:linear-gradient(180deg,#E6F7EF,#fff);box-shadow:inset 0 0 0 1px #C6EEDC;padding:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center">
+<div style="font-size:40px;font-weight:800;line-height:1.08;letter-spacing:-.02em;max-width:520px">Tu próxima cita, a un toque</div>
+<div style="font-size:15px;color:#4a5f55;max-width:440px">Elige servicio, doctor y horario libre desde tu celular.</div>
+<div style="background:#fff;border-radius:16px;padding:10px;display:flex;gap:8px;align-items:center;box-shadow:0 12px 32px rgba(16,36,27,.1);width:560px;box-sizing:border-box">
+<span style="flex:1;padding:12px;border-radius:10px;background:#F4F7F5;font-size:14px;text-align:left;color:#4a5f55">Servicio</span><span style="flex:1;padding:12px;border-radius:10px;background:#F4F7F5;font-size:14px;text-align:left;color:#4a5f55">Fecha</span>
+<span style="padding:12px 18px;border-radius:10px;color:#fff;font-weight:600;font-size:14px;background:linear-gradient(135deg,#008C59,#00704A)">Ver horarios</span></div>
+<div style="font-size:13px;color:#4a5f55">★ 4.9 · +3,200 pacientes · WhatsApp disponible</div></div></div>
+
+<div id="1c" style="width:700px;display:flex;flex-direction:column;gap:8px"><b style="font-size:13px;color:#00704A">1c · Foto a sangre con tarjeta</b>
+<div style="height:420px;border-radius:20px;position:relative;overflow:hidden;background:repeating-linear-gradient(135deg,#C6EEDC 0 14px,#D9F3E7 14px 28px)">
+<div style="position:absolute;right:20px;top:14px;font-size:13px;font-weight:600;color:#00704A">foto a pantalla completa</div>
+<div style="position:absolute;left:32px;bottom:32px;width:360px;background:rgba(255,255,255,.96);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 40px rgba(16,36,27,.15)">
+<div style="font-size:30px;font-weight:800;line-height:1.1;letter-spacing:-.02em">Ortodoncia y odontología integral</div>
+<div style="font-size:14px;color:#4a5f55;line-height:1.5">Miraflores, Lima · Lun–Sáb</div>
+<div style="display:flex;gap:8px"><span style="padding:11px 16px;border-radius:12px;color:#fff;font-weight:600;font-size:14px;background:linear-gradient(135deg,#008C59,#00704A)">Reservar cita</span><span style="padding:10px 16px;border-radius:12px;color:#00704A;font-weight:600;font-size:14px;border:1.5px solid #94E0BF">WhatsApp</span></div></div></div></div>
+</div>
+</section>
+<p style="margin:0;font-size:15px;color:#4a5f55">Las variantes 1b y 1c quedan como referencia. La paleta, los estados de cita y la tipografía de esta hoja son los que usan todas las pantallas.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const h = ['#E6F7EF','#C6EEDC','#94E0BF','#5FD0A1','#34C58B','#00A86B','#008C59','#00704A','#005A3C','#00452E','#002A1C'];
+    const n = [50,100,200,300,400,500,600,700,800,900,950];
+    const mk = a => a.map(x => ({ n: x[0], bg: x[1], fg: x[2] }));
+    return {
+      scale: h.map((hex, i) => ({ hex, n: n[i] })),
+      sem: mk([['Éxito','#DDF5E8','#0B6B3F'],['Advertencia','#FDF0D0','#8A5A00'],['Error','#FBE0DD','#B42318'],['Info','#DDEBFB','#1A56A8']]),
+      states: mk([['Pendiente','#FDF0D0','#8A5A00'],['Confirmada','#DDF5E8','#0B6B3F'],['En sala','#DDEBFB','#1A56A8'],['Atendida','#E7ECE9','#33453C'],['Cancelada','#FBE0DD','#B42318'],['No-show','#F3DDF0','#8A2A7A'],['Reprogramada','#FFE6D2','#9A4A0A']])
+    };
+  }
+}
+</script>
+</body>
+</html>

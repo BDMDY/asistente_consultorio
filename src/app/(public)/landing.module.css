@@ -1,0 +1,75 @@
+.root { --ph: 72px; --pv: 72px; background: var(--bone); color: var(--ink-900); font-family: var(--font-sans); display: flex; flex-direction: column; min-height: 100vh; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px var(--ph); background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+.nav { display: flex; gap: 32px; font-size: 15px; font-weight: 600; }
+.nav a { color: var(--ink-700); }
+.menuBtn { display: none; cursor: pointer; width: 44px; height: 44px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); align-items: center; justify-content: center; margin-left: auto; background: transparent; border: 0; color: var(--ink-900); }
+.mobileMenu { display: none; flex-direction: column; background: var(--surface); border-bottom: 1px solid var(--line); }
+.mobileMenu a { min-height: 48px; padding: 0 var(--ph); display: flex; align-items: center; font-weight: 600; color: var(--ink-900); border-top: 1px solid var(--line); }
+.cta { padding: 12px 20px; border-radius: 12px; background: var(--grad-btn); color: #fff !important; font-weight: 600; font-size: 15px; white-space: nowrap; }
+.hero { background: var(--grad-hero); padding: var(--pv) var(--ph); display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
+.heroCopy { display: flex; flex-direction: column; gap: 22px; }
+.kicker { font-size: 13px; font-weight: 700; letter-spacing: .1em; color: var(--brand-700); }
+.h1 { font-family: var(--font-display); font-size: 56px; font-weight: 800; line-height: 1.05; letter-spacing: -.025em; margin: 0; }
+.sub { font-size: 19px; line-height: 1.55; color: var(--ink-500); max-width: 520px; margin: 0; }
+.heroBtns { display: flex; gap: 12px; flex-wrap: wrap; }
+.btnPrimary { padding: 16px 26px; border-radius: 12px; background: var(--grad-btn); color: #fff !important; font-weight: 700; font-size: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.15); }
+.btnGhost { padding: 15px 26px; border-radius: 12px; background: var(--surface); color: var(--brand-700); font-weight: 700; font-size: 16px; border: 1.5px solid var(--brand-200); display: flex; gap: 8px; align-items: center; }
+.rating { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--ink-500); flex-wrap: wrap; }
+.heroImg { height: 440px; border-radius: 20px; overflow: hidden; background: repeating-linear-gradient(135deg, var(--brand-100) 0 14px, var(--brand-50) 14px 28px); background-size: cover; background-position: center; }
+.section { padding: var(--pv) var(--ph) 24px; display: flex; flex-direction: column; gap: 28px; scroll-margin-top: 80px; }
+.sectionTight { padding: 40px var(--ph) 24px; display: flex; flex-direction: column; gap: 28px; }
+.h2 { font-family: var(--font-display); font-size: 36px; font-weight: 800; letter-spacing: -.02em; margin: 0; }
+.h2s { font-family: var(--font-display); font-size: 32px; font-weight: 800; margin: 0; }
+.cards4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.card { background: var(--surface); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 10px; }
+.svcIcon { width: 48px; height: 48px; border-radius: 12px; background: var(--brand-50); color: var(--brand-700); display: flex; align-items: center; justify-content: center; }
+.stats { background: var(--brand-900); color: #fff; padding: 40px var(--ph); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-top: 48px; }
+.statN { font-size: 44px; font-weight: 800; }
+.statL { font-size: 15px; color: var(--brand-200); }
+.team { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.docCard { background: var(--surface); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); }
+.docPhoto { height: 220px; background: repeating-linear-gradient(135deg, var(--brand-100) 0 12px, var(--brand-50) 12px 24px); background-size: cover; background-position: center; }
+.facs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.fac { height: 200px; border-radius: 16px; overflow: hidden; position: relative; background: repeating-linear-gradient(135deg, var(--muted) 0 12px, var(--surface) 12px 24px); background-size: cover; background-position: center; }
+.facCap { position: absolute; left: 12px; bottom: 12px; padding: 5px 10px; border-radius: 8px; background: rgba(255,255,255,.92); color: #10241B; font-size: 13px; font-weight: 700; }
+.casos { padding: 40px var(--ph) var(--pv); display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; scroll-margin-top: 80px; }
+.casesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.caseCard { background: var(--surface); border-radius: 16px; padding: 14px; box-shadow: var(--shadow-md); }
+.caseImgs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.caseImg { height: 170px; border-radius: 12px; overflow: hidden; position: relative; background-size: cover; background-position: center; }
+.caseTag { position: absolute; left: 8px; bottom: 8px; font-size: 12px; font-weight: 700; }
+.quote { background: var(--grad-hero); border-radius: 16px; padding: 22px; box-shadow: inset 0 0 0 1px var(--brand-100); display: flex; flex-direction: column; gap: 10px; }
+.steps { background: var(--grad-hero); padding: var(--pv) var(--ph); display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; }
+.stepsCard { background: var(--surface); border-radius: 20px; padding: 28px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 12px; }
+.step { display: flex; gap: 12px; align-items: center; font-size: 15px; font-weight: 600; }
+.stepN { width: 28px; height: 28px; border-radius: 50%; background: var(--brand-100); color: var(--brand-800); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.stepsBtn { margin-top: 6px; padding: 15px; border-radius: 12px; background: var(--grad-btn); color: #fff !important; font-weight: 700; text-align: center; }
+.loc { padding: var(--pv) var(--ph); display: grid; grid-template-columns: 1fr 1fr; gap: 32px; scroll-margin-top: 80px; }
+.locInfo { font-size: 15px; color: var(--ink-700); line-height: 1.9; display: flex; flex-direction: column; }
+.locInfo a { color: var(--ink-700); display: flex; gap: 8px; align-items: center; }
+.locInfo span { display: flex; gap: 8px; align-items: center; }
+.faq { display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 80px; }
+.faqItem { background: var(--surface); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.faqQ { cursor: pointer; padding: 16px 20px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; min-height: 24px; width: 100%; text-align: left; background: transparent; border: 0; color: inherit; font-size: 16px; gap: 12px; }
+.faqA { padding: 0 20px 16px; font-size: 14px; line-height: 1.6; color: var(--ink-500); }
+.footer { background: var(--brand-950); padding: 32px var(--ph); display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 14px; color: var(--brand-200); }
+.footerR { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.footerR a { color: #fff; font-weight: 600; }
+.wa { position: fixed; right: 24px; bottom: 24px; width: 56px; height: 56px; border-radius: 50%; background: #25D366; color: #fff !important; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); z-index: 30; }
+
+@media (max-width: 999px) {
+  .nav { display: none; }
+  .menuBtn { display: flex; }
+  .mobileMenu.open { display: flex; }
+}
+@media (max-width: 759px) {
+  .root { --ph: 20px; --pv: 40px; }
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .h1 { font-size: 36px; }
+  .heroImg { height: 240px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .casos, .steps, .loc, .footer { grid-template-columns: minmax(0, 1fr); }
+  .footerR { align-items: flex-start; }
+  .cta { padding: 10px 14px; font-size: 14px; }
+  .wa { right: 16px; bottom: 16px; }
+}

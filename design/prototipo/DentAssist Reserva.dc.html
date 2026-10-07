@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Lora:wght@500;700&family=DM+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--bone);color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:20px;line-height:1}input{font-family:inherit}</style>
+</helmet>
+<sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+<div data-theme="{{ theme }}" style="{{ root }}">
+<div style="padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px">
+<sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}"><span role="button" tabIndex="0" aria-label="Volver" onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;margin:-6px 0 -6px -10px;display:flex;align-items:center;justify-content:center"><i class="icon-arrow-left"></i></span></sc-if>
+<b style="flex:1;display:flex;gap:8px;align-items:center"><span style="width:28px;height:28px;border-radius:8px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile" style="font-size:16px"></i></span>{{ name }}</b><span role="button" tabIndex="0" aria-label="Cambiar entre modo claro y oscuro" onClick="{{ toggleTheme }}" style="cursor:pointer;width:44px;height:44px;margin:-6px -10px -6px 0;display:flex;align-items:center;justify-content:center"><i class="icon-moon"></i></span></div>
+<div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ inFlow }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:6px"><sc-for list="{{ bar }}" as="b" hint-placeholder-count="5"><div style="flex:1;height:6px;border-radius:3px;background:{{ b }}"></div></sc-for></div><div style="font-size:12px;font-weight:600;color:var(--ink-500)">{{ stepLbl }}</div><b style="font-family:{{ head }};font-size:24px">{{ title }}</b></sc-if>
+
+<sc-if value="{{ s0 }}" hint-placeholder-val="{{ true }}"><sc-for list="{{ services }}" as="o" hint-placeholder-count="4"><div role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;display:flex;gap:12px;align-items:center;background:{{ o.bg }};border-radius:14px;padding:12px 14px;min-height:56px;box-shadow:{{ o.sh }}"><span style="width:42px;height:42px;border-radius:12px;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center"><i class="{{ o.icon }}"></i></span><div style="flex:1;font-size:15px"><b>{{ o.t }}</b><div class="tnum" style="font-size:12px;color:var(--ink-500)">{{ o.s }}</div></div></div></sc-for>
+<sc-if value="{{ noServices }}" hint-placeholder-val="{{ false }}"><div style="padding:16px;border-radius:12px;background:var(--warning-bg);color:var(--warning-fg);font-weight:600;font-size:14px">Por ahora no hay servicios disponibles para reservar en línea. Escríbenos por WhatsApp.</div></sc-if></sc-if>
+
+<sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}"><sc-for list="{{ doctors }}" as="o" hint-placeholder-count="4"><div role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;display:flex;gap:12px;align-items:center;background:{{ o.bg }};border-radius:14px;padding:12px 14px;min-height:56px;box-shadow:{{ o.sh }}"><span style="width:42px;height:42px;border-radius:50%;background:var(--brand-100);color:var(--brand-800);font-weight:700;display:flex;align-items:center;justify-content:center">{{ o.i }}</span><div style="flex:1;font-size:15px"><b>{{ o.t }}</b><div style="font-size:12px;color:var(--ink-500)">{{ o.s }}</div></div></div></sc-for></sc-if>
+
+<sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ race }}" hint-placeholder-val="{{ false }}"><div role="alert" style="padding:12px 14px;border-radius:12px;background:var(--error-bg);color:var(--error-fg);font-weight:600;font-size:14px;line-height:1.4">Ese horario acaba de ser reservado por otra persona. Elige otro, por favor.</div></sc-if>
+<div style="display:flex;gap:6px;overflow:auto"><sc-for list="{{ days }}" as="d" hint-placeholder-count="6"><div role="button" tabIndex="0" onClick="{{ d.pick }}" style="cursor:{{ d.cur }};flex:1;min-width:48px;min-height:62px;border-radius:12px;text-align:center;padding:8px 0;background:{{ d.bg }};color:{{ d.fg }};box-shadow:{{ d.sh }};opacity:{{ d.op }}"><div style="font-size:12px">{{ d.w }}</div><div class="tnum" style="font-size:18px;font-weight:700">{{ d.n }}</div></div></sc-for></div>
+<div style="font-size:13px;color:var(--ink-500)">Solo horarios libres · hora de Lima</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><sc-for list="{{ hours }}" as="h" hint-placeholder-count="8"><div role="button" tabIndex="0" onClick="{{ h.pick }}" class="tnum" style="cursor:pointer;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:600;background:{{ h.bg }};color:{{ h.fg }};box-shadow:{{ h.sh }}">{{ h.t }}</div></sc-for></div>
+<sc-if value="{{ pickDay }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;color:var(--ink-500)">Elige un día para ver los horarios.</div></sc-if>
+<sc-if value="{{ noSlots }}" hint-placeholder-val="{{ false }}"><div style="padding:14px;border-radius:12px;background:var(--warning-bg);color:var(--warning-fg);font-weight:600;font-size:14px">Ese día no hay atención o no quedan horarios. Elige otro.</div></sc-if></sc-if>
+
+<sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+<label style="font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:5px">Nombre completo<input aria-label="Como figura en tu DNI" value="{{ f.name }}" onInput="{{ setName }}" placeholder="Como figura en tu DNI" style="height:50px;border-radius:12px;border:{{ bName }};padding:0 14px;font-size:16px;background:var(--surface)"></label>
+<label style="font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:5px">DNI<input aria-label="8 dígitos" value="{{ f.dni }}" onInput="{{ setDni }}" inputmode="numeric" placeholder="8 dígitos" style="height:50px;border-radius:12px;border:{{ bDni }};padding:0 14px;font-size:16px;background:var(--surface)"></label>
+<label style="font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:5px">Celular (WhatsApp)<input aria-label="987 654 321" value="{{ f.phone }}" onInput="{{ setPhone }}" inputmode="tel" placeholder="987 654 321" style="height:50px;border-radius:12px;border:{{ bPhone }};padding:0 14px;font-size:16px;background:var(--surface)"></label>
+<div role="button" tabIndex="0" onClick="{{ toggleConsent }}" style="cursor:pointer;display:flex;gap:10px;font-size:13px;color:var(--ink-500);align-items:flex-start;line-height:1.5"><span style="width:22px;height:22px;border-radius:6px;background:{{ consentBg }};box-shadow:inset 0 0 0 1.5px {{ consentBd }};color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="icon-check" style="font-size:14px;opacity:{{ consentOp }}"></i></span>Acepto el tratamiento de mis datos personales según la Ley 29733.</div>
+<a href="DentAssist%20Privacidad.dc.html" target="_blank" style="font-size:13px;font-weight:600">Leer el aviso de privacidad</a>
+<sc-if value="{{ showErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font-size:13px;color:var(--error-fg);font-weight:600">Completa los campos marcados para continuar.</div></sc-if></sc-if>
+
+<sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:16px"><span style="width:76px;height:76px;border-radius:50%;background:var(--grad-accent);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-check" style="font-size:40px"></i></span><b style="font-size:26px">¡Cita reservada!</b><span style="font-size:14px;color:var(--ink-500)">Te enviamos el enlace por WhatsApp al {{ f.phone }}.</span></div>
+<div style="background:var(--surface);border-radius:16px;padding:18px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:10px;font-size:15px"><sc-for list="{{ summary }}" as="r" hint-placeholder-count="4"><div style="display:flex;gap:12px;align-items:center"><i class="{{ r.i }}" style="color:var(--brand-600)"></i><span class="tnum">{{ r.t }}</span></div></sc-for></div>
+<sc-if value="{{ assigned }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--ink-500);text-align:center">Como no elegiste doctor, te asignamos a {{ assignedName }}.</div></sc-if>
+<a href="{{ miCitaHref }}" style="min-height:50px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;text-decoration:none">Ver mi cita</a>
+<div role="button" tabIndex="0" onClick="{{ reset }}" style="cursor:pointer;min-height:50px;border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--brand-200);color:var(--brand-700);font-weight:700;display:flex;align-items:center;justify-content:center">Reservar otra cita</div></sc-if>
+</div>
+<sc-if value="{{ showCta }}" hint-placeholder-val="{{ true }}"><div style="position:sticky;bottom:0;padding:12px 20px;background:var(--surface);border-top:1px solid var(--line)"><div role="button" tabIndex="0" onClick="{{ next }}" style="cursor:pointer;min-height:52px;border-radius:12px;background:{{ ctaBg }};color:{{ ctaFg }};font-weight:700;display:flex;align-items:center;justify-content:center">{{ ctaLabel }}</div></div></sc-if>
+</div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { bookedId: null, bookedDoc: 0, race: false, t: 0, step: 0, svc: null, doc: null, day: null, time: null, consent: false, tried: false, f: { name: '', dni: '', phone: '' } };
+  WD = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  get SVL() { return window.DA.services(); }
+  get DUR() { return this.SVL.map((s, i) => window.DA.dur(i)); }
+  get DN() { return window.DA.docs().map(d => d.name); }
+  get ICONS() { return ['icon-smile', 'icon-sparkles', 'icon-sun', 'icon-shield-check', 'icon-stethoscope']; }
+  SEEDA = [{ id: 1, day: 0, doc: 0, slot: 0, dur: 3, p: 'M. Soto', s: 'Limpieza', st: 'atendida' }, { id: 2, day: 0, doc: 0, slot: 6, dur: 3, p: 'Lucía Rojas', s: 'Ortodoncia', st: 'pendiente' }, { id: 3, day: 0, doc: 0, slot: 12, dur: 4, p: 'J. Ramos', s: 'Endodoncia', st: 'confirmada' }, { id: 4, day: 0, doc: 1, slot: 2, dur: 3, p: 'C. Díaz', s: 'Control', st: 'en-sala' }, { id: 5, day: 0, doc: 1, slot: 8, dur: 4, p: 'P. Vera', s: 'Endodoncia', st: 'confirmada' }, { id: 6, day: 0, doc: 2, slot: 0, dur: 4, p: 'A. Cruz', s: 'Blanqueamiento', st: 'reprogramada' }, { id: 7, day: 0, doc: 2, slot: 10, dur: 3, p: 'T. Luna', s: 'Limpieza', st: 'confirmada' }, { id: 8, day: 19, doc: 0, slot: 4, dur: 3, p: 'J. Ramos', s: 'Control', st: 'confirmada' }];
+  dayObj(i) { const x = new Date(2026, 9, 12 + i); return { w: this.WD[x.getDay()], n: x.getDate(), closed: x.getDay() === 0, long: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][x.getDay()] + ' ' + x.getDate() + ' de octubre' }; }
+  hm(slot) { const m = 540 + slot * 15; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+  store() { try { const r = JSON.parse(localStorage.getItem('da-agenda-v1') || 'null'); if (r && r.appts) return r; } catch (e) {} return { appts: this.SEEDA, nid: 100 }; }
+  busy(A, d, doc, slot, dur) { return A.some(b => b.day === d && b.doc === doc && b.st !== 'cancelada' && slot < b.slot + b.dur && b.slot < slot + dur); }
+  isTaken(d, slot) {
+    const S = this.state; if (S.doc === null || S.svc === null) return true;
+    const dur = this.DUR[S.svc], A = this.store().appts; if (slot + dur > 32) return true;
+    if (S.doc === 0) return this.DN.every((_, k) => this.busy(A, d, k, slot, dur));
+    return this.busy(A, d, S.doc - 1, slot, dur);
+  }
+  book() {
+    const S = this.state, st = this.store(), slot = S.time, dur = this.DUR[S.svc];
+    let doc = S.doc - 1;
+    if (S.doc === 0) doc = this.DN.findIndex((_, k) => !this.busy(st.appts, S.day, k, slot, dur));
+    if (doc < 0 || this.busy(st.appts, S.day, doc, slot, dur)) { this.setState({ step: 2, time: null, race: true }); return; }
+    const id = Math.max(st.nid, ...st.appts.map(a => a.id)) + 1;
+    const a = { id, day: S.day, doc, slot, dur, p: S.f.name.trim(), s: this.SVL[S.svc].name, st: 'pendiente', web: true };
+    try {
+      localStorage.setItem('da-agenda-v1', JSON.stringify({ appts: st.appts.concat(a), nid: id }));
+      const P = window.DA.patients();
+      if (!P.some(x => x.dni === S.f.dni)) { P.push({ id: Date.now(), name: S.f.name.trim(), dni: S.f.dni, phone: S.f.phone, web: true, alerts: [] }); localStorage.setItem('da-patients-v1', JSON.stringify(P)); }
+    } catch (e) {}
+    this.setState({ step: 4, bookedId: id, bookedDoc: doc });
+  }
+  componentDidMount() { try { const d = JSON.parse(sessionStorage.getItem('da-draft-v1') || 'null'); if (d && d.step < 4 && (d.svc !== null || d.step > 0)) this.setState(d); } catch (e) {} }
+  componentDidUpdate() { try { const S = this.state; if (S.step >= 4) sessionStorage.removeItem('da-draft-v1'); else sessionStorage.setItem('da-draft-v1', JSON.stringify({ step: S.step, svc: S.svc, doc: S.doc, day: S.day, time: S.time, consent: S.consent, f: S.f })); } catch (e) {} }
+  valid() { const f = this.state.f; return { name: f.name.trim().length > 4, dni: /^\d{8}$/.test(f.dni), phone: f.phone.replace(/\D/g, '').length >= 9 }; }
+  can() { const S = this.state; return [S.svc !== null, S.doc !== null, S.time !== null, true, false][S.step]; }
+  next = () => {
+    const S = this.state;
+    if (S.step === 3) { const v = this.valid(); if (!(v.name && v.dni && v.phone && S.consent)) { this.setState({ tried: true }); return; } }
+    else if (!this.can()) return;
+    if (S.step === 3) this.book(); else this.setState({ step: S.step + 1, race: false });
+  };
+  renderVals() {
+    const DA = window.DA;
+    if (!DA) { clearTimeout(this._r); this._r = setTimeout(() => this.setState(s => ({ t: s.t + 1 })), 150); return { ready: false }; }
+    const B = DA.brand(), S = this.state, v = this.valid(), step = S.step, SV = this.SVL, DN = this.DN, docs = DA.docs();
+    const sel = on => ({ bg: on ? 'var(--brand-50)' : 'var(--surface)', sh: on ? 'inset 0 0 0 2px var(--brand-500)' : 'var(--shadow-md)' });
+    const titles = ['Elige un servicio', '¿Con qué doctor?', 'Elige día y hora', 'Tus datos'];
+    const lbls = ['PASO 1 DE 5', 'PASO 2 DE 5 · OPCIONAL', 'PASO 3 DE 5', 'PASO 4 DE 5'];
+    const dayList = Array.from({ length: 6 }, (_, i) => i);
+    const bd = ok => (S.tried && !ok) ? '2px solid var(--error-fg)' : '1px solid var(--line)';
+    const slots = S.day === null || S.svc === null || S.doc === null || this.dayObj(S.day).closed ? [] : Array.from({ length: 16 }, (_, i) => i * 2).filter(sl => !this.isTaken(S.day, sl));
+    const ok = this.can() || step === 3;
+    const label = ['Continuar', 'Continuar', 'Continuar', 'Reservar cita'][step] || '';
+    const dName = DN[S.bookedDoc];
+    const sum = S.svc !== null && S.time !== null ? [[SV[S.svc].name, 'icon-smile'], [dName, 'icon-user'], [this.dayObj(S.day).long + ' · ' + this.hm(S.time), 'icon-calendar'], [B.address, 'icon-map-pin']].map(r => ({ t: r[0], i: r[1] })) : [];
+    return {
+      ready: true, theme: DA.theme(), toggleTheme: () => { DA.setTheme(DA.theme() === 'dark' ? 'light' : 'dark'); this.setState(s => ({ t: (s.t || 0) + 1 })); }, name: B.name, head: B.head,
+      root: Object.assign({ maxWidth: (typeof window !== 'undefined' && window.innerWidth >= 900) ? 640 : 460, margin: '0 auto', minHeight: '100vh', background: 'var(--bone)', display: 'flex', flexDirection: 'column', position: 'relative', fontFamily: B.body }, B.vars),
+      canBack: step > 0 && step < 4, back: () => this.setState({ step: step - 1, race: false }), inFlow: step < 4,
+      bar: [0, 1, 2, 3, 4].map(i => i <= step ? 'var(--brand-500)' : 'var(--line)'), stepLbl: lbls[step] || '', title: titles[step] || '',
+      s0: step === 0, s1: step === 1, s2: step === 2, s3: step === 3, s4: step === 4,
+      services: SV.map((o, i) => Object.assign({ t: o.name, s: (o.price ? 'Desde S/ ' + o.price + ' · ' : '') + this.DUR[i] * 15 + ' min', icon: this.ICONS[i % 5], pick: () => this.setState({ svc: i, time: null }) }, sel(S.svc === i))), noServices: SV.length === 0,
+      doctors: [{ t: 'Sin preferencia', s: 'Te asignamos al primer doctor libre', i: '—' }].concat(docs.map(d => ({ t: d.name, s: (d.spec || '') + (d.cop ? ' · COP ' + d.cop : ''), i: d.name.replace(/^(Dra?\.)\s*/, '').split(' ').map(x => x[0]).slice(0, 2).join('') }))).map((o, i) => Object.assign({ t: o.t, s: o.s, i: o.i, pick: () => this.setState({ doc: i, time: null }) }, sel(S.doc === i))),
+      days: dayList.map(i => { const d = this.dayObj(i), on = S.day === i; return { w: d.w, n: d.n, pick: () => { if (!d.closed) this.setState({ day: i, time: null, race: false }); }, bg: on ? 'var(--grad-btn)' : 'var(--surface)', fg: on ? '#fff' : 'var(--ink-900)', sh: on ? 'none' : 'inset 0 0 0 1px var(--line)', op: d.closed ? .4 : 1, cur: d.closed ? 'not-allowed' : 'pointer' }; }),
+      hours: slots.map(sl => { const on = S.time === sl; return { t: this.hm(sl), pick: () => this.setState({ time: sl }), bg: on ? 'var(--grad-btn)' : 'var(--surface)', fg: on ? '#fff' : 'var(--ink-900)', sh: on ? 'none' : 'inset 0 0 0 1px var(--line)' }; }),
+      pickDay: S.day === null, noSlots: S.day !== null && slots.length === 0, race: S.race,
+      f: S.f, setName: e => this.setState({ f: Object.assign({}, S.f, { name: e.target.value }) }), setDni: e => this.setState({ f: Object.assign({}, S.f, { dni: e.target.value.replace(/\D/g, '').slice(0, 8) }) }), setPhone: e => this.setState({ f: Object.assign({}, S.f, { phone: e.target.value }) }),
+      bName: bd(v.name), bDni: bd(v.dni), bPhone: bd(v.phone), consentBg: S.consent ? 'var(--brand-600)' : 'transparent', consentBd: (S.tried && !S.consent) ? 'var(--error-fg)' : S.consent ? 'var(--brand-600)' : 'var(--ink-300)', consentOp: S.consent ? 1 : 0,
+      toggleConsent: () => this.setState({ consent: !S.consent }),
+      showErr: S.tried && !(v.name && v.dni && v.phone && S.consent),
+      summary: sum, assigned: S.doc === 0, assignedName: dName, reset: () => this.setState({ step: 0, svc: null, doc: null, day: null, time: null, consent: false, tried: false, race: false, f: { name: '', dni: '', phone: '' } }),
+      miCitaHref: 'DentAssist%20Mi%20Cita.dc.html#' + S.bookedId,
+      showCta: step < 4, next: this.next, ctaLabel: label, ctaBg: ok ? 'var(--grad-btn)' : 'var(--muted)', ctaFg: ok ? '#fff' : 'var(--ink-300)'
+    };
+  }
+}
+</script>
+</body>
+</html>

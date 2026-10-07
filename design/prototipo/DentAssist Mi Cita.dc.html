@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Lora:wght@500;700&family=DM+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--bone);color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:20px;line-height:1}@keyframes sk{0%,100%{opacity:1}50%{opacity:.45}}</style>
+</helmet>
+<sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+<div data-theme="{{ theme }}" style="{{ root }}">
+<div style="padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--line);font-weight:800;display:flex;gap:8px;align-items:center"><span style="width:28px;height:28px;border-radius:8px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile" style="font-size:16px"></i></span><span style="flex:1">{{ name }}</span><span role="button" tabIndex="0" aria-label="Cambiar entre modo claro y oscuro" onClick="{{ toggleTheme }}" style="cursor:pointer;width:44px;height:44px;margin:-6px -10px -6px 0;display:flex;align-items:center;justify-content:center"><i class="icon-moon"></i></span></div>
+
+<sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}"><div style="padding:20px;display:flex;flex-direction:column;gap:14px;animation:sk 1.4s infinite"><div style="height:130px;border-radius:18px;background:var(--muted)"></div><div style="height:170px;border-radius:16px;background:var(--muted)"></div><div style="height:52px;border-radius:12px;background:var(--muted)"></div></div></sc-if>
+
+<sc-if value="{{ notFound }}" hint-placeholder-val="{{ false }}"><div style="padding:40px 24px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center"><span style="width:56px;height:56px;border-radius:50%;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center"><i class="icon-calendar-x"></i></span><b style="font-size:20px">No encontramos tu cita</b><span style="color:var(--ink-500);font-size:14px;line-height:1.5">El enlace puede estar incompleto o la cita fue eliminada. Escríbenos por WhatsApp y te ayudamos.</span><a href="{{ waLink }}" style="margin-top:6px;min-height:48px;padding:0 20px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;text-decoration:none">Escribir por WhatsApp</a></div></sc-if>
+
+<sc-if value="{{ found }}" hint-placeholder-val="{{ false }}"><div style="padding:20px;display:flex;flex-direction:column;gap:14px;flex:1">
+<div style="border-radius:18px;padding:20px;box-shadow:inset 0 0 0 1px var(--brand-100);display:flex;flex-direction:column;gap:6px;background:var(--grad-hero)">
+<span style="align-self:flex-start;padding:4px 10px;border-radius:999px;background:{{ a.bg }};color:{{ a.fg }};font-size:12px;font-weight:700">{{ a.stLbl }}</span>
+<div style="font-family:{{ head }};font-size:38px;font-weight:800;line-height:1.05;letter-spacing:-.02em;color:var(--brand-700)">{{ a.count }}</div>
+<div class="tnum" style="color:var(--ink-500);font-size:15px">{{ a.when }}</div></div>
+<sc-if value="{{ expired }}" hint-placeholder-val="{{ false }}"><div role="alert" style="padding:12px 14px;border-radius:12px;background:var(--warning-bg);color:var(--warning-fg);font-weight:600;font-size:14px;line-height:1.4">Este enlace ya venció porque la fecha de la cita pasó. Puedes reservar una nueva.</div></sc-if>
+<div style="background:var(--surface);border-radius:16px;padding:18px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><div style="display:flex;gap:12px;align-items:center;font-size:15px"><i class="{{ r.i }}" style="color:var(--brand-600)"></i><span class="tnum">{{ r.t }}</span></div></sc-for></div>
+<sc-if value="{{ canAct }}" hint-placeholder-val="{{ true }}"><div style="flex:1"></div>
+<sc-if value="{{ canConfirm }}" hint-placeholder-val="{{ true }}"><div role="button" tabIndex="0" onClick="{{ confirm }}" style="cursor:pointer;min-height:52px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">Confirmar asistencia</div></sc-if>
+<a href="{{ a.ics }}" download="cita-dentassist.ics" style="min-height:50px;border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--brand-200);color:var(--brand-700);font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none"><i class="icon-calendar-plus"></i>Agregar al calendario</a>
+<div role="button" tabIndex="0" onClick="{{ openResched }}" style="cursor:pointer;min-height:50px;border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--brand-200);color:var(--brand-700);font-weight:700;display:flex;align-items:center;justify-content:center;background:var(--surface)">Reprogramar</div>
+<div role="button" tabIndex="0" onClick="{{ openCancel }}" style="cursor:pointer;min-height:44px;color:var(--error-fg);font-weight:700;display:flex;align-items:center;justify-content:center">Cancelar cita</div></sc-if>
+<sc-if value="{{ canRebook }}" hint-placeholder-val="{{ false }}"><a href="DentAssist%20Reserva.dc.html" style="min-height:52px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;text-decoration:none">Reservar una nueva cita</a></sc-if>
+</div></sc-if>
+
+<sc-if value="{{ sheet }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeSheet }}" style="position:fixed;inset:0;background:rgba(16,36,27,.5);display:flex;align-items:flex-end;justify-content:center"><div onClick="{{ stop }}" style="width:100%;max-width:460px;background:var(--surface);border-radius:22px 22px 0 0;padding:22px 20px 24px;display:flex;flex-direction:column;gap:12px;max-height:85vh;overflow:auto">
+<sc-if value="{{ isResched }}" hint-placeholder-val="{{ false }}"><b style="font-size:20px">Elige un nuevo horario</b>
+<div style="padding:10px 12px;border-radius:12px;background:var(--muted);font-size:13px;color:var(--ink-700)">Tu cita actual: <b class="tnum">{{ a.when }}</b></div>
+<div style="font-size:12px;font-weight:700;color:var(--ink-500)">Doctor</div>
+<div style="display:flex;gap:6px;overflow:auto"><sc-for list="{{ docChips }}" as="d" hint-placeholder-count="3"><div role="button" tabIndex="0" onClick="{{ d.pick }}" style="cursor:pointer;white-space:nowrap;min-height:44px;padding:0 14px;display:flex;align-items:center;border-radius:12px;font-size:13px;font-weight:700;background:{{ d.bg }};color:{{ d.fg }};box-shadow:{{ d.sh }}">{{ d.t }}</div></sc-for></div>
+<div style="display:flex;gap:6px;overflow:auto"><sc-for list="{{ days }}" as="d" hint-placeholder-count="6"><div role="button" tabIndex="0" onClick="{{ d.pick }}" style="cursor:pointer;min-width:52px;min-height:60px;border-radius:12px;text-align:center;padding:8px 0;background:{{ d.bg }};color:{{ d.fg }};box-shadow:{{ d.sh }}"><div style="font-size:12px">{{ d.w }}</div><div class="tnum" style="font-size:18px;font-weight:700">{{ d.n }}</div></div></sc-for></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><sc-for list="{{ chips }}" as="h" hint-placeholder-count="6"><div role="button" tabIndex="0" onClick="{{ h.pick }}" class="tnum" style="cursor:pointer;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:600;background:{{ h.bg }};color:{{ h.fg }};box-shadow:{{ h.sh }}">{{ h.t }}</div></sc-for></div>
+<sc-if value="{{ noChips }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--warning-fg);background:var(--warning-bg);padding:10px 12px;border-radius:10px;font-weight:600">No hay horarios libres ese día. Prueba otro.</div></sc-if>
+<div role="button" tabIndex="0" onClick="{{ doResched }}" style="cursor:pointer;min-height:50px;border-radius:12px;background:{{ rsBg }};color:{{ rsFg }};font-weight:700;display:flex;align-items:center;justify-content:center">Confirmar nuevo horario</div></sc-if>
+<sc-if value="{{ isCancel }}" hint-placeholder-val="{{ false }}"><b style="font-size:20px">¿Cancelar tu cita?</b><span style="font-size:14px;color:var(--ink-500);line-height:1.5">Liberaremos el horario. Puedes reservar otro cuando quieras.</span>
+<div role="button" tabIndex="0" onClick="{{ doCancel }}" style="cursor:pointer;min-height:50px;border-radius:12px;background:var(--error-fg);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">Sí, cancelar cita</div>
+<div role="button" tabIndex="0" onClick="{{ closeSheet }}" style="cursor:pointer;min-height:46px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700;display:flex;align-items:center;justify-content:center">Volver</div></sc-if></div></div></sc-if>
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" aria-live="polite" style="position:fixed;left:50%;transform:translateX(-50%);bottom:24px;padding:13px 18px;border-radius:12px;background:var(--brand-900);color:#fff;font-weight:600;font-size:14px;box-shadow:var(--shadow-lg);white-space:nowrap">{{ toast }}</div></sc-if>
+</div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { id: null, sheet: null, rs: { day: null, slot: null }, toast: '', tick: 0, loading: true };
+  WD = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  WL = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  SEEDA = [{ id: 2, day: 0, doc: 0, slot: 6, dur: 3, p: 'Lucía Rojas', s: 'Ortodoncia', st: 'pendiente' }];
+  componentDidMount() { this._l = setTimeout(() => this.setState({ loading: false }), 700); this._x = () => this.setState(s => ({ tick: s.tick + 1 })); window.addEventListener('storage', this._x); window.addEventListener('focus', this._x); }
+  componentWillUnmount() { clearTimeout(this._l); clearTimeout(this._r); window.removeEventListener('storage', this._x); window.removeEventListener('focus', this._x); }
+  store() { try { const r = JSON.parse(localStorage.getItem('da-agenda-v1') || 'null'); if (r && r.appts) return r; } catch (e) {} return { appts: this.SEEDA, nid: 100 }; }
+  save(st, id, patch) { const next = { appts: st.appts.map(a => a.id === id ? Object.assign({}, a, patch) : a), nid: st.nid }; try { localStorage.setItem('da-agenda-v1', JSON.stringify(next)); } catch (e) {} this.setState(s => ({ tick: s.tick + 1 })); }
+  hm(slot) { const m = 540 + slot * 15; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+  dt(d) { return new Date(2026, 9, 12 + d); }
+  long(d) { const x = this.dt(d); return this.WL[x.getDay()] + ' ' + x.getDate() + ' de ' + ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][x.getMonth()]; }
+  flash(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4500); }
+  free(A, a, day, doc) { const o = []; for (let s = 0; s + a.dur <= 32; s += 2) if (!A.some(b => b.id !== a.id && b.day === day && b.doc === doc && b.st !== 'cancelada' && s < b.slot + b.dur && b.slot < s + a.dur)) o.push(s); return o; }
+  renderVals() {
+    const DA = window.DA;
+    if (!DA) { clearTimeout(this._r); this._r = setTimeout(() => this.setState(s => ({ tick: s.tick + 1 })), 150); return { ready: false }; }
+    const B = DA.brand(), S = this.state, st = this.store(), A = st.appts, DN = DA.docs().map(d => d.name);
+    const base = { ready: true, theme: DA.theme(), toggleTheme: () => { DA.setTheme(DA.theme() === 'dark' ? 'light' : 'dark'); this.setState(s => ({ t: (s.t || 0) + 1 })); }, name: B.name, head: B.head, waLink: B.waLink, root: Object.assign({ maxWidth: 460, margin: '0 auto', minHeight: '100vh', background: 'var(--grad-hero)', display: 'flex', flexDirection: 'column', position: 'relative', fontFamily: B.body }, B.vars), toast: S.toast, loading: S.loading };
+    if (S.loading) return Object.assign(base, { notFound: false, found: false, sheet: false });
+    let id = S.id; if (id === null) { const h = parseInt((location.hash || '').replace('#', ''), 10); id = A.some(a => a.id === h) ? h : (A.filter(a => a.web).slice(-1)[0] || A.find(a => a.p === 'Lucía Rojas') || A[0] || {}).id; }
+    const a = A.find(x => x.id === id);
+    if (!a) return Object.assign(base, { notFound: true, found: false, sheet: false });
+    const names = { pendiente: 'Pendiente de confirmar', confirmada: 'Confirmada', cancelada: 'Cancelada', reprogramada: 'Reprogramada · por confirmar', atendida: 'Atendida', 'en-sala': 'En sala', 'no-show': 'No asistió' };
+    const d = a.day, closed = ['cancelada', 'atendida', 'no-show'].includes(a.st), past = d < 0 && !closed;
+    const cnt = a.st === 'cancelada' ? 'Cita cancelada' : a.st === 'atendida' ? 'Cita atendida' : past ? 'Cita vencida' : d === 0 ? 'Es hoy' : d === 1 ? 'Falta 1 día' : 'Faltan ' + d + ' días';
+    const rsDay = S.rs.day === null ? Math.max(0, a.day) : S.rs.day;
+    const days = []; for (let i = 0; i < 12; i++) if (this.dt(i).getDay() !== 0) days.push(i);
+    const rsDoc = S.rs.doc == null ? a.doc : S.rs.doc, chipsRaw = this.free(A, a, rsDay, rsDoc), rsOk = S.rs.slot !== null && chipsRaw.includes(S.rs.slot);
+    return Object.assign(base, {
+      notFound: false, found: true,
+      a: { stLbl: names[a.st], bg: `var(--st-${a.st}-bg)`, fg: `var(--st-${a.st}-fg)`, count: cnt, when: this.long(a.day) + ' · ' + this.hm(a.slot), ics: (() => { const d = new Date(2026, 9, 12 + a.day), m0 = 540 + a.slot * 15, m1 = m0 + (a.dur || 2) * 15, p = n => String(n).padStart(2, '0'), f = m => d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + 'T' + p(Math.floor(m / 60)) + p(m % 60) + '00'; return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'DTSTART;TZID=America/Lima:' + f(m0), 'DTEND;TZID=America/Lima:' + f(m1), 'SUMMARY:' + a.s + ' · ' + B.name, 'LOCATION:' + B.address, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')); })() },
+      rows: [[a.s, 'icon-smile'], [DN[a.doc] || DN[0], 'icon-user'], [B.address, 'icon-map-pin'], ['Paciente: ' + a.p, 'icon-id-card']].map(r => ({ t: r[0], i: r[1] })),
+      expired: past, canAct: !closed && !past, canConfirm: a.st === 'pendiente' || a.st === 'reprogramada', canRebook: closed && a.st === 'cancelada' || past,
+      confirm: () => { this.save(st, a.id, { st: 'confirmada' }); this.flash('¡Asistencia confirmada!'); },
+      openResched: () => this.setState({ id: a.id, sheet: 'resched', rs: { day: null, slot: null, doc: null } }), openCancel: () => this.setState({ id: a.id, sheet: 'cancel' }),
+      sheet: !!S.sheet, isResched: S.sheet === 'resched', isCancel: S.sheet === 'cancel', closeSheet: () => this.setState({ sheet: null }), stop: e => e.stopPropagation(),
+      days: days.map(i => { const x = this.dt(i), on = i === rsDay; return { w: this.WD[x.getDay()], n: x.getDate(), pick: () => this.setState({ rs: { day: i, slot: null, doc: S.rs.doc } }), bg: on ? 'var(--grad-btn)' : 'var(--surface)', fg: on ? '#fff' : 'var(--ink-900)', sh: on ? 'none' : 'inset 0 0 0 1px var(--line)' }; }),
+      chips: chipsRaw.slice(0, 12).map(s => ({ t: this.hm(s), pick: () => this.setState({ rs: { day: rsDay, slot: s, doc: S.rs.doc } }), bg: s === S.rs.slot ? 'var(--grad-btn)' : 'var(--surface)', fg: s === S.rs.slot ? '#fff' : 'var(--ink-900)', sh: s === S.rs.slot ? 'none' : 'inset 0 0 0 1px var(--line)' })),
+      docChips: DN.map((n, i) => ({ t: n, pick: () => this.setState({ rs: { day: rsDay, slot: null, doc: i } }), bg: i === rsDoc ? 'var(--grad-btn)' : 'var(--surface)', fg: i === rsDoc ? '#fff' : 'var(--ink-900)', sh: i === rsDoc ? 'none' : 'inset 0 0 0 1px var(--line)' })),
+      noChips: chipsRaw.length === 0, rsBg: rsOk ? 'var(--grad-btn)' : 'var(--muted)', rsFg: rsOk ? '#fff' : 'var(--ink-300)',
+      doResched: () => { if (!rsOk) return; this.save(st, a.id, { day: rsDay, slot: S.rs.slot, doc: rsDoc, st: 'reprogramada' }); this.setState({ sheet: null }); this.flash('Cita reprogramada · ' + DN[rsDoc]); },
+      doCancel: () => { this.save(st, a.id, { st: 'cancelada' }); this.setState({ sheet: null }); this.flash('Cita cancelada'); }
+    });
+  }
+}
+</script>
+</body>
+</html>

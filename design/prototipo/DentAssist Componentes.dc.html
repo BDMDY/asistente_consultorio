@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:#E9EEEB;color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:18px;line-height:1}@keyframes sk{0%,100%{opacity:1}50%{opacity:.45}}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div><div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--brand-700)">DENTASSIST · SISTEMA DE DISEÑO</div><div style="font-size:36px;font-weight:800;letter-spacing:-.02em">Componentes</div><div style="color:var(--ink-500)">Todo lee --brand-*; cambia el atributo data-brand para re-marcar.</div></div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start">
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:14px"><b>Botones</b>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<span style="padding:12px 18px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px;box-shadow:0 6px 16px rgba(0,0,0,.15)">Primario</span>
+<span style="padding:11px 18px;border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--brand-200);color:var(--brand-700);font-weight:700;font-size:14px">Secundario</span>
+<span style="padding:12px 18px;border-radius:12px;color:var(--brand-700);font-weight:700;font-size:14px">Fantasma</span>
+<span style="padding:12px 18px;border-radius:12px;background:var(--error-fg);color:#fff;font-weight:700;font-size:14px">Peligro</span>
+<span style="padding:12px 18px;border-radius:12px;background:var(--muted);color:var(--ink-300);font-weight:700;font-size:14px">Deshabilitado</span>
+<span style="width:44px;height:44px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;justify-content:center"><i class="icon-plus"></i></span></div>
+<div style="font-size:12px;color:var(--ink-500)">Alto táctil ≥ 44 px · foco: anillo 2px --brand-500.</div></div>
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px"><b>Campos de formulario</b>
+<label style="font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:5px">Nombre<input value="Lucía Rojas" style="height:44px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font:inherit"></label>
+<label style="font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:5px">Teléfono (con foco)<input value="+51 987 654" style="height:44px;border-radius:10px;border:2px solid var(--brand-500);box-shadow:0 0 0 3px var(--brand-100);padding:0 12px;font:inherit"></label>
+<label style="font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:5px">Correo (error)<input value="lucia@" style="height:44px;border-radius:10px;border:2px solid var(--error-fg);padding:0 12px;font:inherit"><span style="color:var(--error-fg);font-weight:500">Ingresa un correo válido</span></label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;font-weight:600"><div>Fecha<div style="margin-top:5px;height:44px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-weight:500" class="tnum">14/10/2026<i class="icon-calendar"></i></div></div><div>Hora<div style="margin-top:5px;height:44px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-weight:500" class="tnum">10:30<i class="icon-clock"></i></div></div></div>
+<div style="display:flex;gap:18px;font-size:14px;align-items:center"><span style="display:flex;gap:8px;align-items:center"><span style="width:20px;height:20px;border-radius:6px;background:var(--brand-600);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-check" style="font-size:14px"></i></span>Acepto</span><span style="display:flex;gap:8px;align-items:center"><span style="width:38px;height:22px;border-radius:11px;background:var(--brand-500);position:relative"><span style="position:absolute;right:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span>WhatsApp</span></div></div>
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:14px"><b>Badges de estado de cita</b>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ states }}" as="s" hint-placeholder-count="7"><span style="padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;background:{{ s.bg }};color:{{ s.fg }}">{{ s.t }}</span></sc-for></div>
+<b>Pestañas</b><div style="display:flex;gap:22px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px"><span style="padding:10px 0;border-bottom:3px solid var(--brand-500);color:var(--brand-700)">Resumen</span><span style="padding:10px 0;color:var(--ink-500)">Historia</span><span style="padding:10px 0;color:var(--ink-500)">Pagos</span></div>
+<b>Avatares</b><div style="display:flex;gap:-8px;align-items:center"><sc-for list="{{ avatars }}" as="a" hint-placeholder-count="4"><span style="width:{{ a.sz }}px;height:{{ a.sz }}px;border-radius:50%;background:{{ a.bg }};color:var(--brand-900);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff;margin-right:-6px">{{ a.i }}</span></sc-for></div>
+<b>Barra de progreso</b><div style="height:10px;border-radius:5px;background:var(--brand-100)"><div style="width:62%;height:100%;border-radius:5px;background:var(--grad-accent)"></div></div><span class="tnum" style="font-size:13px;color:var(--ink-500)">11 de 18 controles</span></div>
+
+<div style="grid-column:span 2;background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:14px"><b>Tabla con filtros</b>
+<div style="display:flex;gap:10px"><div style="width:280px;height:42px;border-radius:10px;background:var(--muted);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--ink-500);font-size:14px"><i class="icon-search"></i>Buscar paciente</div><span style="height:42px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600">Estado<i class="icon-chevron-down"></i></span><span style="height:42px;padding:0 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600">Doctor<i class="icon-chevron-down"></i></span></div>
+<div style="border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden"><div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr;padding:12px 18px;background:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--ink-500)"><span>PACIENTE</span><span>FECHA</span><span>MONTO</span><span>ESTADO</span></div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr;padding:13px 18px;border-top:1px solid var(--line);font-size:14px;align-items:center"><b>{{ r.n }}</b><span class="tnum">{{ r.d }}</span><span class="tnum">{{ r.m }}</span><span><span style="padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ r.bg }};color:{{ r.fg }}">{{ r.s }}</span></span></div></sc-for></div></div>
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:10px"><b>Toasts</b>
+<sc-for list="{{ toasts }}" as="t" hint-placeholder-count="4"><div style="display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:{{ t.bg }};color:{{ t.fg }};font-size:14px;font-weight:600"><i class="{{ t.icon }}"></i>{{ t.t }}</div></sc-for></div>
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px"><b>Calendario</b>
+<div style="display:flex;justify-content:space-between;align-items:center;font-weight:700"><i class="icon-chevron-left"></i>Octubre 2026<i class="icon-chevron-right"></i></div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px"><sc-for list="{{ cal }}" as="d" hint-placeholder-count="42"><div class="tnum" style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;font-weight:{{ d.w }};background:{{ d.bg }};color:{{ d.fg }}">{{ d.t }}</div></sc-for></div></div>
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px"><b>Línea de tiempo</b>
+<sc-for list="{{ tl }}" as="t" hint-placeholder-count="3"><div style="display:flex;gap:12px"><div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;border-radius:50%;background:var(--brand-500);margin-top:4px"></span><span style="flex:1;width:2px;background:var(--line)"></span></div><div style="padding-bottom:10px"><b style="font-size:14px">{{ t.t }}</b><div class="tnum" style="font-size:12px;color:var(--ink-500)">{{ t.d }}</div></div></div></sc-for></div>
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:14px"><b>Esqueleto de carga</b>
+<div style="display:flex;gap:12px;align-items:center;animation:sk 1.4s infinite"><span style="width:44px;height:44px;border-radius:50%;background:var(--muted)"></span><div style="flex:1;display:flex;flex-direction:column;gap:8px"><span style="height:12px;width:60%;border-radius:6px;background:var(--muted)"></span><span style="height:10px;width:40%;border-radius:5px;background:var(--muted)"></span></div></div>
+<div style="height:70px;border-radius:12px;background:var(--muted);animation:sk 1.4s infinite"></div>
+<b>Estado vacío</b><div style="text-align:center;padding:14px;border-radius:12px;border:1.5px dashed var(--brand-200);display:flex;flex-direction:column;gap:6px;align-items:center"><span style="width:44px;height:44px;border-radius:50%;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center"><i class="icon-calendar-x"></i></span><b>Sin citas hoy</b><span style="font-size:13px;color:var(--ink-500)">Crea la primera cita del día.</span><span style="padding:9px 14px;border-radius:10px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:13px">Nueva cita</span></div></div>
+
+<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:12px"><b>Tarjetas</b>
+<div style="padding:16px;border-radius:14px;box-shadow:var(--shadow-md);font-size:14px"><b>Estándar</b><div style="color:var(--ink-500)">Sombra suave, radio 16.</div></div>
+<div style="padding:16px;border-radius:14px;background:var(--grad-hero);box-shadow:inset 0 0 0 1px var(--brand-100);font-size:14px"><b>Destacada</b><div style="color:var(--ink-500)">Gradiente de marca.</div></div>
+<div style="padding:16px;border-radius:14px;background:var(--grad-accent);color:var(--brand-950);font-size:14px"><b>Acento</b></div></div>
+
+<div style="background:rgba(16,36,27,.45);border-radius:16px;padding:28px;display:flex;align-items:center;justify-content:center"><div style="width:100%;background:#fff;border-radius:18px;padding:22px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between"><b style="font-size:17px">Cancelar cita</b><i class="icon-x"></i></div><span style="font-size:14px;color:var(--ink-500);line-height:1.5">Se avisará a Lucía por WhatsApp. Esta acción no se puede deshacer.</span><div style="display:flex;gap:8px;justify-content:flex-end"><span style="padding:11px 14px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700;font-size:14px">Volver</span><span style="padding:11px 14px;border-radius:10px;background:var(--error-fg);color:#fff;font-weight:700;font-size:14px">Cancelar cita</span></div></div></div>
+
+<div style="background:rgba(16,36,27,.45);border-radius:16px;display:flex;justify-content:flex-end;overflow:hidden;min-height:260px"><div style="width:78%;background:#fff;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow-lg)"><div style="display:flex;justify-content:space-between"><b>Panel lateral</b><i class="icon-x"></i></div><span style="font-size:14px;color:var(--ink-500)">Detalle de cita, paciente o cobro.</span><div style="height:12px;border-radius:6px;background:var(--muted)"></div><div style="height:12px;width:70%;border-radius:6px;background:var(--muted)"></div></div></div>
+</div>
+
+<div style="font-size:14px;font-weight:700;color:var(--brand-700)">Intranet móvil 390</div>
+<div style="display:flex;gap:28px;align-items:flex-start">
+<sc-for list="{{ phones }}" as="p" hint-placeholder-count="2">
+<div data-screen-label="{{ p.t }}" style="width:390px;height:780px;background:var(--bone);border-radius:28px;overflow:hidden;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;position:relative">
+<div style="height:60px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 16px"><i class="icon-menu" style="font-size:22px"></i><b>{{ p.t }}</b><span style="width:36px;height:36px;border-radius:50%;background:var(--brand-100);color:var(--brand-800);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">AQ</span></div>
+<div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+<sc-if value="{{ p.isDash }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><sc-for list="{{ kp }}" as="k" hint-placeholder-count="4"><div style="background:#fff;border-radius:14px;padding:14px;box-shadow:var(--shadow-md)"><div style="font-size:12px;color:var(--ink-500);font-weight:600">{{ k.l }}</div><div class="tnum" style="font-size:24px;font-weight:800">{{ k.v }}</div></div></sc-for></div>
+<b style="margin-top:6px">Próximas citas</b>
+</sc-if>
+<sc-if value="{{ p.isAgenda }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px"><sc-for list="{{ dayStrip }}" as="d" hint-placeholder-count="5"><div style="flex:1;min-height:56px;border-radius:12px;text-align:center;padding:8px 0;background:{{ d.bg }};color:{{ d.fg }}"><div style="font-size:12px">{{ d.w }}</div><div class="tnum" style="font-size:17px;font-weight:700">{{ d.n }}</div></div></sc-for></div></sc-if>
+<sc-for list="{{ appts }}" as="a" hint-placeholder-count="5"><div style="display:flex;gap:12px;align-items:center;background:#fff;border-radius:14px;padding:12px;box-shadow:var(--shadow-md);min-height:56px"><span class="tnum" style="font-weight:700;width:46px">{{ a.h }}</span><span style="flex:1;font-size:14px"><b>{{ a.p }}</b><div style="color:var(--ink-500);font-size:12px">{{ a.s }}</div></span><span style="padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ a.bg }};color:{{ a.fg }}">{{ a.st }}</span></div></sc-for>
+</div>
+<div style="position:absolute;right:16px;bottom:84px;width:56px;height:56px;border-radius:18px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-lg)"><i class="icon-plus" style="font-size:26px"></i></div>
+<div style="height:68px;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr)"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:{{ t.c }}"><i class="{{ t.icon }}"></i>{{ t.t }}</div></sc-for></div>
+</div></sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { this._f = setTimeout(() => this.forceUpdate(), 300); }
+  renderVals() {
+    const st = k => ({ bg: `var(--st-${k}-bg)`, fg: `var(--st-${k}-fg)` });
+    const cal = [];
+    ['L','M','M','J','V','S','D'].forEach(t => cal.push({ t, w: 700, bg: 'transparent', fg: 'var(--ink-500)' }));
+    for (let i = 0; i < 35; i++) { const d = i - 3; const ok = d >= 1 && d <= 31; cal.push({ t: ok ? d : '', w: 600, bg: d === 14 ? 'var(--brand-600)' : [8, 15, 17].includes(d) ? 'var(--brand-50)' : 'transparent', fg: d === 14 ? '#fff' : 'var(--ink-900)' }); }
+    const appts = [['09:00', 'M. Soto', 'Limpieza', 'atendida', 'Atendida'], ['09:30', 'C. Díaz', 'Control', 'en-sala', 'En sala'], ['10:30', 'Lucía Rojas', 'Ortodoncia', 'pendiente', 'Pendiente'], ['11:00', 'P. Vera', 'Endodoncia', 'confirmada', 'Confirmada'], ['12:00', 'R. León', 'Control', 'no-show', 'No-show']].map(r => Object.assign({ h: r[0], p: r[1], s: r[2], st: r[4] }, st(r[3])));
+    const tab = (t, icon, on) => ({ t, icon: 'icon-' + icon, c: on ? 'var(--brand-700)' : 'var(--ink-500)' });
+    return {
+      rootStyle: Object.assign({ padding: 40, width: 1360, display: 'flex', flexDirection: 'column', gap: 28 }, window.DA ? window.DA.brand().vars : {}),
+      states: ['Pendiente', 'Confirmada', 'En sala', 'Atendida', 'Cancelada', 'No-show', 'Reprogramada'].map(t => Object.assign({ t }, st(t.toLowerCase().replace(' ', '-')))),
+      avatars: [['AQ', 'var(--brand-200)', 44], ['LP', 'var(--brand-100)', 44], ['CV', 'var(--brand-300)', 44], ['+3', 'var(--muted)', 44]].map(a => ({ i: a[0], bg: a[1], sz: a[2] })),
+      rows: [['Lucía Rojas', '14/10/2026', 'S/ 150.00', 'confirmada', 'Confirmada'], ['Mario Soto', '14/10/2026', 'S/ 90.00', 'atendida', 'Atendida'], ['Rosa León', '13/10/2026', 'S/ 0.00', 'no-show', 'No-show'], ['Pedro Vera', '15/10/2026', 'S/ 350.00', 'pendiente', 'Pendiente']].map(r => Object.assign({ n: r[0], d: r[1], m: r[2], s: r[4] }, st(r[3]))),
+      toasts: [['Cita confirmada', 'success', 'icon-circle-check'], ['Revisa los datos del paciente', 'warning', 'icon-triangle-alert'], ['No se pudo guardar', 'error', 'icon-circle-x'], ['Recordatorio enviado', 'info', 'icon-info']].map(t => ({ t: t[0], icon: t[2], bg: `var(--${t[1]}-bg)`, fg: `var(--${t[1]}-fg)` })),
+      cal,
+      tl: [['Control mensual', '14 oct 2026'], ['Radiografía', '02 sep 2026'], ['Colocación de brackets', '10 abr 2026']].map(t => ({ t: t[0], d: t[1] })),
+      kp: [['Citas hoy', '14'], ['Ocupación', '82%'], ['Ingresos', 'S/ 2,350'], ['Sin confirmar', '4']].map(k => ({ l: k[0], v: k[1] })),
+      dayStrip: [['Lun', 12], ['Mar', 13], ['Mié', 14], ['Jue', 15], ['Vie', 16]].map((d, i) => ({ w: d[0], n: d[1], bg: i === 2 ? 'var(--grad-btn)' : '#fff', fg: i === 2 ? '#fff' : 'var(--ink-900)' })),
+      appts,
+      tabs: [tab('Inicio', 'house', 1), tab('Agenda', 'calendar-days'), tab('Pacientes', 'users'), tab('Más', 'ellipsis')],
+      phones: [{ t: 'Inicio', isDash: true, isAgenda: false }, { t: 'Agenda', isDash: false, isAgenda: true }]
+    };
+  }
+}
+</script>
+</body>
+</html>

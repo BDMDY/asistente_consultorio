@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--bone);color:var(--ink-900)}a{color:var(--brand-700);text-decoration:none}a:hover{color:var(--brand-800)}</style>
+</helmet>
+<div data-brand="jade" style="max-width:1000px;margin:0 auto;padding:56px 32px;display:flex;flex-direction:column;gap:32px">
+<div style="background:var(--grad-hero);border-radius:20px;padding:40px;box-shadow:inset 0 0 0 1px var(--brand-100)"><div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--brand-700)">DENTASSIST · ENTREGA</div><div style="font-size:42px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:8px">Identidad visual y pantallas base</div><div style="color:var(--ink-500);font-size:17px;margin-top:8px">Landing público, intranet y sistema de diseño white-label. Español (Perú) · S/ · America/Lima.</div></div>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:12px"><b style="font-size:13px;letter-spacing:.1em;color:var(--ink-500)">{{ g.t }}</b>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3"><a href="{{ i.href }}" style="display:flex;flex-direction:column;gap:4px;background:var(--surface);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow-md)" style-hover="box-shadow:var(--shadow-lg)"><span style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b style="font-size:16px;color:var(--ink-900)">{{ i.n }}</b><span style="flex-shrink:0;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:{{ i.tbg }};color:{{ i.tfg }}">{{ i.tag }}</span></span><span style="font-size:14px;color:var(--ink-500);line-height:1.5">{{ i.d }}</span></a></sc-for></div></div></sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const F = 'Funcional', M = 'Maqueta', D = 'Documento';
+    const G = [
+      ['DIRECCIÓN Y SISTEMA', [['DentAssist Dirección Visual.dc.html', 'Dirección visual', 'Paleta jade, tipografía y 3 variantes de hero (elegido: 1a).', M], ['DentAssist Componentes.dc.html', 'Componentes', 'Botones, campos, tablas, toasts, calendario, modales, esqueletos y móvil.', M]]],
+      ['SITIO PÚBLICO', [['DentAssist Landing.dc.html', 'Landing', 'Datos reales de marca, servicios, equipo, casos y FAQ; variante azul; móvil.', F], ['DentAssist Reserva.dc.html', 'Reserva en 5 pasos', 'Solo horarios libres de la agenda; crea cita y paciente.', F], ['DentAssist Mi Cita.dc.html', 'Mi cita', 'Confirmar, reprogramar o cancelar; carga, enlace vencido y no encontrado.', F], ['DentAssist Privacidad.dc.html', 'Aviso de privacidad', 'Ley 29733 con los datos de la marca.', F], ['DentAssist Extras.dc.html', 'Consentimiento, Mi cita escritorio y móviles', 'Banner de datos, pasos móviles de la reserva, tipografías opcionales.', M]]],
+      ['INTRANET', [['DentAssist Intranet.dc.html', 'Inicio de sesión', 'Acceso con correo y contraseña, recuperar contraseña y entrada con Google.', F], ['DentAssist Inicio Escritorio.dc.html', 'Inicio escritorio', 'Tablero del día con atajos, indicadores y alertas; menú colapsable común.', F], ['DentAssist Modulos Escritorio.dc.html', 'Módulos escritorio', 'Planes, inventario, finanzas, servicios, campañas, reportes y configuración funcionales.', F], ['DentAssist Modulos Movil.dc.html', 'Módulos móvil', 'Los mismos módulos funcionales en 390 px.', F], ['DentAssist Inicio Movil.dc.html', 'Inicio móvil', 'Tablero del día en móvil.', F], ['DentAssist Marca Movil.dc.html', 'Marca móvil', 'Configuración de marca en móvil.', F], ['DentAssist Agenda Interactiva.dc.html', 'Agenda', 'Arrastrar, mover con flechas, cita única o en serie, cobro con comprobante.', F], ['DentAssist Pacientes.dc.html', 'Pacientes y ficha', 'Historia clínica, plan, archivos y pagos.', F], ['DentAssist Medios de Marca.dc.html', 'Medios de marca', 'Logos, favicon, fotos y listas variables de servicios, doctores, instalaciones y casos.', F], ['DentAssist Agenda Movil.dc.html', 'Agenda móvil', 'Día, detalle y nueva cita única o en serie.', F]]],
+      ['TOKENS Y DOCUMENTACIÓN', [['dentassist-tokens.css', 'dentassist-tokens.css', 'Variables CSS: marca 50–950, estados, radios, sombras, modo oscuro.', D], ['tailwind.preset.js', 'tailwind.preset.js', 'Preset Tailwind/shadcn sobre las variables.', D], ['README.md', 'README', 'Uso de tokens y cambio de marca por empresa.', D], ['HANDOFF.md', 'HANDOFF', 'Mapa de pantallas, reglas e interacciones para desarrollo.', D]]]
+    ];
+    const tone = t => t === F ? ['var(--success-bg)', 'var(--success-fg)'] : t === M ? ['var(--muted)', 'var(--ink-500)'] : ['var(--info-bg)', 'var(--info-fg)'];
+    return { groups: G.map(g => ({ t: g[0], items: g[1].map(i => ({ href: encodeURI(i[0]), n: i[1], d: i[2], tag: i[3], tbg: tone(i[3])[0], tfg: tone(i[3])[1] })) })) };
+  }
+}
+</script>
+</body>
+</html>

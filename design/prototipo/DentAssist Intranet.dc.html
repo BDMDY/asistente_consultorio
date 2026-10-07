@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Lora:wght@500;700&family=DM+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:#E9EEEB;color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:18px;line-height:1}input{font-family:inherit}</style>
+</helmet>
+<div style="{{ rootStyle }}"><div role="button" tabIndex="0" onClick="{{ toggleTheme }}" style="cursor:pointer;align-self:flex-start;padding:12px 18px;border-radius:12px;background:#fff;box-shadow:var(--shadow-md);font-weight:700;font-size:14px;display:flex;gap:8px;align-items:center"><i class="icon-moon"></i>{{ themeLbl }} (todas las pantallas)</div>
+
+<section style="display:flex;flex-direction:column;gap:10px">
+<b style="font-size:14px;color:var(--brand-700)">3a · Inicio de sesión (intranet.clinicasonrie.pe)</b>
+<div data-brand="jade" style="width:1440px;height:720px;background:var(--grad-hero);box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1fr 1fr">
+<div style="padding:72px;display:flex;flex-direction:column;justify-content:center;gap:20px;max-width:520px;margin:0 auto;width:100%">
+<div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px"><span style="width:40px;height:40px;border-radius:12px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile"></i></span>{{ name }}</div>
+<sc-if value="{{ auth.login }}" hint-placeholder-val="{{ true }}">
+<div><div style="font-size:32px;font-weight:800;letter-spacing:-.02em">Bienvenido de nuevo</div><div style="color:var(--ink-500);margin-top:4px">Ingresa con tu cuenta del personal.</div></div>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Correo<input value="{{ lEmail }}" onInput="{{ setLEmail }}" type="email" autocomplete="username" style="height:48px;border-radius:12px;padding:0 14px;font-size:15px;background:var(--surface);border:1px solid var(--line)"></label>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Contraseña<input aria-label="Tu contraseña" type="password" value="{{ lPass }}" onInput="{{ setLPass }}" placeholder="Tu contraseña" autocomplete="current-password" style="height:48px;border-radius:12px;padding:0 14px;font-size:15px;background:var(--surface);border:2px solid var(--brand-500)"></label>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px"><span style="color:var(--ink-500)">Recordarme</span><span role="button" tabIndex="0" onClick="{{ goRecover }}" style="cursor:pointer;font-weight:600;color:var(--brand-700);min-height:24px">Recuperar contraseña</span></div>
+<div role="button" tabIndex="0" onClick="{{ doLogin }}" style="cursor:pointer;height:48px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">Iniciar sesión</div>
+<div role="button" tabIndex="0" onClick="{{ doLogin }}" style="cursor:pointer;height:48px;border-radius:12px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px"><i class="icon-chrome"></i>Entrar con Google</div>
+</sc-if>
+<sc-if value="{{ auth.recover }}" hint-placeholder-val="{{ false }}">
+<span role="button" tabIndex="0" onClick="{{ goLogin }}" style="cursor:pointer;font-weight:600;color:var(--brand-700);display:flex;gap:6px;align-items:center;min-height:24px" aria-label="Volver"><i class="icon-arrow-left" style="font-size:16px"></i>Volver</span>
+<div><div style="font-size:32px;font-weight:800;letter-spacing:-.02em">Recupera tu contraseña</div><div style="color:var(--ink-500);margin-top:4px">Te enviaremos un enlace para crear una nueva. Vence en 30 minutos.</div></div>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600">Correo del personal<input value="{{ rEmail }}" onInput="{{ setREmail }}" type="email" style="height:48px;border-radius:12px;padding:0 14px;font-size:15px;background:var(--surface);border:{{ rBorder }}"></label>
+<sc-if value="{{ rErr }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--error-fg);font-weight:600">Ingresa un correo válido, por ejemplo nombre@clinica.pe</div></sc-if>
+<div role="button" tabIndex="0" onClick="{{ sendRecover }}" style="cursor:pointer;height:48px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">Enviar enlace</div>
+</sc-if>
+<sc-if value="{{ auth.sent }}" hint-placeholder-val="{{ false }}">
+<span style="width:56px;height:56px;border-radius:50%;background:var(--success-bg);color:var(--success-fg);display:flex;align-items:center;justify-content:center"><i class="icon-mail-check" style="font-size:28px"></i></span>
+<div><div style="font-size:32px;font-weight:800;letter-spacing:-.02em">Revisa tu correo</div><div style="color:var(--ink-500);margin-top:4px;line-height:1.5">Si <b>{{ rEmail }}</b> está registrado, recibirás un enlace en unos minutos. Revisa también la carpeta de spam.</div></div>
+<div role="button" tabIndex="0" onClick="{{ goLogin }}" style="cursor:pointer;height:48px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">Volver a iniciar sesión</div>
+<span role="button" tabIndex="0" onClick="{{ sendRecover }}" style="cursor:pointer;font-weight:600;color:var(--brand-700);text-align:center;min-height:24px">Reenviar enlace</span>
+</sc-if>
+</div>
+<div style="margin:24px;border-radius:24px;background:repeating-linear-gradient(135deg,var(--brand-100) 0 14px,var(--brand-50) 14px 28px);display:flex;align-items:center;justify-content:center;color:var(--brand-700);font-weight:600;font-size:14px">foto / ilustración de marca</div>
+</div></section>
+
+<sc-for list="{{ screens }}" as="s" hint-placeholder-count="5">
+<section id="{{ s.id }}" style="display:flex;flex-direction:column;gap:10px">
+<b style="font-size:14px;color:var(--brand-700)">{{ s.label }}</b>
+<div data-brand="{{ s.brand }}" data-theme="{{ theme }}" data-screen-label="{{ s.label }}" style="color:var(--ink-900);width:1440px;height:900px;background:var(--bone);box-shadow:var(--shadow-lg);display:grid;grid-template-columns:{{ asideW }} 1fr;overflow:hidden">
+<aside style="background:var(--surface);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;padding:4px 8px 20px"><span style="width:34px;height:34px;border-radius:10px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile"></i></span><span style="display:{{ lbl }}">{{ name }}</span></div>
+<sc-for list="{{ s.nav }}" as="n" hint-placeholder-count="9"><a href="{{ n.href }}" aria-label="{{ n.t }}" style="display:flex;align-items:center;gap:12px;padding:0 12px;min-height:44px;border-radius:10px;font-size:14px;white-space:nowrap;font-weight:600;text-decoration:none;background:{{ n.bg }};color:{{ n.fg }}"><i class="{{ n.icon }}"></i><span style="display:{{ lbl }}">{{ n.t }}</span></a></sc-for>
+<div style="flex:1"></div><div role="button" tabIndex="0" onClick="{{ toggleCollapse }}" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 12px;min-height:44px;color:var(--ink-500);font-size:14px;font-weight:600"><i class="{{ collapseIcon }}"></i><span style="display:{{ lbl }}">Colapsar menú</span></div>
+</aside>
+<main style="display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden"><sc-if value="{{ s.anyOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:10"></div></sc-if>
+<header style="position:relative;z-index:20;height:68px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 28px">
+<div style="flex:1;max-width:460px;position:relative"><div style="height:44px;border-radius:12px;background:var(--muted);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--ink-500)"><i class="icon-search"></i><input value="{{ q }}" onInput="{{ s.setQ }}" onFocus="{{ s.openSearch }}" aria-label="Buscar paciente, cita o DNI" placeholder="Buscar paciente, cita o DNI…" style="flex:1;min-width:0;border:0;background:transparent;font-size:14px;color:var(--ink-900)"></div>
+<sc-if value="{{ s.sSearch }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:52px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;z-index:30;left:0;right:0"><sc-for list="{{ results }}" as="r" hint-placeholder-count="3"><a href="{{ r.href }}" style="display:flex;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid var(--line);text-decoration:none;color:var(--ink-900);font-size:14px;min-height:20px"><b>{{ r.t }}</b><span class="tnum" style="color:var(--ink-500);font-size:12px">{{ r.s }}</span></a></sc-for><sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 16px;font-size:13px;color:var(--ink-500)">Sin resultados para «{{ q }}»</div></sc-if></div></sc-if></div>
+<div style="flex:1"></div>
+<div style="position:relative"><div role="button" tabIndex="0" onClick="{{ s.toggleSede }}" aria-label="Cambiar sede" style="cursor:pointer;height:44px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600"><i class="icon-building-2"></i>{{ sede }}<i class="icon-chevron-down"></i></div>
+<sc-if value="{{ s.sSede }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:52px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;z-index:30;right:0;width:220px"><sc-for list="{{ sedes }}" as="o" hint-placeholder-count="2"><div role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;padding:13px 16px;font-size:14px;font-weight:{{ o.w }};display:flex;justify-content:space-between;border-top:1px solid var(--line);color:{{ o.c }}">{{ o.t }}<i class="{{ o.icon }}" style="font-size:16px"></i></div></sc-for></div></sc-if></div>
+<div style="position:relative"><div role="button" tabIndex="0" onClick="{{ s.toggleNotif }}" aria-label="Notificaciones" style="cursor:pointer;width:44px;height:44px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;justify-content:center;position:relative"><i class="icon-bell"></i><span style="position:absolute;top:10px;right:11px;width:8px;height:8px;border-radius:50%;background:var(--error-fg);display:{{ badge }}"></span></div>
+<sc-if value="{{ s.sNotif }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:52px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;z-index:30;right:0;width:340px"><div style="padding:14px 16px;font-weight:700;display:flex;justify-content:space-between;align-items:center">Notificaciones<span role="button" tabIndex="0" onClick="{{ markRead }}" style="cursor:pointer;font-size:12px;color:var(--brand-700)">Marcar como leídas</span></div><sc-for list="{{ notifs }}" as="n" hint-placeholder-count="3"><div style="padding:12px 16px;border-top:1px solid var(--line);font-size:13px;display:flex;gap:10px;align-items:flex-start"><i class="{{ n.icon }}" style="font-size:16px;color:var(--brand-600);margin-top:2px"></i><div><b>{{ n.t }}</b><div style="color:var(--ink-500)">{{ n.s }}</div></div></div></sc-for></div></sc-if></div>
+<div style="position:relative"><div role="button" tabIndex="0" onClick="{{ s.toggleUser }}" aria-label="Menú de usuario" style="cursor:pointer;display:flex;align-items:center;gap:10px"><span style="width:40px;height:40px;border-radius:50%;background:var(--brand-100);color:var(--brand-800);font-weight:700;display:flex;align-items:center;justify-content:center">AQ</span><div style="font-size:13px;line-height:1.3"><b>Ana Quispe</b><div style="color:var(--ink-500)">Doctora</div></div><i class="icon-chevron-down"></i></div>
+<sc-if value="{{ s.sUser }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:52px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;z-index:30;right:0;width:220px"><sc-for list="{{ userMenu }}" as="u" hint-placeholder-count="3"><div role="button" tabIndex="0" onClick="{{ u.pick }}" style="cursor:pointer;padding:13px 16px;font-size:14px;font-weight:600;border-top:1px solid var(--line);color:{{ u.c }}">{{ u.t }}</div></sc-for></div></sc-if></div>
+</header>
+<div style="flex:1;min-height:0;overflow:auto;padding:28px;display:flex;flex-direction:column;gap:20px">
+
+<sc-if value="{{ s.dash }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:28px;font-weight:800;letter-spacing:-.02em">Buenos días, Ana</div><div style="color:var(--ink-500);font-size:15px">Lunes 12 de octubre · Lima</div></div>
+<div style="display:flex;gap:10px"><a href="DentAssist%20Pacientes.dc.html" style="text-decoration:none;padding:13px 18px;border-radius:12px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--brand-200);color:var(--brand-700);font-weight:700;font-size:14px">+ Nuevo paciente</a><a href="DentAssist%20Agenda%20Interactiva.dc.html#nueva" style="text-decoration:none;padding:13px 18px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px">+ Nueva cita</a></div></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4"><div style="background:var(--surface);border-radius:16px;padding:20px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink-500);font-weight:600">{{ k.l }}</span><span class="tnum" style="font-size:32px;font-weight:800">{{ k.v }}</span><span style="font-size:13px;color:{{ k.c }};font-weight:600">{{ k.s }}</span></div></sc-for></div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;flex:1;min-height:0">
+<div style="background:var(--surface);border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:6px"><b style="font-size:18px;margin-bottom:6px">Citas de hoy</b>
+<sc-for list="{{ today }}" as="a" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--line)"><span class="tnum" style="width:52px;font-weight:700">{{ a.h }}</span><span style="flex:1"><b>{{ a.p }}</b><span style="color:var(--ink-500);font-size:14px"> · {{ a.s }}</span></span><span style="font-size:13px;color:var(--ink-500)">{{ a.d }}</span><span style="padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ a.bg }};color:{{ a.fg }}">{{ a.st }}</span></div></sc-for></div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="background:var(--surface);border-radius:16px;padding:22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:10px"><b style="font-size:18px">Alertas de stock</b>
+<sc-for list="{{ stock }}" as="x" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;font-size:14px"><span>{{ x.n }}</span><b class="tnum" style="color:var(--error-fg)">{{ x.q }}</b></div></sc-for></div>
+<div style="background:var(--warning-bg);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:6px"><b style="font-size:18px;color:var(--warning-fg)">{{ pendTitle }}</b><span style="font-size:14px;color:var(--warning-fg)">Enviar recordatorio por WhatsApp</span><span role="button" tabIndex="0" onClick="{{ sendReminders }}" style="cursor:pointer;align-self:flex-start;margin-top:6px;padding:12px 14px;border-radius:10px;background:var(--surface);font-weight:700;font-size:13px;color:var(--warning-fg)">Enviar recordatorios</span></div>
+</div></div>
+</sc-if>
+
+<sc-if value="{{ s.agenda }}" hint-placeholder-val="{{ false }}"><iframe title="Agenda" src="DentAssist%20Agenda%20Interactiva.dc.html" style="flex:1;min-height:0;margin:-28px;border:0;display:block;background:var(--bone)"></iframe></sc-if>
+<sc-if value="{{ s.patient }}" hint-placeholder-val="{{ false }}"><iframe title="Pacientes" src="DentAssist%20Pacientes.dc.html" style="flex:1;min-height:0;margin:-28px;border:0;display:block;background:var(--bone)"></iframe></sc-if>
+<sc-if value="{{ s.roles }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ rowOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeRow }}" style="position:fixed;inset:0;z-index:15"></div></sc-if>
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:28px;font-weight:800;letter-spacing:-.02em">Usuarios y roles</div><span role="button" tabIndex="0" onClick="{{ openInvite }}" style="cursor:pointer;padding:13px 18px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px">+ Invitar usuario</span></div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input value="{{ uq }}" onInput="{{ setUq }}" aria-label="Buscar usuario" placeholder="Buscar usuario" style="width:300px;height:44px;border-radius:12px;border:1px solid var(--line);padding:0 14px;font-size:15px;background:var(--surface);background:var(--surface)"><sc-for list="{{ roleFilters }}" as="o" hint-placeholder-count="4"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div>
+<div style="background:var(--surface);border-radius:16px;box-shadow:var(--shadow-md);overflow:visible;flex-shrink:0">
+<div style="display:grid;grid-template-columns:2fr 1.6fr 1fr 1fr 1fr 40px;padding:14px 22px;background:var(--muted);border-radius:16px 16px 0 0;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--ink-500)"><span>USUARIO</span><span>CORREO</span><span>ROL</span><span>SEDE</span><span>ESTADO</span><span></span></div>
+<sc-for list="{{ userRows }}" as="u" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:2fr 1.6fr 1fr 1fr 1fr 40px;padding:12px 22px;align-items:center;border-top:1px solid var(--line);font-size:14px;position:relative;z-index:{{ u.z }}"><span style="display:flex;align-items:center;gap:12px;font-weight:600"><span style="width:36px;height:36px;border-radius:50%;background:var(--brand-100);color:var(--brand-800);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ u.i }}</span>{{ u.n }}</span><span style="color:var(--ink-500);overflow:hidden;text-overflow:ellipsis">{{ u.e }}</span><span><span style="padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--brand-50);color:var(--brand-800)">{{ u.r }}</span></span><span>{{ u.s }}</span><span style="color:{{ u.c }};font-weight:600">{{ u.a }}</span>
+<div style="position:relative"><span role="button" tabIndex="0" aria-label="Acciones de {{ u.n }}" onClick="{{ u.toggle }}" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center"><i class="icon-ellipsis"></i></span>
+<sc-if value="{{ u.open }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:0;top:42px;width:230px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;z-index:30"><sc-for list="{{ u.opts }}" as="o" hint-placeholder-count="4"><div role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;padding:12px 16px;font-size:14px;font-weight:600;border-top:1px solid var(--line);color:{{ o.c }}">{{ o.t }}</div></sc-for></div></sc-if></div></div></sc-for>
+<sc-if value="{{ noUsers }}" hint-placeholder-val="{{ false }}"><div style="padding:24px;text-align:center;color:var(--ink-500);font-size:14px">Sin usuarios para ese filtro.</div></sc-if></div>
+<div style="background:var(--surface);border-radius:16px;box-shadow:var(--shadow-md);overflow:hidden;flex-shrink:0"><div style="display:grid;grid-template-columns:2fr repeat(3,1fr);padding:12px 22px;background:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--ink-500)"><span>PERMISOS POR MÓDULO · clic para cambiar</span><sc-for list="{{ roleNames }}" as="r" hint-placeholder-count="3"><span style="text-align:center">{{ r }}</span></sc-for></div>
+<sc-for list="{{ matrix }}" as="m" hint-placeholder-count="9"><div style="display:grid;grid-template-columns:2fr repeat(3,1fr);padding:9px 22px;border-top:1px solid var(--line);font-size:14px;align-items:center"><span>{{ m.t }}</span><sc-for list="{{ m.cells }}" as="c" hint-placeholder-count="3"><span role="button" tabIndex="0" aria-label="{{ c.lbl }}" onClick="{{ c.pick }}" style="text-align:center;color:{{ c.c }};cursor:{{ c.cur }};min-height:32px;display:flex;align-items:center;justify-content:center"><i class="{{ c.icon }}" style="font-size:18px"></i></span></sc-for></div></sc-for></div>
+<sc-if value="{{ inv.open }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeInvite }}" style="position:fixed;inset:0;background:rgba(16,36,27,.5);display:flex;align-items:center;justify-content:center;z-index:80"><div role="button" tabIndex="0" onClick="{{ stopEv }}" style="width:520px;background:var(--surface);border-radius:20px;box-shadow:var(--shadow-lg);padding:26px;display:flex;flex-direction:column;gap:14px;color:var(--ink-900)">
+<div style="display:flex;justify-content:space-between"><b style="font-size:22px">Invitar usuario</b><span role="button" tabIndex="0" aria-label="Cerrar" onClick="{{ closeInvite }}" style="cursor:pointer"><i class="icon-x"></i></span></div>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Nombre completo<input value="{{ inv.name }}" onInput="{{ setInvName }}" style="height:44px;border-radius:12px;border:1px solid var(--line);padding:0 14px;font-size:15px;background:var(--surface);border:{{ invB.name }}"></label>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Correo<input value="{{ inv.email }}" onInput="{{ setInvEmail }}" type="email" style="height:44px;border-radius:12px;border:1px solid var(--line);padding:0 14px;font-size:15px;background:var(--surface);border:{{ invB.email }}"></label>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Rol</div><div style="display:flex;gap:6px"><sc-for list="{{ invRoles }}" as="o" hint-placeholder-count="3"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;text-align:center;padding:11px 0;border-radius:10px;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div></div>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Sede</div><div style="display:flex;gap:6px"><sc-for list="{{ invSedes }}" as="o" hint-placeholder-count="3"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;text-align:center;padding:11px 0;border-radius:10px;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div></div>
+<div style="display:flex;justify-content:flex-end;gap:10px"><span role="button" tabIndex="0" onClick="{{ closeInvite }}" style="cursor:pointer;padding:13px 18px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700">Cancelar</span><span role="button" tabIndex="0" onClick="{{ sendInvite }}" style="cursor:pointer;padding:13px 22px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700">Enviar invitación</span></div></div></div></sc-if>
+</sc-if>
+
+<sc-if value="{{ s.brandcfg }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:28px;font-weight:800;letter-spacing:-.02em">Configuración de marca</div><div style="color:var(--ink-500);font-size:14px">Todo se ve al instante en la vista previa y se guarda solo.</div></div><span role="button" tabIndex="0" onClick="{{ publish }}" style="cursor:pointer;padding:13px 18px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px">Publicar cambios</span></div>
+<div style="display:grid;grid-template-columns:500px 1fr;gap:20px;flex:1;min-height:0">
+<div style="background:var(--surface);border-radius:16px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;min-height:0">
+<div style="display:flex;gap:6px;padding:14px 22px 0;border-bottom:1px solid var(--line)"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><span role="button" tabIndex="0" onClick="{{ t.pick }}" style="cursor:pointer;padding:10px 14px;font-size:14px;font-weight:700;border-bottom:3px solid {{ t.bd }};color:{{ t.c }}">{{ t.t }}</span></sc-for></div>
+<div style="flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:16px">
+<sc-if value="{{ tabId }}" hint-placeholder-val="{{ true }}">
+<div style="font-size:13px;font-weight:700">Color primario <span style="font-weight:500;color:var(--ink-500)">· la escala 50–950 se deriva sola</span></div>
+<div style="display:flex;gap:10px;align-items:center"><sc-for list="{{ swatches }}" as="w" hint-placeholder-count="4"><span role="button" tabIndex="0" aria-label="{{ w.n }}" onClick="{{ w.pick }}" style="cursor:pointer;width:40px;height:40px;border-radius:12px;background:{{ w.hex }};box-shadow:{{ w.ring }}"></span></sc-for>
+<input type="color" value="{{ hex }}" onInput="{{ setHexColor }}" aria-label="Elegir color primario" style="width:52px;height:44px;border:0;padding:0;background:none;cursor:pointer"><input value="{{ hexIn }}" onInput="{{ setHexText }}" aria-label="Color primario en hexadecimal" style="width:110px;height:44px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font-size:15px;background:var(--surface);font-variant-numeric:tabular-nums"></div>
+<div style="display:flex;gap:2px"><sc-for list="{{ ramp }}" as="r" hint-placeholder-count="11"><span style="flex:1;height:26px;background:{{ r.c }}"></span></sc-for></div>
+<div style="font-size:13px;font-weight:600;color:{{ ratioC }}">Botón primario (blanco sobre 700): <span class="tnum">{{ ratio }}:1</span> · {{ ratioMsg }}</div>
+<div style="font-size:13px;font-weight:700">Color de acento</div>
+<div style="display:flex;gap:10px;align-items:center"><input type="color" value="{{ accent }}" onInput="{{ setAccColor }}" aria-label="Elegir color de acento" style="width:52px;height:44px;border:0;padding:0;background:none;cursor:pointer"><input value="{{ accIn }}" onInput="{{ setAccText }}" aria-label="Color de acento en hexadecimal" style="width:110px;height:44px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font-size:15px;background:var(--surface);font-variant-numeric:tabular-nums"><span style="font-size:12px;color:var(--ink-500)">Estrellas y detalles</span></div>
+</sc-if>
+<sc-for list="{{ fields }}" as="f" hint-placeholder-count="3"><label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700">{{ f.label }}<input value="{{ f.value }}" onInput="{{ f.set }}" style="height:44px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font-size:15px;background:var(--surface)"></label></sc-for>
+<sc-if value="{{ tabId }}" hint-placeholder-val="{{ true }}">
+<div style="font-size:13px;font-weight:700">Logos y foto principal <span style="font-weight:500;color:var(--ink-500)">· PNG, JPG, WebP o SVG · máx. 2 MB</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><sc-for list="{{ slots }}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700"><label style="position:relative;display:block;height:76px;border-radius:12px;border:{{ m.bd }};background:{{ m.bg }};overflow:hidden;cursor:pointer"><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" aria-label="{{ m.label }}" onChange="{{ m.onFile }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer"><div style="width:100%;height:100%;display:{{ m.up }};align-items:center;justify-content:center;color:var(--brand-700)"><i class="icon-upload"></i></div><div style="width:100%;height:100%;display:{{ m.show }};background-image:{{ m.bgi }};background-repeat:no-repeat;background-position:center;background-size:{{ m.fit }}"></div></label>{{ m.label }}<span role="button" tabIndex="0" onClick="{{ m.remove }}" style="cursor:pointer;color:var(--error-fg);visibility:{{ m.vis }}">Quitar</span></div></sc-for></div>
+<div style="font-size:13px;font-weight:700">Tipografía</div><div style="display:flex;gap:8px;font-size:13px;font-weight:600"><sc-for list="{{ fontOpts }}" as="o" hint-placeholder-count="3"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;padding:12px 10px;border-radius:10px;box-shadow:{{ o.sh }};text-align:center">{{ o.t }}</span></sc-for></div>
+<a href="DentAssist%20Medios%20de%20Marca.dc.html" style="font-size:13px;font-weight:700">Gestionar servicios, doctores, instalaciones y casos →</a>
+</sc-if>
+</div></div>
+
+<div style="background:#D9E1DD;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;min-height:0">
+<div style="display:flex;gap:6px;font-size:12px;font-weight:700;color:var(--ink-500);align-items:center"><span style="padding:6px 10px;border-radius:8px;background:var(--surface);color:var(--ink-900)">Escritorio</span><span role="button" tabIndex="0" onClick="{{ toggleTheme }}" style="cursor:pointer;padding:6px 10px;border-radius:8px;background:var(--surface);color:var(--ink-900)">{{ themeLbl }}</span><span style="flex:1"></span>Vista previa en vivo</div>
+<div data-theme="{{ theme }}" style="{{ pvStyle }}">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--line)"><div style="display:{{ pv.logo.show }};width:180px;height:32px;background-image:{{ pv.logo.bgi }};background-repeat:no-repeat;background-size:contain;background-position:left center"></div><b style="display:{{ pv.logo.up }};align-items:center;gap:8px;font-size:17px"><span style="width:30px;height:30px;border-radius:9px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile" style="font-size:16px"></i></span>{{ name }}</b><span style="padding:9px 16px;border-radius:10px;background:var(--grad-btn);color:#fff;font-weight:600;font-size:13px">Reservar cita</span></div>
+<div style="background:var(--grad-hero);padding:40px 28px;display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:12px"><div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--brand-700)">{{ kicker }}</div><div style="font-family:{{ headFont }};font-size:36px;font-weight:800;line-height:1.06;letter-spacing:-.02em">{{ slogan }}</div><div style="color:var(--ink-500);font-size:14px;line-height:1.5">{{ heroSub }}</div><div style="display:flex;gap:8px"><span style="padding:12px 18px;border-radius:10px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:13px">Reservar cita</span><span style="padding:11px 18px;border-radius:10px;background:var(--surface);border:1.5px solid var(--brand-200);color:var(--brand-700);font-weight:700;font-size:13px">WhatsApp</span></div><div style="font-size:13px;color:var(--ink-500)"><i class="icon-star" style="font-size:14px;color:var(--accent-500)"></i> 4.9 · 3,200 pacientes</div></div>
+<div style="height:200px;border-radius:16px;overflow:hidden;background:repeating-linear-gradient(135deg,var(--brand-100) 0 12px,var(--brand-50) 12px 24px)"><div style="width:100%;height:100%;display:{{ pv.hero.show }};background-image:{{ pv.hero.bgi }};background-size:cover;background-position:center"></div></div></div>
+<div style="padding:22px 28px 6px;font-family:{{ headFont }};font-size:20px;font-weight:800">{{ servicesTitle }}</div>
+<div style="padding:0 28px 22px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px"><sc-for list="{{ pvSv }}" as="m" hint-placeholder-count="3"><div style="background:var(--surface);border-radius:12px;padding:14px;box-shadow:var(--shadow-md);font-size:13px"><span style="display:block;width:34px;height:34px;border-radius:9px;background:var(--brand-50);margin-bottom:8px"></span><b>{{ m }}</b></div></sc-for></div>
+<div style="padding:18px 28px;background:var(--surface);border-top:1px solid var(--line);font-size:13px;color:var(--ink-700);line-height:1.8;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><i class="icon-map-pin" style="font-size:14px"></i> {{ address }}<br><i class="icon-clock" style="font-size:14px"></i> {{ hours }}</div><div class="tnum"><i class="icon-phone" style="font-size:14px"></i> {{ phone }}<br><i class="icon-message-circle" style="font-size:14px"></i> {{ whatsapp }} · {{ instagram }}</div></div>
+<div style="background:var(--brand-950);padding:18px 28px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--brand-200)"><div style="display:{{ pv.logoD.show }};width:160px;height:28px;background-image:{{ pv.logoD.bgi }};background-repeat:no-repeat;background-size:contain;background-position:left center"></div><b style="display:{{ pv.logoD.up }};color:#fff;font-size:15px">{{ name }}</b>Aviso de privacidad (Ley 29733)</div>
+</div></div></div>
+</sc-if>
+
+</div></main></div></section></sc-for>
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" aria-live="polite" style="position:fixed;left:50%;transform:translateX(-50%);bottom:28px;z-index:99;padding:13px 18px;border-radius:12px;background:var(--brand-900);color:#fff;font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { lEmail: 'ana@clinicasonrie.pe', lPass: '', f: 0, dark: false, hex: '#00A86B', accent: '#F5A524', hexIn: '#00A86B', accIn: '#F5A524', name: 'Clínica Sonríe', slogan: 'Sonrisas que cuidamos contigo', kicker: 'ORTODONCIA · ODONTOLOGÍA · LIMA', heroSub: 'Atención cálida y tecnología moderna. Reserva en menos de un minuto, sin llamadas.', servicesTitle: 'Nuestros servicios', teamTitle: 'Nuestro equipo', address: 'Av. Larco 345, Miraflores, Lima', phone: '+51 1 555 0123', whatsapp: '+51 987 654 321', email: 'hola@clinicasonrie.pe', instagram: '@clinicasonrie', facebook: '/clinicasonrie', hours: 'Lun–Vie 9:00–19:00 · Sáb 9:00–13:00', tab: 'identidad', img: {}, auth: 'login', rEmail: 'ana@clinicasonrie.pe', rErr: false, collapsed: false, menu: null, read: false, sede: 'Sede Miraflores', q: '', toast: '', tick: 0, uq: '', uf: 'Todos', rowMenu: null, inv: { open: false, name: '', email: '', role: 'Asistente', sede: 'Miraflores', tried: false } };
+  KEYS = ['hex', 'accent', 'name', 'slogan', 'f', 'kicker', 'heroSub', 'servicesTitle', 'teamTitle', 'address', 'phone', 'whatsapp', 'email', 'instagram', 'facebook', 'hours'];
+  componentDidMount() {
+    try { const r = JSON.parse(localStorage.getItem('da-brand-v1') || 'null'); if (r) { const p = {}; this.KEYS.forEach(k => { if (r[k] !== undefined) p[k] = r[k]; }); if (p.hex) p.hexIn = p.hex; if (p.accent) p.accIn = p.accent; this.setState(p); } } catch (e) {}
+    this.loadImg(); this._x = () => this.loadImg(); window.addEventListener('storage', this._x);
+    this._k = e => { if (e.key === 'Escape') this.setState({ menu: null }); }; window.addEventListener('keydown', this._k);
+  }
+  componentWillUnmount() { window.removeEventListener('storage', this._x); window.removeEventListener('keydown', this._k); }
+  loadImg() { try { const m = JSON.parse(localStorage.getItem('da-media-v2') || 'null'); this.setState({ img: (m && m.img) || {} }); } catch (e) {} }
+  flash(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4500); }
+  putImg(k, d) { try { const m = JSON.parse(localStorage.getItem('da-media-v2') || 'null') || {}; m.img = Object.assign({}, m.img || {}); if (d) m.img[k] = d; else delete m.img[k]; localStorage.setItem('da-media-v2', JSON.stringify(m)); this.setState({ img: m.img }); } catch (e) { this.flash('Imagen muy pesada para guardarla en este navegador'); } }
+  onFile(k, e) { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)) { this.flash('Formato no permitido. Usa PNG, JPG, WebP o SVG'); return; } if (f.size > 2 * 1024 * 1024) { this.flash('El archivo supera 2 MB'); return; } const r = new FileReader(); r.onload = () => this.putImg(k, r.result); r.readAsDataURL(f); }
+  componentDidUpdate() { const cur = JSON.stringify(this.KEYS.map(k => this.state[k])); if (this._sv === undefined) { this._sv = cur; } else if (this._sv !== cur) { this._sv = cur; try { const o = {}; this.KEYS.forEach(k => { o[k] = this.state[k]; }); localStorage.setItem('da-brand-v1', JSON.stringify(o)); } catch (e) {} } }
+  rd(k, d) { try { const r = JSON.parse(localStorage.getItem(k) || 'null'); return r === null ? d : r; } catch (e) { return d; } }
+  saveUsers(l) { try { localStorage.setItem('da-users-v1', JSON.stringify(l)); } catch (e) {} this.setState(s => ({ tick: s.tick + 1 })); }
+  extraUsers() {
+    const SEEDA = [{ day: 0, doc: 0, slot: 0, dur: 3, p: 'M. Soto', s: 'Limpieza', st: 'atendida' }, { day: 0, doc: 0, slot: 6, dur: 3, p: 'Lucía Rojas', s: 'Ortodoncia', st: 'pendiente' }, { day: 0, doc: 0, slot: 12, dur: 4, p: 'J. Ramos', s: 'Endodoncia', st: 'confirmada' }, { day: 0, doc: 1, slot: 2, dur: 3, p: 'C. Díaz', s: 'Control', st: 'en-sala' }, { day: 0, doc: 1, slot: 8, dur: 4, p: 'P. Vera', s: 'Endodoncia', st: 'confirmada' }, { day: 0, doc: 2, slot: 0, dur: 4, p: 'A. Cruz', s: 'Blanqueamiento', st: 'reprogramada' }, { day: 0, doc: 2, slot: 10, dur: 3, p: 'T. Luna', s: 'Limpieza', st: 'confirmada' }];
+    const AP = this.rd('da-agenda-v1', { appts: SEEDA }).appts, DAx = window.DA, dn = DAx ? DAx.docs().map(d => d.name) : ['Dra. Quispe'];
+    const hmx = slot => { const m = 540 + slot * 15; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+    const tdy = AP.filter(a => a.day === 0 && a.st !== 'cancelada').sort((x, y) => x.slot - y.slot), pend = AP.filter(a => a.st === 'pendiente').length;
+    const booked = tdy.reduce((t, a) => t + a.dur, 0), occ = Math.round(booked / (Math.max(1, dn.length) * 32) * 100);
+    const inc = DAx ? DAx.payments().filter(p => p.date === 'Hoy' || tdy.some(a => a.id === p.apptId)).reduce((t, p) => t + p.amount, 0) : 0;
+    const stl = { atendida: 'Atendida', pendiente: 'Pendiente', confirmada: 'Confirmada', 'en-sala': 'En sala', 'no-show': 'No-show', reprogramada: 'Reprogramada' };
+    const dst = k => ({ bg: 'var(--st-' + k + '-bg)', fg: 'var(--st-' + k + '-fg)' });
+    const kpis = [['Citas de hoy', String(tdy.length), tdy.filter(a => a.st === 'en-sala').length + ' en sala', 'var(--brand-700)'], ['Ocupación', occ + '%', booked * 15 / 60 + ' h agendadas', 'var(--brand-700)'], ['Ingresos del día', DAx ? DAx.money(inc) : 'S/ 0.00', 'Se actualiza al cobrar', 'var(--ink-500)'], ['Sin confirmar', String(pend), pend ? 'Recordar hoy' : 'Todo al día', 'var(--warning-fg)']].map(k => ({ l: k[0], v: k[1], s: k[2], c: k[3] }));
+    const today = tdy.map(a => Object.assign({ h: hmx(a.slot), p: a.p, s: a.s, d: dn[a.doc] || '', st: stl[a.st] }, dst(a.st)));
+    const SU = this.state, DEFU = [{ id: 1, n: 'Ana Quispe', e: 'ana@clinicasonrie.pe', r: 'Doctor', s: 'Miraflores', a: 'Activo' }, { id: 2, n: 'Luis Paredes', e: 'luis@clinicasonrie.pe', r: 'Doctor', s: 'Miraflores', a: 'Activo' }, { id: 3, n: 'Marta Gil', e: 'marta@clinicasonrie.pe', r: 'Administrador', s: 'Todas', a: 'Activo' }, { id: 4, n: 'Rosa Neyra', e: 'rosa@clinicasonrie.pe', r: 'Asistente', s: 'Miraflores', a: 'Activo' }, { id: 5, n: 'Jorge Díaz', e: 'jorge@clinicasonrie.pe', r: 'Asistente', s: 'San Isidro', a: 'Invitado' }];
+    const U = this.rd('da-users-v1', DEFU), ROLES = ['Administrador', 'Doctor', 'Asistente'], acol = { Activo: 'var(--success-fg)', Invitado: 'var(--warning-fg)', Suspendido: 'var(--error-fg)' };
+    const adminsLeft = id => U.filter(u => u.r === 'Administrador' && u.a !== 'Suspendido' && u.id !== id).length;
+    const uq = SU.uq.trim().toLowerCase(), rowsF = U.filter(u => (SU.uf === 'Todos' || u.r === SU.uf) && (!uq || (u.n + ' ' + u.e).toLowerCase().includes(uq)));
+    const upd = (id, p, msg) => { this.saveUsers(U.map(u => u.id === id ? Object.assign({}, u, p) : u)); this.setState({ rowMenu: null }); this.flash(msg); };
+    const userRows = rowsF.map(u => {
+      const opts = ROLES.filter(r => r !== u.r).map(r => ({ t: 'Cambiar a ' + r, c: 'var(--ink-900)', pick: () => { if (u.r === 'Administrador' && adminsLeft(u.id) === 0) { this.setState({ rowMenu: null }); this.flash('Debe quedar al menos un administrador'); return; } upd(u.id, { r }, u.n + ' ahora es ' + r); } }));
+      opts.push({ t: u.a === 'Suspendido' ? 'Reactivar acceso' : 'Suspender acceso', c: 'var(--ink-900)', pick: () => { if (u.a !== 'Suspendido' && u.r === 'Administrador' && adminsLeft(u.id) === 0) { this.setState({ rowMenu: null }); this.flash('Debe quedar al menos un administrador'); return; } upd(u.id, { a: u.a === 'Suspendido' ? 'Activo' : 'Suspendido' }, u.a === 'Suspendido' ? 'Acceso reactivado' : 'Acceso suspendido'); } });
+      opts.push({ t: 'Eliminar usuario', c: 'var(--error-fg)', pick: () => { if (u.r === 'Administrador' && adminsLeft(u.id) === 0) { this.setState({ rowMenu: null }); this.flash('Debe quedar al menos un administrador'); return; } this.saveUsers(U.filter(x => x.id !== u.id)); this.setState({ rowMenu: null }); this.flash('Usuario eliminado'); } });
+      return { n: u.n, i: u.n.split(' ').map(x => x[0]).slice(0, 2).join(''), e: u.e, r: u.r, s: u.s, a: u.a, c: acol[u.a], z: SU.rowMenu === u.id ? 20 : 1, open: SU.rowMenu === u.id, toggle: () => this.setState({ rowMenu: SU.rowMenu === u.id ? null : u.id }), opts };
+    });
+    const MODS = window.DA ? window.DA.perms() : [['Agenda', 1, 1, 1]];
+    const chipx = (t, on, pick) => ({ t, pick, bg: on ? 'var(--grad-btn)' : 'var(--surface)', fg: on ? '#fff' : 'var(--ink-900)', sh: on ? 'none' : 'inset 0 0 0 1px var(--line)' });
+    const I = SU.inv, okE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(I.email), okN = I.name.trim().length > 3;
+    const bdx = ok => (I.tried && !ok) ? '2px solid var(--error-fg)' : '1px solid var(--line)';
+    const setInv = p => this.setState(s => ({ inv: Object.assign({}, s.inv, p) }));
+    return {
+      kpis, today, pendTitle: pend + (pend === 1 ? ' paciente sin confirmar' : ' pacientes sin confirmar'),
+      userRows, noUsers: userRows.length === 0, uq: SU.uq, setUq: e => this.setState({ uq: e.target.value }), rowOpen: SU.rowMenu !== null, closeRow: () => this.setState({ rowMenu: null }),
+      roleFilters: ['Todos'].concat(ROLES).map(t => chipx(t, SU.uf === t, () => this.setState({ uf: t }))),
+      roleNames: ROLES, matrix: MODS.map((m, mi) => ({ t: m[0], cells: [1, 2, 3].map(ci => { const v = m[ci]; return { icon: v ? 'icon-check' : 'icon-minus', c: v ? 'var(--success-fg)' : 'var(--ink-300)', cur: ci === 1 ? 'default' : 'pointer', lbl: m[0] + ' · ' + ROLES[ci - 1] + (v ? ': permitido' : ': sin acceso'), pick: () => { if (ci === 1) { this.flash('El administrador siempre tiene acceso total'); return; } const nx = MODS.map(r => r.slice()); nx[mi][ci] = nx[mi][ci] ? 0 : 1; window.DA.setPerms(nx); this.flash(m[0] + ': ' + ROLES[ci - 1] + (nx[mi][ci] ? ' ahora tiene acceso' : ' ya no tiene acceso')); this.setState(q => ({ pt: (q.pt || 0) + 1 })); } }; }) })),
+      inv: I, invB: { name: bdx(okN), email: bdx(okE) }, stopEv: e => e.stopPropagation(),
+      openInvite: () => this.setState({ inv: { open: true, name: '', email: '', role: 'Asistente', sede: 'Miraflores', tried: false } }), closeInvite: () => setInv({ open: false }),
+      setInvName: e => setInv({ name: e.target.value }), setInvEmail: e => setInv({ email: e.target.value }),
+      invRoles: ROLES.map(t => chipx(t, I.role === t, () => setInv({ role: t }))), invSedes: ['Miraflores', 'San Isidro', 'Todas'].map(t => chipx(t, I.sede === t, () => setInv({ sede: t }))),
+      sendInvite: () => { if (!(okN && okE)) { setInv({ tried: true }); return; } if (U.some(u => u.e.toLowerCase() === I.email.toLowerCase())) { this.flash('Ya existe un usuario con ese correo'); return; } this.saveUsers(U.concat({ id: Date.now(), n: I.name.trim(), e: I.email.trim(), r: I.role, s: I.sede, a: 'Invitado' })); setInv({ open: false }); this.flash('Invitación enviada a ' + I.email); }
+    };
+  }
+  extra() {
+    const S = this.state, DA = window.DA, DEFR = ['#E6F7EF', '#C6EEDC', '#94E0BF', '#5FD0A1', '#34C58B', '#00A86B', '#008C59', '#00704A', '#005A3C', '#00452E', '#002A1C'];
+    const ok = h => /^#[0-9a-f]{6}$/i.test(h);
+    const vars = {}; if (DA && S.hex.toUpperCase() !== '#00A86B') Object.assign(vars, DA.derive(S.hex)); if (S.accent.toUpperCase() !== '#F5A524') vars['--accent-500'] = S.accent;
+    const ramp = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((k, i) => ({ c: vars['--brand-' + k] || DEFR[i] }));
+    const rt = DA ? DA.contrast(vars['--brand-700'] || DEFR[7], '#FFFFFF') : 7, pass = rt >= 4.5;
+    const I = S.img, bg = p => p ? 'url("' + p + '")' : 'none', sh = p => p ? 'block' : 'none', im = k => ({ show: sh(I[k]), bgi: bg(I[k]), up: I[k] ? 'none' : 'flex' });
+    const M = DA ? DA.media() : { services: [] };
+    const body = ["'Plus Jakarta Sans',sans-serif", "'Inter',sans-serif", "'DM Sans',sans-serif"][S.f];
+    const SW = [['Jade', '#00A86B'], ['Azul', '#2F6FDE'], ['Violeta', '#7440DD'], ['Coral', '#DC4D2D']];
+    const F = { identidad: [['Nombre comercial', 'name'], ['Eslogan', 'slogan']], contacto: [['Dirección', 'address'], ['Teléfono', 'phone'], ['WhatsApp', 'whatsapp'], ['Correo', 'email'], ['Instagram', 'instagram'], ['Facebook', 'facebook'], ['Horarios', 'hours']], textos: [['Etiqueta sobre el título', 'kicker'], ['Subtítulo del hero', 'heroSub'], ['Título de servicios', 'servicesTitle'], ['Título de equipo', 'teamTitle']] };
+    const names = ['Lucía Rojas', 'Mario Soto', 'Rosa León', 'Pedro Vera', 'Carla Díaz', 'Jorge Ramos', 'Ana Cruz', 'Sofía Paz', 'Tomás Luna'];
+    let P = names.map(n => ({ name: n, dni: '' })); try { const r = JSON.parse(localStorage.getItem('da-patients-v1') || 'null'); if (r) P = r; } catch (e) {}
+    const q = S.q.trim().toLowerCase(), res = P.filter(p => q && (p.name + ' ' + (p.dni || '')).toLowerCase().includes(q)).slice(0, 5);
+    let web = 0; try { const r = JSON.parse(localStorage.getItem('da-agenda-v1') || 'null'); if (r && r.appts) web = r.appts.filter(a => a.web && a.st === 'pendiente').length; } catch (e) {}
+    const closeAnd = (fn) => () => { this.setState({ menu: null }); fn(); };
+    return {
+      ...this.extraUsers(),
+      rootStyle: Object.assign({ padding: 40, display: 'flex', flexDirection: 'column', gap: 48, width: 'max-content' }, vars),
+      pvStyle: { fontFamily: body, color: 'var(--ink-900)', flex: 1, background: 'var(--bone)', borderRadius: 12, overflow: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 },
+      name: S.name, slogan: S.slogan, kicker: S.kicker, heroSub: S.heroSub, servicesTitle: S.servicesTitle, address: S.address, hours: S.hours, phone: S.phone, whatsapp: S.whatsapp, instagram: S.instagram,
+      hex: ok(S.hexIn) ? S.hexIn : S.hex, hexIn: S.hexIn, accent: ok(S.accIn) ? S.accIn : S.accent, accIn: S.accIn, ramp,
+      setHexColor: e => this.setState({ hex: e.target.value.toUpperCase(), hexIn: e.target.value.toUpperCase() }),
+      setHexText: e => { const v = e.target.value; this.setState(ok(v) ? { hexIn: v, hex: v.toUpperCase() } : { hexIn: v }); },
+      setAccColor: e => this.setState({ accent: e.target.value.toUpperCase(), accIn: e.target.value.toUpperCase() }),
+      setAccText: e => { const v = e.target.value; this.setState(ok(v) ? { accIn: v, accent: v.toUpperCase() } : { accIn: v }); },
+      ratio: rt.toFixed(1), ratioMsg: pass ? 'AA correcto' : 'Contraste bajo: elige un tono más oscuro', ratioC: pass ? 'var(--success-fg)' : 'var(--error-fg)',
+      swatches: SW.map(w => ({ n: w[0], hex: w[1], pick: () => this.setState({ hex: w[1], hexIn: w[1] }), ring: S.hex.toUpperCase() === w[1] ? '0 0 0 3px var(--surface),0 0 0 5px ' + w[1] : 'none' })),
+      tabs: [['Identidad', 'identidad'], ['Contacto', 'contacto'], ['Textos', 'textos']].map(t => ({ t: t[0], pick: () => this.setState({ tab: t[1] }), bd: S.tab === t[1] ? 'var(--brand-500)' : 'transparent', c: S.tab === t[1] ? 'var(--brand-700)' : 'var(--ink-500)' })),
+      tabId: S.tab === 'identidad', fields: F[S.tab].map(f => ({ label: f[0], value: S[f[1]], set: e => this.setState({ [f[1]]: e.target.value }) })),
+      slots: [['logoL', 'Logo claro', 'contain', 'var(--brand-50)'], ['logoD', 'Logo oscuro', 'contain', 'var(--brand-950)'], ['fav', 'Favicon', 'contain', 'var(--brand-50)'], ['hero', 'Foto hero', 'cover', 'var(--brand-50)']].map(m => Object.assign({ label: m[1], fit: m[2], bg: m[3], bd: I[m[0]] ? '1.5px solid var(--brand-200)' : '1.5px dashed var(--brand-300)', vis: I[m[0]] ? 'visible' : 'hidden', onFile: e => this.onFile(m[0], e), remove: () => this.putImg(m[0], null) }, im(m[0]))),
+      pv: { logo: im('logoL'), logoD: im('logoD'), hero: im('hero') }, pvSv: M.services.slice(0, 3).map(s => s.name),
+      publish: () => this.flash('Cambios publicados en el sitio público'),
+      auth: { login: S.auth === 'login', recover: S.auth === 'recover', sent: S.auth === 'sent' }, rEmail: S.rEmail, rErr: S.rErr, rBorder: S.rErr ? '2px solid var(--error-fg)' : '1px solid var(--line)',
+      goRecover: () => this.setState({ auth: 'recover', rErr: false }), goLogin: () => this.setState({ auth: 'login' }), setREmail: e => this.setState({ rEmail: e.target.value, rErr: false }),
+      sendRecover: () => { if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(S.rEmail)) { this.setState({ rErr: true }); return; } this.setState({ auth: 'sent', rErr: false }); },
+      lEmail: S.lEmail, lPass: S.lPass, setLEmail: e => this.setState({ lEmail: e.target.value }), setLPass: e => this.setState({ lPass: e.target.value }),
+      doLogin: () => { if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(S.lEmail) || !S.lPass) { this.flash('Ingresa tu correo y contraseña'); return; } this.flash('Sesión iniciada como Ana Quispe (maqueta)'); },
+      collapsed: S.collapsed, asideW: S.collapsed ? '76px' : '248px', lbl: S.collapsed ? 'none' : 'inline', collapseIcon: S.collapsed ? 'icon-panel-left-open' : 'icon-panel-left-close', toggleCollapse: () => this.setState({ collapsed: !S.collapsed }),
+      closeMenu: () => this.setState({ menu: null }), q: S.q, results: res.map(p => ({ t: p.name, s: p.dni ? 'DNI ' + p.dni : 'Paciente', href: 'DentAssist%20Pacientes.dc.html' })), noResults: !!q && res.length === 0,
+      sede: S.sede, sedes: ['Sede Miraflores', 'Sede San Isidro'].map(t => ({ t, w: S.sede === t ? 700 : 500, c: S.sede === t ? 'var(--brand-700)' : 'var(--ink-900)', icon: S.sede === t ? 'icon-check' : 'icon-minus', pick: () => this.setState({ sede: t, menu: null }) })),
+      badge: S.read ? 'none' : 'block', markRead: () => this.setState({ read: true }),
+      notifs: [{ icon: 'icon-globe', t: web + ' reservas web por confirmar', s: 'Revisa la agenda de hoy' }, { icon: 'icon-package', t: 'Stock bajo: Anestesia lidocaína', s: '5 unidades restantes' }, { icon: 'icon-calendar-x', t: 'R. León no asistió', s: 'Hoy 12:00 · Dr. Paredes' }],
+      userMenu: [['Mi perfil', 'var(--ink-900)', () => this.flash('Perfil de Ana Quispe')], ['Cambiar contraseña', 'var(--ink-900)', () => this.setState({ auth: 'recover' })], ['Cerrar sesión', 'var(--error-fg)', () => this.flash('Sesión cerrada')]].map(u => ({ t: u[0], c: u[1], pick: closeAnd(u[2]) })),
+      sendReminders: () => this.flash('Recordatorios enviados a 4 pacientes'),
+      toast: S.toast
+    };
+  }
+  renderVals() {
+    const S = this.state, st = k => ({ bg: `var(--st-${k}-bg)`, fg: `var(--st-${k}-fg)` }), dkx = !!window.DA && window.DA.theme() === 'dark';
+    const nav = ['Inicio:house', 'Agenda:calendar-days', 'Pacientes:users', 'Planes de tratamiento:clipboard-list', 'Inventario:package', 'Finanzas:wallet', 'Servicios:stethoscope', 'Mensajes y campañas:megaphone', 'Reportes:chart-column', 'Configuración:settings'].map(x => x.split(':'));
+    const screens = [
+      { id: 'dash', label: '3b · Dashboard del día (datos reales de la agenda)', active: 'Inicio', dash: true },
+      { id: 'agenda', label: '3c · Agenda (interactiva: arrastrar, cobrar, citas únicas y en serie)', active: 'Agenda', agenda: true },
+      { id: 'patient', label: '3d · Pacientes y ficha (interactiva)', active: 'Pacientes', patient: true },
+      { id: 'roles', label: '3e · Usuarios y roles', active: 'Configuración', roles: true },
+      { id: 'brand', label: '3f · Configuración de marca (interactiva)', active: 'Configuración', brandcfg: true }
+    ].filter(s => false).map(s => { const m = S.menu, mine = !!m && m.sid === s.id, tog = k => () => this.setState({ menu: mine && m.k === k ? null : { sid: s.id, k } }), MOD = 'DentAssist%20M%C3%B3dulos.dc.html', HREF = { Inicio: '#dash', Agenda: '#agenda', Pacientes: '#patient', 'Configuración': '#roles' };
+      return Object.assign({ brand: 'jade', anyOpen: mine, sSearch: mine && m.k === 'search', sSede: mine && m.k === 'sede', sNotif: mine && m.k === 'notif', sUser: mine && m.k === 'user', openSearch: () => this.setState({ menu: { sid: s.id, k: 'search' } }), setQ: e => this.setState({ q: e.target.value, menu: { sid: s.id, k: 'search' } }), toggleSede: tog('sede'), toggleNotif: tog('notif'), toggleUser: tog('user'),
+        nav: nav.map(n => ({ t: n[0], icon: 'icon-' + n[1], href: HREF[n[0]] || MOD, bg: n[0] === s.active ? 'var(--brand-50)' : 'transparent', fg: n[0] === s.active ? 'var(--brand-800)' : 'var(--ink-700)' })) }, s); });
+    // el menú depende de la pantalla: se usa la activa de cada una vía nav genérico
+    const navFor = nav.map(n => ({ t: n[0], icon: 'icon-' + n[1] }));
+    const mk = (title, ...rest) => rest;
+    const a = (p, t, top, h, k, sh) => Object.assign({ p, t, top, h, sh: sh || 'none' }, st(k));
+    const cols = [
+      { i: 'AQ', n: 'Dra. Quispe', blockTop: 288, blockShow: 'flex', appts: [a('M. Soto', '09:00–09:45', 0, 54, 'atendida'), a('Lucía Rojas', '10:30–11:15', 108, 54, 'pendiente', '0 0 0 2px var(--brand-500)'), a('J. Ramos', '12:00–13:00', 216, 72, 'confirmada')] },
+      { i: 'LP', n: 'Dr. Paredes', blockTop: 288, blockShow: 'flex', appts: [a('C. Díaz', '09:30–10:15', 36, 54, 'en-sala'), a('P. Vera', '11:00–12:00', 144, 72, 'confirmada'), a('R. León', '12:00–12:45', 216, 54, 'no-show')] },
+      { i: 'CV', n: 'Dra. Vega', blockTop: 288, blockShow: 'flex', appts: [a('A. Cruz', '09:00–10:00', 0, 72, 'reprogramada'), a('S. Paz', '10:00–10:45', 72, 54, 'cancelada'), a('T. Luna', '11:30–12:15', 180, 54, 'confirmada')] }
+    ];
+    const ramp = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+    const sw = [['jade', 'Jade', '#00A86B'], ['azul', 'Azul', '#2F6FDE'], ['violeta', 'Violeta', '#7440DD'], ['coral', 'Coral', '#DC4D2D']];
+    return {
+      fontOpts: [['Jakarta', "'Plus Jakarta Sans',sans-serif", "'Plus Jakarta Sans',sans-serif"], ['Inter + Lora', "'Lora',serif", "'Inter',sans-serif"], ['DM Sans + Serif', "'Source Serif 4',serif", "'DM Sans',sans-serif"]].map((o, i) => ({ t: o[0], pick: () => this.setState({ f: i }), sh: S.f === i ? 'inset 0 0 0 2px var(--brand-500)' : 'inset 0 0 0 1px var(--line)' })),
+      headFont: ["'Plus Jakarta Sans',sans-serif", "'Lora',serif", "'Source Serif 4',serif"][S.f], bodyFont: ["'Plus Jakarta Sans',sans-serif", "'Inter',sans-serif", "'DM Sans',sans-serif"][S.f],
+      theme: dkx ? 'dark' : 'light', themeLbl: dkx ? 'Modo claro' : 'Modo oscuro', toggleTheme: () => { window.DA && window.DA.setTheme(dkx ? 'light' : 'dark'); this.setState(s => ({ tick: (s.tick || 0) + 1 })); },
+      screens, nav: navFor, ...this.extra(),
+      stock: [['Brackets metálicos', '12 u.'], ['Anestesia lidocaína', '5 u.'], ['Guantes talla M', '2 cajas']].map(x => ({ n: x[0], q: x[1] })),
+      legend: ['Pendiente', 'Confirmada', 'En sala', 'Atendida', 'Cancelada', 'No-show', 'Reprogramada'].map(t => Object.assign({ t }, st(t.toLowerCase().replace(' ', '-')))),
+      hrs: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'], cols,
+      series: [['Sáb 17 oct', 'confirmada', 'Libre'], ['Sáb 24 oct', 'confirmada', 'Libre'], ['Sáb 31 oct', 'cancelada', 'Choque con J. Ramos'], ['Sáb 07 nov', 'confirmada', 'Libre'], ['Sáb 14 nov', 'confirmada', 'Libre']].map(r => ({ d: r[0], m: r[2], c: r[1] === 'cancelada' ? 'var(--error-fg)' : 'var(--ink-500)', s: r[1] === 'cancelada' ? 'Choque' : 'OK', bg: r[1] === 'cancelada' ? 'var(--error-bg)' : 'var(--success-bg)', fg: r[1] === 'cancelada' ? 'var(--error-fg)' : 'var(--success-fg)' })),
+      timeline: [['Control mensual', 'icon-stethoscope', '14 oct 2026', 'Ajuste de arco superior. Sin dolor.'], ['Pago registrado', 'icon-banknote', '14 oct 2026', 'S/ 150.00 · Yape'], ['Radiografía panorámica', 'icon-file-image', '02 sep 2026', 'panoramica.jpg · 2.4 MB'], ['Colocación de brackets', 'icon-wrench', '10 abr 2026', 'Brackets metálicos, ambas arcadas.'], ['Primera consulta', 'icon-clipboard-list', '20 mar 2026', 'Evaluación y plan de tratamiento.']].map(t => ({ t: t[0], icon: t[1], d: t[2], n: t[3] })),
+      next: [['Sáb 17 oct · 10:00', 'confirmada', 'Confirmada'], ['Sáb 14 nov · 10:00', 'pendiente', 'Pendiente']].map(n => Object.assign({ d: n[0], s: n[2] }, st(n[1]))),
+    };
+  }
+}
+</script>
+</body>
+</html>

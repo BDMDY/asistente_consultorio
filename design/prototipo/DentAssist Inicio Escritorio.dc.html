@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--bone);color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:20px;line-height:1}</style>
+</helmet>
+<main style="max-width:1180px;margin:0 auto;padding:28px 28px 60px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap"><div><div style="font-size:28px;font-weight:800;letter-spacing:-.02em">Buenos días, Ana</div><div style="color:var(--ink-500);font-size:14px">Martes 6 de octubre de 2026 · Sede Miraflores</div></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><sc-for list="{{ shortcuts }}" as="s" hint-placeholder-count="3"><a href="{{ s.h }}" style="text-decoration:none;min-height:46px;padding:0 18px;border-radius:12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;background:{{ s.bg }};color:{{ s.fg }};box-shadow:{{ s.sh }}"><i class="{{ s.icon }}"></i>{{ s.t }}</a></sc-for></div></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px"><sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4"><a href="{{ k.h }}" style="text-decoration:none;color:inherit;background:var(--surface);border-radius:16px;padding:18px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:var(--ink-500);font-weight:600">{{ k.l }}</span><b class="tnum" style="font-size:28px;font-weight:800;color:{{ k.c }}">{{ k.v }}</b><span style="font-size:12px;color:var(--ink-500)">{{ k.s }}</span></a></sc-for></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:start">
+<section style="background:var(--surface);border-radius:16px;box-shadow:var(--shadow-md);overflow:hidden"><div style="padding:16px 22px;display:flex;justify-content:space-between;align-items:center"><b style="font-size:17px">Citas de hoy</b><a href="DentAssist%20Agenda%20Interactiva.dc.html" style="font-size:13px;font-weight:700;text-decoration:none">Ver agenda</a></div>
+<sc-for list="{{ appts }}" as="a" hint-placeholder-count="5"><a href="DentAssist%20Agenda%20Interactiva.dc.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:14px;padding:12px 22px;border-top:1px solid var(--line);min-height:44px"><b class="tnum" style="width:52px;font-size:14px">{{ a.t }}</b><div style="flex:1;min-width:0"><b style="font-size:14px">{{ a.p }}</b><div style="font-size:12px;color:var(--ink-500)">{{ a.s }}</div></div><span style="padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;background:{{ a.bg }};color:{{ a.fg }}">{{ a.b }}</span></a></sc-for></section>
+<section style="background:var(--surface);border-radius:16px;box-shadow:var(--shadow-md);overflow:hidden"><div style="padding:16px 22px"><b style="font-size:17px">Requiere atención</b></div>
+<sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3"><a href="{{ a.h }}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:14px;padding:14px 22px;border-top:1px solid var(--line);min-height:44px"><i class="{{ a.icon }}" style="color:{{ a.c }}"></i><div style="flex:1"><b style="font-size:14px">{{ a.t }}</b><div style="font-size:12px;color:var(--ink-500)">{{ a.s }}</div></div><i class="icon-chevron-right" style="color:var(--ink-500)"></i></a></sc-for></section>
+</div>
+</main>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820}}">
+class Component extends DCLogic {
+  renderVals() {
+    let d = window.daData ? window.daData() : null;
+    const inv = (d && d.inv) || [], fin = (d && d.fin) || [], low = inv.filter(i => i.qty < i.min), pend = fin.filter(f => f.st === 'pendiente' || f.st === 'vencido'), paid = fin.filter(f => f.st === 'pagado').reduce((a, f) => a + f.a, 0);
+    const money = n => 'S/ ' + Number(n || 0).toLocaleString('en-US');
+    const G = ['var(--success-bg)', 'var(--success-fg)'], W = ['var(--warning-bg)', 'var(--warning-fg)'], B = ['var(--info-bg)', 'var(--info-fg)'], N = ['var(--muted)', 'var(--ink-700)'];
+    const ap = (t, p, s, b, c) => ({ t, p, s, b, bg: c[0], fg: c[1] });
+    const M = 'DentAssist%20Modulos%20Escritorio.dc.html#';
+    return {
+      shortcuts: [{ t: 'Nueva cita', h: 'DentAssist%20Agenda%20Interactiva.dc.html#nueva', icon: 'icon-plus', bg: 'var(--grad-btn)', fg: '#fff', sh: 'none' }, { t: 'Nuevo paciente', h: 'DentAssist%20Pacientes.dc.html', icon: 'icon-user-plus', bg: 'var(--surface)', fg: 'var(--ink-900)', sh: 'inset 0 0 0 1px var(--line)' }, { t: 'Registrar cobro', h: M + 'finanzas', icon: 'icon-banknote', bg: 'var(--surface)', fg: 'var(--ink-900)', sh: 'inset 0 0 0 1px var(--line)' }],
+      kpis: [{ l: 'Citas de hoy', v: '14', s: '3 sin confirmar', h: 'DentAssist%20Agenda%20Interactiva.dc.html' }, { l: 'Ocupación', v: '82%', s: 'Dra. Quispe 88% · Dr. Paredes 76%', h: M + 'reportes' }, { l: 'Ingresos cobrados', v: money(paid), s: 'Octubre 2026', h: M + 'finanzas' }, { l: 'Stock bajo', v: String(low.length), s: low.length ? low.map(i => i.n).slice(0, 2).join(', ') : 'Todo en orden', c: low.length ? 'var(--error-fg)' : undefined, h: M + 'inventario' }],
+      appts: [ap('09:00', 'Lucía Rojas', 'Control de ortodoncia · Dra. Quispe', 'Atendida', G), ap('10:00', 'Carlos Vera', 'Implante fase 2 · Dr. Paredes', 'En sala', B), ap('11:30', 'Ana Cruz', 'Blanqueamiento · Dra. Quispe', 'Confirmada', G), ap('15:00', 'Mario Soto', 'Evaluación inicial · Dr. Paredes', 'Pendiente', W), ap('16:30', 'Rosa Medina', 'Limpieza dental · Dra. Quispe', 'Pendiente', W)],
+      alerts: [{ t: low.length + ' productos con stock bajo', s: 'Revisa el inventario y pide a proveedor', h: M + 'inventario', icon: 'icon-package', c: 'var(--error-fg)' }, { t: pend.length + ' cobros pendientes · ' + money(pend.reduce((a, f) => a + f.a, 0)), s: 'Registra el pago o envía un recordatorio', h: M + 'finanzas', icon: 'icon-wallet', c: 'var(--warning-fg)' }, { t: '3 pacientes sin confirmar la cita de hoy', s: 'Envía el recordatorio por WhatsApp', h: 'DentAssist%20Agenda%20Interactiva.dc.html', icon: 'icon-message-circle', c: 'var(--warning-fg)' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

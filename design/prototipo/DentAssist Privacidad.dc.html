@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Lora:wght@500;700&family=DM+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--bone);color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:20px;line-height:1}</style>
+</helmet>
+<sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+<div data-theme="{{ theme }}" style="{{ root }}">
+<div style="padding:16px 32px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px"><a href="DentAssist%20Landing.dc.html" aria-label="Volver al sitio" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink-900);font-weight:800;font-size:18px"><span style="width:32px;height:32px;border-radius:9px;background:var(--grad-btn);color:#fff;display:flex;align-items:center;justify-content:center"><i class="icon-smile" style="font-size:18px"></i></span>{{ name }}</a><span style="flex:1"></span><a href="DentAssist%20Landing.dc.html" style="font-weight:600;font-size:14px">← Volver al sitio</a></div>
+<main style="max-width:760px;margin:0 auto;padding:48px 24px 72px;display:flex;flex-direction:column;gap:26px;font-family:{{ body }}">
+<div><div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--brand-700)">LEY N.° 29733 · PROTECCIÓN DE DATOS PERSONALES</div><h1 style="font-family:{{ head }};font-size:40px;line-height:1.1;letter-spacing:-.02em;margin:8px 0 6px">Aviso de privacidad</h1><div style="color:var(--ink-500);font-size:14px">Última actualización: 6 de octubre de 2026</div></div>
+<sc-for list="{{ sections }}" as="s" hint-placeholder-count="8"><section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-family:{{ head }};font-size:22px;margin:0">{{ s.h }}</h2><p style="margin:0;font-size:16px;line-height:1.7;color:var(--ink-700)">{{ s.p }}</p></section></sc-for>
+<div style="padding:20px;border-radius:16px;background:var(--grad-hero);box-shadow:inset 0 0 0 1px var(--brand-100);display:flex;flex-direction:column;gap:6px;font-size:15px"><b>Ejerce tus derechos</b><span>Escríbenos a <a href="{{ mail }}">{{ email }}</a> o por <a href="{{ waLink }}">WhatsApp</a>. Responderemos en un plazo máximo de 20 días hábiles.</span></div>
+</main></div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { t: 0 };
+  renderVals() {
+    const DA = window.DA;
+    if (!DA) { clearTimeout(this._r); this._r = setTimeout(() => this.setState(s => ({ t: s.t + 1 })), 150); return { ready: false }; }
+    const B = DA.brand(), n = B.name;
+    return {
+      ready: true, theme: DA.theme(), root: Object.assign({ minHeight: '100vh' }, B.vars), name: n, head: B.head, body: B.body, email: B.email, mail: 'mailto:' + B.email, waLink: B.waLink,
+      sections: [
+        ['1. Responsable del banco de datos', n + ' (domicilio: ' + B.address + ') es titular del banco de datos personales de pacientes y responsable de su tratamiento, conforme a la Ley N.° 29733 y su Reglamento (D.S. N.° 003-2013-JUS).'],
+        ['2. Datos que recopilamos', 'Nombre completo, DNI, número de celular, correo electrónico (opcional), motivo de la cita y, durante la atención, datos de salud necesarios para su historia clínica. Los datos de salud son datos sensibles y se tratan con medidas reforzadas de seguridad.'],
+        ['3. Finalidad del tratamiento', 'Gestionar tu reserva y recordatorios de cita, brindar atención odontológica, elaborar y conservar tu historia clínica, emitir comprobantes de pago y, solo si lo autorizas, enviarte comunicaciones sobre promociones o campañas de salud.'],
+        ['4. Base legal y consentimiento', 'Tratamos tus datos con tu consentimiento previo, libre, expreso e informado, que otorgas al marcar la casilla en el formulario de reserva. Puedes revocarlo en cualquier momento sin efectos retroactivos.'],
+        ['5. Con quién compartimos tus datos', 'No vendemos tus datos. Solo se comparten con proveedores que nos prestan servicios (alojamiento, mensajería por WhatsApp, facturación electrónica) bajo acuerdos de confidencialidad, y con autoridades cuando la ley lo exija.'],
+        ['6. Plazo de conservación', 'Las historias clínicas se conservan el tiempo que exige la normativa de salud vigente. Los datos de contacto de reservas sin atención se eliminan a los 12 meses.'],
+        ['7. Tus derechos (ARCO)', 'Puedes solicitar acceso, rectificación, cancelación y oposición respecto de tus datos personales. Si consideras que tus derechos no fueron atendidos, puedes acudir a la Autoridad Nacional de Protección de Datos Personales.'],
+        ['8. Seguridad', 'Aplicamos controles de acceso por rol, registro de actividad y cifrado en tránsito para proteger tu información frente a accesos no autorizados.']
+      ].map(s => ({ h: s[0], p: s[1] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

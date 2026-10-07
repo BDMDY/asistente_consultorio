@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.452.0/font/lucide.css">
+<link rel="stylesheet" href="dentassist-tokens.css">
+<script src="da-core.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);color:var(--ink-900)}a{color:var(--brand-700)}a:hover{color:var(--brand-800)}i[class^=icon-]{font-size:18px;line-height:1}input,select{font-family:inherit;color:var(--ink-900)}input:focus,select:focus{outline:none;box-shadow:var(--focus)}</style>
+</helmet>
+<div data-theme="{{ theme }}" style="{{ rootStyle }}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;align-items:center;gap:16px"><div style="font-size:28px;font-weight:800;letter-spacing:-.02em">Agenda</div>
+<div style="display:flex;align-items:center;gap:6px"><span role="button" tabIndex="0" onClick="{{ prev }}" style="cursor:pointer;width:40px;height:40px;border-radius:10px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;justify-content:center" aria-label="Anterior"><i class="icon-chevron-left"></i></span><b style="min-width:190px;text-align:center;font-size:16px">{{ dayLabel }}</b><span role="button" tabIndex="0" onClick="{{ next }}" style="cursor:pointer;width:40px;height:40px;border-radius:10px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;justify-content:center" aria-label="Siguiente"><i class="icon-chevron-right"></i></span></div>
+<span role="button" tabIndex="0" onClick="{{ toggleTheme }}" style="cursor:pointer;white-space:nowrap;padding:9px 12px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);font-size:13px;font-weight:700">{{ themeLbl }}</span><span role="button" tabIndex="0" onClick="{{ resetData }}" style="cursor:pointer;white-space:nowrap;padding:9px 12px;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);font-size:13px;font-weight:700">Restablecer datos</span></div>
+<div style="display:flex;gap:10px"><span role="button" tabIndex="0" onClick="{{ openSeries }}" style="cursor:pointer;padding:13px 16px;border-radius:12px;background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--brand-200);color:var(--brand-700);font-weight:700;font-size:14px">Citas en serie</span><span role="button" tabIndex="0" onClick="{{ openNew }}" style="cursor:pointer;padding:13px 18px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;font-size:14px">+ Nueva cita</span></div></div>
+<div style="display:flex;gap:8px;align-items:center"><sc-for list="{{ legend }}" as="l" hint-placeholder-count="7"><span style="white-space:nowrap;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ l.bg }};color:{{ l.fg }}">{{ l.t }}</span></sc-for><span style="margin-left:auto;font-size:13px;color:var(--ink-500);white-space:nowrap">Clic en un hueco para agendar · arrastra una cita o usa las flechas del teclado</span></div>
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 340px;gap:16px">
+<div style="background:var(--surface);border-radius:16px;box-shadow:var(--shadow-md);display:grid;grid-template-columns:56px repeat({{ nCols }},1fr);overflow:hidden">
+<div style="padding-top:44px"><sc-for list="{{ hrs }}" as="h" hint-placeholder-count="8"><div class="tnum" style="height:72px;font-size:12px;color:var(--ink-500);text-align:right;padding-right:8px;box-sizing:border-box;margin-top:-6px">{{ h }}</div></sc-for></div>
+<sc-for list="{{ cols }}" as="c" hint-placeholder-count="3"><div style="border-left:1px solid var(--line);position:relative">
+<div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;font-weight:700;font-size:14px;border-bottom:1px solid var(--line)"><span style="width:24px;height:24px;border-radius:50%;background:var(--brand-100);color:var(--brand-800);font-size:12px;display:flex;align-items:center;justify-content:center">{{ c.i }}</span>{{ c.n }}</div>
+<div style="position:absolute;top:44px;left:0;right:0;bottom:0">
+<sc-for list="{{ c.slots }}" as="s" hint-placeholder-count="32"><div onClick="{{ s.click }}" onDragOver="{{ s.over }}" onDrop="{{ s.drop }}" style="cursor:pointer;height:18px;box-sizing:border-box;border-top:{{ s.bt }}" style-hover="background:var(--brand-50)"></div></sc-for></div>
+<sc-for list="{{ c.appts }}" as="a" hint-placeholder-count="3"><div role="button" tabIndex="0" draggable="true" onDragStart="{{ a.start }}" onKeyDown="{{ a.key }}" aria-label="{{ a.label }}" onClick="{{ a.select }}" style="position:absolute;left:6px;right:6px;top:calc(44px + {{ a.top }}px);height:{{ a.h }}px;border-radius:10px;padding:6px 10px;box-sizing:border-box;background:{{ a.bg }};color:{{ a.fg }};font-size:13px;overflow:hidden;cursor:grab;box-shadow:{{ a.sh }}"><b>{{ a.p }}</b><div class="tnum" style="opacity:.85;font-size:12px">{{ a.t }} · {{ a.s }}</div></div></sc-for>
+</div></sc-for></div>
+
+<div style="background:var(--surface);border-radius:16px;box-shadow:var(--shadow-lg);padding:22px;display:flex;flex-direction:column;gap:14px">
+<sc-if value="{{ noSel }}" hint-placeholder-val="{{ true }}"><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;color:var(--ink-500)"><span style="width:48px;height:48px;border-radius:50%;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center"><i class="icon-mouse-pointer-click"></i></span><b style="color:var(--ink-900)">Selecciona una cita</b><span style="font-size:13px">Verás el detalle y las acciones.</span></div></sc-if>
+<sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between"><b style="font-size:18px">Detalle de cita</b><span role="button" tabIndex="0" onClick="{{ closeSel }}" style="cursor:pointer" aria-label="Cerrar"><i class="icon-x"></i></span></div>
+<span style="align-self:flex-start;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ sel.bg }};color:{{ sel.fg }}">{{ sel.st }}</span>
+<div><b style="font-size:20px">{{ sel.p }}</b><div class="tnum" style="color:var(--ink-500);font-size:14px">{{ sel.day }} · {{ sel.t }}</div></div>
+<sc-if value="{{ selAl.has }}" hint-placeholder-val="{{ false }}"><div role="note" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-radius:12px;background:var(--error-bg)"><i class="icon-triangle-alert" style="color:var(--error-fg);font-size:16px"></i><sc-for list="{{ selAl.list }}" as="a" hint-placeholder-count="2"><b style="font-size:12px;color:var(--error-fg)">{{ a }}</b></sc-for></div></sc-if>
+<div style="font-size:14px;line-height:1.8;color:var(--ink-700)">{{ sel.s }}<br>{{ sel.doc }}<br>Saldo: <b class="tnum">S/ {{ sel.saldo }}</b></div>
+<div style="font-size:12px;color:var(--ink-500);line-height:1.5">Teclado: con la cita enfocada, ↑ ↓ la mueven 15 min y ← → la cambian de doctor.</div>
+<div style="flex:1"></div>
+<div role="button" tabIndex="0" onClick="{{ doConfirm }}" style="cursor:pointer;padding:13px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;text-align:center">Confirmar</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-weight:700;font-size:14px"><span role="button" tabIndex="0" onClick="{{ doResched }}" style="cursor:pointer;padding:12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);text-align:center">Reprogramar</span><span role="button" tabIndex="0" onClick="{{ doPay }}" style="cursor:pointer;padding:12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);text-align:center">Cobrar</span></div>
+<div role="button" tabIndex="0" onClick="{{ doCancel }}" style="cursor:pointer;text-align:center;color:var(--error-fg);font-weight:700;font-size:14px">Cancelar cita</div></sc-if></div>
+</div>
+
+<sc-if value="{{ modal }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeModal }}" style="position:absolute;inset:0;background:rgba(16,36,27,.5);display:flex;align-items:center;justify-content:center">
+<div onClick="{{ stop }}" style="width:960px;max-height:840px;background:var(--surface);border-radius:20px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden">
+<div style="padding:20px 28px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center"><b style="font-size:22px">Nueva cita</b>
+<div style="display:flex;background:var(--muted);border-radius:12px;padding:4px"><sc-for list="{{ modes }}" as="m" hint-placeholder-count="2"><span role="button" tabIndex="0" onClick="{{ m.pick }}" style="cursor:pointer;padding:9px 18px;border-radius:9px;font-size:14px;font-weight:700;background:{{ m.bg }};color:{{ m.fg }};box-shadow:{{ m.sh }}">{{ m.t }}</span></sc-for></div>
+<span role="button" tabIndex="0" onClick="{{ closeModal }}" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center" aria-label="Cerrar"><i class="icon-x"></i></span></div>
+<div style="display:grid;grid-template-columns:1.25fr 1fr;min-height:0;overflow:hidden">
+<div style="padding:22px 28px;display:flex;flex-direction:column;gap:14px;overflow:auto;max-height:620px">
+<div style="position:relative"><div style="font-size:12px;font-weight:700;margin-bottom:5px">Paciente</div>
+<input aria-label="Buscar por nombre o DNI, o escribir uno nuevo" value="{{ f.patient }}" onInput="{{ setPatient }}" placeholder="Buscar por nombre o DNI, o escribir uno nuevo" style="width:100%;box-sizing:border-box;height:46px;border-radius:12px;border:1px solid var(--line);padding:0 14px;font-size:15px;background:var(--surface)">
+<sc-if value="{{ showSugg }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;right:0;top:78px;background:var(--surface);border-radius:12px;box-shadow:var(--shadow-lg);z-index:5;overflow:hidden"><sc-for list="{{ sugg }}" as="p" hint-placeholder-count="3"><div role="button" tabIndex="0" onClick="{{ p.pick }}" style="cursor:pointer;padding:11px 14px;font-size:14px;font-weight:{{ p.w }};color:{{ p.c }};border-top:1px solid var(--line);min-height:20px" style-hover="background:var(--brand-50)">{{ p.t }}</div></sc-for></div></sc-if>
+<sc-if value="{{ f.isNew }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--info-bg);color:var(--info-fg);font-size:12px;font-weight:700">Paciente nuevo · se creará su ficha</span></sc-if></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Servicio<select value="{{ f.svc }}" onChange="{{ setSvc }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:14px;background:var(--surface)"><sc-for list="{{ svcOpts }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.t }}</option></sc-for></select></label>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Doctor<select value="{{ f.doc }}" onChange="{{ setDoc }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:14px;background:var(--surface)"><sc-for list="{{ docOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.t }}</option></sc-for></select></label>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">{{ dateLbl }}<input type="date" value="{{ f.date }}" min="2026-10-12" onInput="{{ setDate }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:14px;background:var(--surface)"></label>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Hora<input type="time" step="900" min="09:00" max="16:45" value="{{ f.time }}" onInput="{{ setTime }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:14px;background:var(--surface)"></label></div>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Duración</div><div style="display:flex;gap:6px"><sc-for list="{{ durs }}" as="o" hint-placeholder-count="6"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;padding:10px 0;border-radius:10px;text-align:center;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div></div>
+<sc-if value="{{ isSeries }}" hint-placeholder-val="{{ false }}"><div style="padding:14px;border-radius:14px;background:var(--brand-50);display:flex;flex-direction:column;gap:12px">
+<div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Se repite</div><div style="display:flex;gap:6px"><sc-for list="{{ freqs }}" as="o" hint-placeholder-count="3"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;padding:10px 0;border-radius:10px;text-align:center;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div></div>
+<sc-if value="{{ showDays }}" hint-placeholder-val="{{ true }}"><div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Días de la semana</div><div style="display:flex;gap:6px"><sc-for list="{{ dayTog }}" as="o" hint-placeholder-count="7"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;padding:10px 0;border-radius:10px;text-align:center;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div></div></sc-if>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Termina</div><div style="display:flex;gap:8px;align-items:center"><div style="display:flex;gap:6px;flex:1"><sc-for list="{{ ends }}" as="o" hint-placeholder-count="2"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;padding:10px 0;border-radius:10px;text-align:center;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div>
+<input type="number" min="2" max="30" value="{{ ser.count }}" onInput="{{ setCount }}" style="display:{{ showCount }};width:80px;height:42px;border-radius:10px;border:1px solid var(--line);padding:0 10px;font-size:14px;background:var(--surface)"><input type="date" value="{{ ser.until }}" onInput="{{ setUntil }}" style="display:{{ showUntil }};width:150px;height:42px;border-radius:10px;border:1px solid var(--line);padding:0 10px;font-size:14px;background:var(--surface)"></div></div>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Si una fecha choca con otra cita</div><div style="display:flex;gap:6px"><sc-for list="{{ clashOpts }}" as="o" hint-placeholder-count="2"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;flex:1;padding:10px 0;border-radius:10px;text-align:center;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div></div></div></sc-if>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Notas (opcional)<input aria-label="Ej. paciente con ansiedad, traer radiografías" value="{{ f.notes }}" onInput="{{ setNotes }}" placeholder="Ej. paciente con ansiedad, traer radiografías" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 14px;font-size:14px;background:var(--surface)"></label>
+</div>
+
+<div style="padding:22px 28px;background:var(--muted);display:flex;flex-direction:column;gap:12px;overflow:auto;max-height:620px">
+<sc-if value="{{ isSingle }}" hint-placeholder-val="{{ true }}">
+<div style="padding:14px 16px;border-radius:14px;background:{{ av.bg }};color:{{ av.fg }};font-weight:700;font-size:14px;line-height:1.5;display:flex;gap:10px"><i class="{{ av.icon }}" style="margin-top:2px"></i><span>{{ av.msg }}</span></div>
+<div style="font-size:12px;font-weight:700;color:var(--ink-500)">Otros horarios libres ese día · {{ av.docName }}</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ freeChips }}" as="o" hint-placeholder-count="6"><span role="button" tabIndex="0" onClick="{{ o.pick }}" class="tnum" style="cursor:pointer;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div>
+<sc-if value="{{ noFree }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--ink-500)">No quedan huecos de esa duración. Prueba otro día o doctor.</div></sc-if></sc-if>
+<sc-if value="{{ isSeries }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:15px">Vista previa</b><span style="font-size:12px;color:var(--ink-500);font-weight:600">{{ prevSummary }}</span></div>
+<div style="display:flex;flex-direction:column;background:var(--surface);border-radius:12px;overflow:hidden"><sc-for list="{{ preview }}" as="r" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);font-size:13px"><span class="tnum" style="flex:1;font-weight:600">{{ r.d }} · {{ r.tm }}</span><span style="font-size:12px;color:{{ r.c }};font-weight:600">{{ r.m }}</span><span style="padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;background:{{ r.bg }};color:{{ r.fg }}">{{ r.s }}</span></div></sc-for></div>
+<sc-if value="{{ noPreview }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--ink-500)">Elige fecha, hora y días para ver las citas.</div></sc-if></sc-if>
+</div></div>
+<div style="padding:16px 28px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px"><span style="flex:1;font-size:13px;color:var(--error-fg);font-weight:600">{{ blockMsg }}</span><span role="button" tabIndex="0" onClick="{{ closeModal }}" style="cursor:pointer;padding:13px 18px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700">Cancelar</span><span role="button" tabIndex="0" onClick="{{ create }}" style="cursor:pointer;padding:13px 22px;border-radius:12px;background:{{ ctaBg }};color:{{ ctaFg }};font-weight:700">{{ createLabel }}</span></div>
+</div></div></sc-if>
+
+<sc-if value="{{ cxOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeCx }}" style="position:absolute;inset:0;z-index:60;background:rgba(16,36,27,.5);display:flex;align-items:center;justify-content:center"><div role="dialog" aria-label="Cancelar cita" onClick="{{ stop }}" style="width:420px;max-width:92%;background:var(--surface);border-radius:20px;box-shadow:var(--shadow-lg);padding:24px;display:flex;flex-direction:column;gap:14px"><b style="font-size:20px">Cancelar esta cita</b><div style="font-size:14px;color:var(--ink-500)">{{ cxWho }}</div><div style="font-size:12px;font-weight:700">Motivo</div><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ cxReasons }}" as="o" hint-placeholder-count="4"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 14px;border-radius:10px;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div><label style="display:flex;gap:10px;align-items:center;min-height:44px;font-size:14px;cursor:pointer"><input type="checkbox" checked="{{ cxNotify }}" onChange="{{ toggleCxN }}" style="width:20px;height:20px">Avisar al paciente por WhatsApp</label><div style="display:flex;gap:10px;justify-content:flex-end"><span role="button" tabIndex="0" onClick="{{ closeCx }}" style="cursor:pointer;min-height:46px;padding:0 18px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700;display:flex;align-items:center">Volver</span><span role="button" tabIndex="0" onClick="{{ confirmCx }}" style="cursor:pointer;min-height:46px;padding:0 18px;border-radius:12px;background:var(--error-fg);color:#fff;font-weight:700;display:flex;align-items:center">Cancelar cita</span></div></div></div></sc-if>
+<sc-if value="{{ payOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closePay }}" style="position:absolute;inset:0;background:rgba(16,36,27,.5);display:flex;align-items:center;justify-content:center;z-index:50"><div onClick="{{ stop }}" style="width:480px;background:var(--surface);border-radius:20px;box-shadow:var(--shadow-lg);padding:26px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between"><b style="font-size:22px">{{ payTitle }}</b><span role="button" tabIndex="0" aria-label="Cerrar" onClick="{{ closePay }}" style="cursor:pointer"><i class="icon-x"></i></span></div>
+<sc-if value="{{ payForm }}" hint-placeholder-val="{{ true }}">
+<div style="padding:12px 14px;border-radius:12px;background:var(--brand-50);font-weight:700;color:var(--brand-800);font-size:14px">{{ payWho }}<span style="display:{{ payAlD }};margin-top:4px;font-size:12px;color:var(--error-fg)">⚠ {{ payAl }}</span></div>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Monto (S/)<input value="{{ pay.amount }}" onInput="{{ setAmt }}" inputmode="decimal" style="height:50px;border-radius:12px;border:{{ payBd }};padding:0 14px;font-size:20px;font-weight:700;background:var(--surface);font-variant-numeric:tabular-nums"></label>
+<div><div style="font-size:12px;font-weight:700;margin-bottom:5px">Método de pago</div><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ payMethods }}" as="o" hint-placeholder-count="5"><span role="button" tabIndex="0" onClick="{{ o.pick }}" style="cursor:pointer;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div></div>
+<div role="button" tabIndex="0" onClick="{{ confirmPay }}" style="cursor:pointer;min-height:50px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">Registrar cobro</div></sc-if>
+<sc-if value="{{ payDone }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:14px;box-shadow:inset 0 0 0 1px var(--line);padding:18px;display:flex;flex-direction:column;gap:6px;font-size:14px"><div style="display:flex;justify-content:space-between"><b>{{ name }}</b><span class="tnum" style="color:var(--ink-500)">{{ receipt.no }}</span></div><span style="color:var(--ink-500)">Boleta de venta electrónica · {{ receipt.date }}</span><div style="border-top:1px dashed var(--line);margin:8px 0"></div><div style="display:flex;justify-content:space-between"><span>{{ receipt.concept }} · {{ receipt.patient }}</span><b class="tnum">{{ receipt.amount }}</b></div><div style="display:flex;justify-content:space-between;color:var(--ink-500)"><span>Pagado con {{ receipt.method }}</span><span>Total <b class="tnum" style="color:var(--ink-900)">{{ receipt.amount }}</b></span></div></div>
+<div role="button" tabIndex="0" onClick="{{ closePay }}" style="cursor:pointer;min-height:50px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">Listo</div></sc-if>
+</div></div></sc-if>
+<sc-if value="{{ rsOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeRs }}" style="position:absolute;inset:0;background:rgba(16,36,27,.5);display:flex;align-items:center;justify-content:center;z-index:40"><div onClick="{{ stop }}" style="width:600px;background:var(--surface);border-radius:20px;box-shadow:var(--shadow-lg);padding:26px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:22px">Reprogramar cita</b><div style="font-size:13px;color:var(--ink-500);margin-top:2px">{{ rs.who }} · actual: {{ rs.cur }}</div></div><span role="button" tabIndex="0" aria-label="Cerrar" onClick="{{ closeRs }}" style="cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center"><i class="icon-x"></i></span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Nueva fecha<input type="date" min="2026-10-12" value="{{ rs.date }}" onInput="{{ rsDate }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:14px;background:var(--surface)"></label>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Nueva hora<input type="time" step="900" min="09:00" max="16:45" value="{{ rs.time }}" onInput="{{ rsTime }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:14px;background:var(--surface)"></label>
+<label style="font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px">Doctor<select value="{{ rs.doc }}" onChange="{{ rsDoc }}" style="height:46px;border-radius:12px;border:1px solid var(--line);padding:0 12px;font-size:14px;background:var(--surface)"><sc-for list="{{ docOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.t }}</option></sc-for></select></label></div>
+<div style="padding:12px 14px;border-radius:12px;background:{{ rs.bg }};color:{{ rs.fg }};font-weight:700;font-size:14px;display:flex;gap:10px;line-height:1.4"><i class="{{ rs.icon }}" style="margin-top:2px"></i><span>{{ rs.msg }}</span></div>
+<div style="font-size:12px;font-weight:700;color:var(--ink-500)">Horarios libres ese día · {{ rs.docName }}</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ rs.chips }}" as="o" hint-placeholder-count="6"><span role="button" tabIndex="0" onClick="{{ o.pick }}" class="tnum" style="cursor:pointer;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:700;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.t }}</span></sc-for></div>
+<div style="display:flex;justify-content:flex-end;gap:10px"><span role="button" tabIndex="0" onClick="{{ closeRs }}" style="cursor:pointer;padding:13px 18px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-weight:700">Cancelar</span><span role="button" tabIndex="0" onClick="{{ confirmRs }}" style="cursor:pointer;padding:13px 22px;border-radius:12px;background:{{ rs.ctaBg }};color:{{ rs.ctaFg }};font-weight:700">Confirmar nuevo horario</span></div>
+</div></div></sc-if>
+<sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;z-index:70;background:var(--bone);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:28px;text-align:center"><span style="width:56px;height:56px;border-radius:50%;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center"><i class="icon-smartphone"></i></span><b style="font-size:20px">Esta agenda es para pantallas amplias</b><span style="font-size:14px;color:var(--ink-500);max-width:320px;line-height:1.5">En celular usa la agenda móvil: ve el día, confirma, cobra, reprograma y crea citas.</span><a href="DentAssist%20Agenda%20Movil.dc.html" style="min-height:52px;padding:0 24px;border-radius:12px;background:var(--grad-btn);color:#fff;font-weight:700;display:flex;align-items:center;text-decoration:none">Abrir agenda móvil</a></div></sc-if>
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div role="status" aria-live="polite" style="position:absolute;left:50%;transform:translateX(-50%);bottom:28px;padding:12px 14px 12px 20px;border-radius:12px;background:var(--brand-900);color:#fff;font-weight:600;font-size:14px;box-shadow:var(--shadow-lg);display:flex;gap:14px;align-items:center"><i class="icon-circle-check"></i>{{ toast }}<span role="button" tabIndex="0" onClick="{{ undo }}" style="cursor:pointer;display:{{ undoShow }};padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.18);font-size:13px">Deshacer</span></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    vw: 1440, pats: [{ id: 1, name: 'Lucía Rojas' }, { id: 2, name: 'Mario Soto' }, { id: 3, name: 'Rosa León' }, { id: 4, name: 'Pedro Vera' }, { id: 5, name: 'Carla Díaz' }, { id: 6, name: 'Jorge Ramos' }, { id: 7, name: 'Ana Cruz' }, { id: 8, name: 'Sofía Paz' }, { id: 9, name: 'Tomás Luna' }],
+    pay: null, receipt: null, tick: 0, day: 0, sel: null, drag: null, nid: 100, toast: '', undoIds: null, undoC: null, cx: null,
+    rs: null, modal: false, mode: 'single', pq: false,
+    f: { patient: '', picked: false, isNew: false, svc: 0, doc: 0, date: '2026-10-14', time: '10:30', dur: 3, notes: '' },
+    ser: { freq: 'weekly', days: [false, false, false, true, false, false, false], endMode: 'count', count: 5, until: '2026-11-30', onClash: 'skip' },
+    appts: [
+      { id: 1, day: 0, doc: 0, slot: 0, dur: 3, p: 'M. Soto', s: 'Limpieza', st: 'atendida' },
+      { id: 2, day: 0, doc: 0, slot: 6, dur: 3, p: 'Lucía Rojas', s: 'Ortodoncia', st: 'pendiente' },
+      { id: 3, day: 0, doc: 0, slot: 12, dur: 4, p: 'J. Ramos', s: 'Endodoncia', st: 'confirmada' },
+      { id: 4, day: 0, doc: 1, slot: 2, dur: 3, p: 'C. Díaz', s: 'Control', st: 'en-sala' },
+      { id: 5, day: 0, doc: 1, slot: 8, dur: 4, p: 'P. Vera', s: 'Endodoncia', st: 'confirmada' },
+      { id: 6, day: 0, doc: 2, slot: 0, dur: 4, p: 'A. Cruz', s: 'Blanqueamiento', st: 'reprogramada' },
+      { id: 7, day: 0, doc: 2, slot: 10, dur: 3, p: 'T. Luna', s: 'Limpieza', st: 'confirmada' },
+      { id: 8, day: 19, doc: 0, slot: 4, dur: 3, p: 'J. Ramos', s: 'Control', st: 'confirmada' }
+    ]
+  };
+  componentDidMount() {
+    this.SEED = this.state.appts;
+    try { const m = /#nueva(?:=(.*))?$/.exec(decodeURIComponent(location.hash)); if (m) { const nm = (m[1] || '').trim(); setTimeout(() => this.setState(s => ({ modal: true, mode: 'single', f: Object.assign({}, s.f, { patient: nm, picked: !!nm, isNew: false, date: this.strOf(s.day), time: this.firstFree(s.day, s.f.doc, s.f.dur) }) })), 60); } } catch (e) {}
+    try { const r = localStorage.getItem('da-agenda-v1'); if (r) { const o = JSON.parse(r); this.setState({ appts: o.appts, nid: o.nid }); } } catch (e) {}
+    this._k = e => { if (e.key === 'Escape') { if (this.state.rs) this.setState({ rs: null }); else if (this.state.modal) this.setState({ modal: false }); } };
+    window.addEventListener('keydown', this._k);
+    this._f = setTimeout(() => this.forceUpdate(), 300);
+    this._vw = () => this.setState({ vw: window.innerWidth }); this._vw(); window.addEventListener('resize', this._vw);
+    this._x = () => this.loadExt(); window.addEventListener('storage', this._x); window.addEventListener('focus', this._x); this.loadExt();
+  }
+  loadExt() {
+    try { const r = localStorage.getItem('da-agenda-v1'); if (r) { const o = JSON.parse(r); if (JSON.stringify(o.appts) !== JSON.stringify(this.state.appts)) this.setState({ appts: o.appts, nid: o.nid }); } } catch (e) {}
+    try { const p = JSON.parse(localStorage.getItem('da-patients-v1') || 'null'); if (p) this.setState({ pats: p }); } catch (e) {}
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this._k); window.removeEventListener('storage', this._x); window.removeEventListener('focus', this._x); }
+  componentDidUpdate() { if (this._sa !== this.state.appts) { this._sa = this.state.appts; try { localStorage.setItem('da-agenda-v1', JSON.stringify({ appts: this.state.appts, nid: this.state.nid })); } catch (e) {} } }
+  get DOCS() { return window.DA ? window.DA.docs().map(d => d.name) : ['Dra. Quispe', 'Dr. Paredes', 'Dra. Vega']; }
+  get SV() { const l = window.DA ? window.DA.services().map((s, i) => [s.name, window.DA.dur(i)]) : []; return l.length ? l : [['Consulta', 2]]; }
+  PAC = ['Lucía Rojas', 'Mario Soto', 'Rosa León', 'Pedro Vera', 'Carla Díaz', 'Jorge Ramos', 'Ana Cruz', 'Sofía Paz', 'Tomás Luna'];
+  WD = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  MO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  dt(d) { return new Date(2026, 9, 12 + d); }
+  dlabel(d) { const x = this.dt(d); return this.WD[x.getDay()] + ' ' + x.getDate() + ' ' + this.MO[x.getMonth()]; }
+  hm(slot) { const m = 540 + slot * 15; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+  idxOf(str) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str || ''); if (!m) return null; return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(2026, 9, 12)) / 864e5); }
+  strOf(i) { const x = new Date(Date.UTC(2026, 9, 12 + i)); return x.toISOString().slice(0, 10); }
+  slotOf(str) { const m = /^(\d{2}):(\d{2})$/.exec(str || ''); if (!m) return null; const v = (+m[1] * 60 + +m[2] - 540) / 15; return Number.isInteger(v) && v >= 0 && v < 32 ? v : null; }
+  priceFor(a) { try { const sv = window.DA.services().find(s => s.name === a.s); const n = sv ? parseFloat(String(sv.price).replace(/,/g, '')) : NaN; return n > 0 ? n : 150; } catch (e) { return 150; } }
+  onKey(e, a) {
+    const k = e.key; if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) return; e.preventDefault();
+    const n = Object.assign({}, a); if (k === 'ArrowUp') n.slot = a.slot - 1; if (k === 'ArrowDown') n.slot = a.slot + 1; if (k === 'ArrowLeft') n.doc = a.doc - 1; if (k === 'ArrowRight') n.doc = a.doc + 1;
+    if (n.slot < 0 || n.slot + a.dur > 32 || n.doc < 0 || n.doc >= this.DOCS.length) { this.flash('No se puede mover más allá'); return; }
+    if (this.clash(this.state.appts, n, a.id)) { this.flash('Choque: ese horario ya está ocupado'); return; }
+    this.upd(a.id, { slot: n.slot, doc: n.doc }); this.setState({ sel: a.id }); this.flash(this.hm(n.slot) + ' · ' + this.DOCS[n.doc]);
+  }
+  clash(list, a, ignore) { return list.find(b => b.id !== ignore && b.day === a.day && b.doc === a.doc && b.st !== 'cancelada' && a.slot < b.slot + b.dur && b.slot < a.slot + a.dur) || null; }
+  freeStarts(list, day, doc, dur) { const o = []; for (let s = 0; s + dur <= 32; s++) if (!this.clash(list, { id: 0, day, doc, slot: s, dur })) o.push(s); return o; }
+  flash(t, undoIds, uc) { this.setState({ toast: t, undoIds: undoIds || null, undoC: uc || null }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '', undoIds: null, undoC: null }), undoIds || uc ? 8000 : 4500); }
+  alertsFor(name) { try { const P = window.DA.patients(), n = (name || '').toLowerCase(), last = n.split(' ').pop(), ini = n[0]; const p = P.find(x => x.name.toLowerCase() === n) || P.find(x => x.name.toLowerCase().split(' ').pop() === last && x.name.toLowerCase()[0] === ini); return (p && p.alerts) || []; } catch (e) { return []; } }
+  upd(id, patch) { this.setState(s => ({ appts: s.appts.map(a => a.id === id ? Object.assign({}, a, patch) : a) })); }
+  setF(p) { this.setState(s => ({ f: Object.assign({}, s.f, p) })); }
+  setS(p) { this.setState(s => ({ ser: Object.assign({}, s.ser, p) })); }
+  moveTo(doc, slot) {
+    const S = this.state, a = S.appts.find(x => x.id === S.drag);
+    if (!a) return;
+    const n = Object.assign({}, a, { doc, slot: Math.min(slot, 32 - a.dur) });
+    if (this.clash(S.appts, n, a.id)) { this.flash('Choque: ese horario ya está ocupado'); this.setState({ drag: null }); return; }
+    this.upd(a.id, { doc: n.doc, slot: n.slot }); this.setState({ drag: null }); this.flash('Cita movida a ' + this.hm(n.slot) + ' · ' + this.DOCS[doc]);
+  }
+  openAt(doc, slot) { const S = this.state; this.setState({ modal: true, mode: 'single', f: Object.assign({}, S.f, { patient: '', picked: false, isNew: false, doc, date: this.strOf(S.day), time: this.hm(slot), notes: '' }) }); }
+  firstFree(day, doc, dur) { const l = this.freeStarts(this.state.appts, day, doc, dur); return l.length ? this.hm(l[0]) : '09:00'; }
+  genSeries() {
+    const S = this.state, F = S.f, R = S.ser, start = this.idxOf(F.date), slot = this.slotOf(F.time);
+    if (start === null || slot === null || start < 0) return [];
+    const list = S.appts.slice(), out = [], lim = R.endMode === 'count' ? Math.max(2, Math.min(30, +R.count || 2)) : 999, until = R.endMode === 'date' ? this.idxOf(R.until) : null;
+    let found = 0;
+    for (let d = start; d < start + 400 && found < lim && out.length < 60; d++) {
+      if (until !== null && d > until) break;
+      const dtd = this.dt(d);
+      let ok;
+      if (R.freq === 'monthly') ok = dtd.getDate() === this.dt(start).getDate();
+      else { const w = Math.floor((d - start) / 7); ok = R.days[dtd.getDay()] && (R.freq === 'weekly' || w % 2 === 0); }
+      if (!ok) continue;
+      found++;
+      const c = { id: 0, day: d, doc: F.doc, slot, dur: F.dur };
+      const hit = this.clash(list, c);
+      if (!hit) { out.push({ day: d, slot, status: 'ok' }); list.push(c); continue; }
+      if (R.onClash === 'move') {
+        let s2 = null; for (let s = slot + 1; s + F.dur <= 32; s++) if (!this.clash(list, { id: 0, day: d, doc: F.doc, slot: s, dur: F.dur })) { s2 = s; break; }
+        if (s2 !== null) { out.push({ day: d, slot: s2, status: 'moved', note: 'Movida desde ' + this.hm(slot) }); list.push({ id: 0, day: d, doc: F.doc, slot: s2, dur: F.dur }); continue; }
+      }
+      out.push({ day: d, slot, status: 'skip', note: 'Choca con ' + hit.p });
+    }
+    return out;
+  }
+  rsVals(S) {
+    const a = S.appts.find(x => x.id === (S.rs && S.rs.id));
+    if (!a) return { rsOpen: false, rs: {} };
+    const R = S.rs, day = this.idxOf(R.date), slot = this.slotOf(R.time), others = S.appts.filter(x => x.id !== a.id);
+    const free = day !== null && day >= 0 && this.dt(day).getDay() !== 0 ? this.freeStarts(others, day, R.doc, a.dur) : [];
+    const hit = (slot !== null && day !== null && day >= 0) ? this.clash(others, { id: 0, day, doc: R.doc, slot, dur: a.dur }) : null;
+    let err = '', msg, tone = 'warning', icon = 'icon-clock';
+    if (day === null || day < 0) err = 'Elige una fecha válida (desde hoy)';
+    else if (this.dt(day).getDay() === 0) err = 'Los domingos no hay atención';
+    else if (slot === null) err = 'Hora entre 09:00 y 16:45, en tramos de 15 min';
+    else if (slot + a.dur > 32) err = 'La cita terminaría después de las 17:00';
+    else if (hit) { err = 'Choca con ' + hit.p + ' (' + this.hm(hit.slot) + '–' + this.hm(hit.slot + hit.dur) + ')'; tone = 'error'; icon = 'icon-circle-x'; }
+    else if (day === a.day && slot === a.slot && R.doc === a.doc) err = 'Es el mismo horario de la cita actual';
+    if (err) msg = err; else { msg = 'Horario libre · ' + this.DOCS[R.doc] + ' · ' + this.dlabel(day) + ' ' + this.hm(slot) + '–' + this.hm(slot + a.dur); tone = 'success'; icon = 'icon-circle-check'; }
+    return {
+      rsOpen: true,
+      rs: { who: a.p, cur: this.dlabel(a.day) + ' ' + this.hm(a.slot), date: R.date, time: R.time, doc: R.doc, docName: this.DOCS[R.doc], msg, icon, bg: 'var(--' + tone + '-bg)', fg: 'var(--' + tone + '-fg)', ctaBg: err ? 'var(--muted)' : 'var(--grad-btn)', ctaFg: err ? 'var(--ink-300)' : '#fff',
+        chips: free.slice(0, 14).map(sl => ({ t: this.hm(sl), pick: () => this.setState({ rs: Object.assign({}, R, { time: this.hm(sl) }) }), bg: sl === slot ? 'var(--grad-btn)' : 'var(--surface)', fg: sl === slot ? '#fff' : 'var(--ink-900)', sh: sl === slot ? 'none' : 'inset 0 0 0 1px var(--line)' })) },
+      rsDate: e => this.setState({ rs: Object.assign({}, R, { date: e.target.value }) }), rsTime: e => this.setState({ rs: Object.assign({}, R, { time: e.target.value }) }), rsDoc: e => this.setState({ rs: Object.assign({}, R, { doc: +e.target.value }) }),
+      closeRs: () => this.setState({ rs: null }),
+      confirmRs: () => { if (err) return; const old = this.dlabel(a.day) + ' ' + this.hm(a.slot); this.upd(a.id, { day, slot, doc: R.doc, st: 'reprogramada' }); this.setState({ rs: null, day, sel: a.id }); this.flash('Cita reprogramada: ' + old + ' → ' + this.dlabel(day) + ' ' + this.hm(slot)); }
+    };
+  }
+  validity() {
+    const S = this.state, F = S.f, slot = this.slotOf(F.time), day = this.idxOf(F.date);
+    if (F.patient.trim().length < 3) return 'Indica el paciente';
+    if (day === null || day < 0) return 'Elige una fecha válida (desde hoy)';
+    if (this.dt(day).getDay() === 0) return 'Los domingos no hay atención';
+    if (slot === null) return 'Hora entre 09:00 y 16:45, en tramos de 15 min';
+    if (slot + F.dur > 32) return 'La cita termina después de las 17:00';
+    if (S.mode === 'single') { const hit = this.clash(S.appts, { id: 0, day, doc: F.doc, slot, dur: F.dur }); if (hit) return 'Ese horario ya está ocupado'; }
+    else { if (!S.ser.days.some(Boolean) && S.ser.freq !== 'monthly') return 'Elige al menos un día de la semana'; if (!this.genSeries().some(x => x.status !== 'skip')) return 'Ninguna fecha disponible'; }
+    return '';
+  }
+  create = () => {
+    const S = this.state, F = S.f;
+    if (this.validity()) return;
+    let id = S.nid; const slot = this.slotOf(F.time), day = this.idxOf(F.date);
+    const base = { doc: F.doc, dur: F.dur, p: F.patient.trim(), s: this.SV[F.svc][0], st: 'pendiente', notes: F.notes };
+    let add;
+    if (S.mode === 'single') add = [Object.assign({ id: ++id, day, slot }, base)];
+    else add = this.genSeries().filter(x => x.status !== 'skip').map(x => Object.assign({ id: ++id, day: x.day, slot: x.slot }, base));
+    const skipped = S.mode === 'series' ? this.genSeries().filter(x => x.status === 'skip').length : 0;
+    let pats = S.pats;
+    if (F.isNew && !pats.some(p => p.name.toLowerCase() === base.p.toLowerCase())) { pats = pats.concat({ id: Date.now(), name: base.p, dni: '', phone: '', alerts: [] }); try { localStorage.setItem('da-patients-v1', JSON.stringify(pats)); } catch (e) {} }
+    this.setState({ appts: S.appts.concat(add), pats, nid: id, modal: false, day: add[0].day, sel: add[0].id });
+    this.flash(S.mode === 'single' ? 'Cita creada · ' + base.p + ' · ' + this.hm(slot) : add.length + ' citas creadas para ' + base.p + (skipped ? ' · ' + skipped + ' omitida(s)' : ''), add.map(a => a.id));
+  };
+  renderVals() {
+    const S = this.state, F = S.f, R = S.ser, st = k => ({ bg: `var(--st-${k}-bg)`, fg: `var(--st-${k}-fg)` });
+    const stName = { atendida: 'Atendida', pendiente: 'Pendiente', confirmada: 'Confirmada', 'en-sala': 'En sala', cancelada: 'Cancelada', 'no-show': 'No-show', reprogramada: 'Reprogramada' };
+    const dayAppts = S.appts.filter(a => a.day === S.day);
+    const cols = this.DOCS.map((n, d) => ({
+      n, i: n.replace(/^(Dra?\.)\s*/, '').split(' ').map(x => x[0]).slice(0, 2).join(''),
+      slots: Array.from({ length: 32 }, (_, k) => ({ bt: k % 4 === 0 ? '1px solid var(--line)' : '1px dashed rgba(220,229,224,.5)', over: e => e.preventDefault(), drop: e => { e.preventDefault(); this.moveTo(d, k); }, click: () => this.openAt(d, k) })),
+      appts: dayAppts.filter(a => a.doc === d).map(a => Object.assign({ p: a.p, s: a.s + (a.web ? ' · Web' : ''), t: this.hm(a.slot) + '–' + this.hm(a.slot + a.dur), top: a.slot * 18, h: a.dur * 18 - 2, sh: S.sel === a.id ? '0 0 0 2px var(--brand-500)' : 'none', start: e => { e.dataTransfer.setData('text/plain', String(a.id)); this.setState({ drag: a.id }); }, select: e => { e.stopPropagation(); this.setState({ sel: a.id }); }, key: e => this.onKey(e, a), label: a.p + ', ' + a.s + ', ' + this.hm(a.slot) + ', ' + this.DOCS[a.doc] }, st(a.st)))
+    }));
+    const selA = S.appts.find(a => a.id === S.sel);
+    const sel = selA ? Object.assign({ p: selA.p, s: selA.s, st: stName[selA.st], day: this.dlabel(selA.day), t: this.hm(selA.slot) + '–' + this.hm(selA.slot + selA.dur), doc: this.DOCS[selA.doc], saldo: selA.st === 'atendida' ? '0.00' : '150.00' }, st(selA.st)) : {};
+    const seg = (arr, on, set) => arr.map((t, i) => ({ t, pick: () => set(i), bg: on === i ? 'var(--grad-btn)' : 'var(--surface)', fg: on === i ? '#fff' : 'var(--ink-900)', sh: on === i ? 'none' : 'inset 0 0 0 1px var(--line)' }));
+    const series = S.mode === 'series', slot = this.slotOf(F.time), day = this.idxOf(F.date);
+    const free = day !== null && day >= 0 ? this.freeStarts(S.appts, day, F.doc, F.dur) : [];
+    const hit = (slot !== null && day !== null && day >= 0) ? this.clash(S.appts, { id: 0, day, doc: F.doc, slot, dur: F.dur }) : null;
+    const err = this.validity();
+    let av = { docName: this.DOCS[F.doc] };
+    if (day !== null && day >= 0 && this.dt(day).getDay() === 0) av = Object.assign(av, { bg: 'var(--warning-bg)', fg: 'var(--warning-fg)', icon: 'icon-triangle-alert', msg: 'Los domingos no hay atención.' });
+    else if (slot === null) av = Object.assign(av, { bg: 'var(--warning-bg)', fg: 'var(--warning-fg)', icon: 'icon-clock', msg: 'Elige una hora entre 09:00 y 16:45 en tramos de 15 min.' });
+    else if (slot + F.dur > 32) av = Object.assign(av, { bg: 'var(--warning-bg)', fg: 'var(--warning-fg)', icon: 'icon-clock', msg: 'La cita terminaría después de las 17:00.' });
+    else if (hit) av = Object.assign(av, { bg: 'var(--error-bg)', fg: 'var(--error-fg)', icon: 'icon-circle-x', msg: 'Choca con ' + hit.p + ' (' + this.hm(hit.slot) + '–' + this.hm(hit.slot + hit.dur) + '). Elige otro horario.' });
+    else av = Object.assign(av, { bg: 'var(--success-bg)', fg: 'var(--success-fg)', icon: 'icon-circle-check', msg: 'Horario libre · ' + this.DOCS[F.doc] + ' · ' + this.hm(slot) + '–' + this.hm(slot + F.dur) });
+    const q = F.patient.trim().toLowerCase();
+    const PAC = S.pats.map(p => p.name);
+    const matches = PAC.filter(p => q && p.toLowerCase().includes(q)).slice(0, 4);
+    const exact = PAC.some(p => p.toLowerCase() === q);
+    const sugg = matches.map(p => ({ t: p, w: 600, c: 'var(--ink-900)', pick: () => this.setF({ patient: p, picked: true, isNew: false }) }));
+    if (q && !exact) sugg.push({ t: '+ Crear paciente nuevo «' + F.patient.trim() + '»', w: 700, c: 'var(--brand-700)', pick: () => this.setF({ picked: true, isNew: true }) });
+    const gen = series ? this.genSeries() : [];
+    const okN = gen.filter(x => x.status !== 'skip').length;
+    const durs = [1, 2, 3, 4, 6, 8];
+    const dk = !!window.DA && window.DA.theme() === 'dark';
+    const DAx = window.DA, Bx = DAx ? DAx.brand() : { vars: {}, body: "'Plus Jakarta Sans',sans-serif" };
+    return {
+      narrow: this.state.vw < 900,
+      rootStyle: Object.assign({ color: 'var(--ink-900)', width: '100%', height: '100vh', minHeight: 640, background: 'var(--bone)', display: 'flex', flexDirection: 'column', padding: '24px 28px', boxSizing: 'border-box', gap: 14, position: 'relative', overflow: 'hidden', fontFamily: Bx.body }, Bx.vars), nCols: this.DOCS.length,
+      dayLabel: this.dlabel(S.day).replace(/^./, c => c.toUpperCase()), prev: () => this.setState({ day: Math.max(0, S.day - 1) }), next: () => this.setState({ day: Math.min(60, S.day + 1) }),
+      legend: Object.keys(stName).map(k => Object.assign({ t: stName[k] }, st(k))),
+      hrs: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'], cols,
+      selAl: (() => { const l = selA ? this.alertsFor(selA.p) : []; return { has: l.length > 0, list: l }; })(),
+      noSel: !selA, hasSel: !!selA, sel, closeSel: () => this.setState({ sel: null }),
+      doConfirm: () => { this.upd(S.sel, { st: 'confirmada' }); this.flash('Cita confirmada'); },
+      doCancel: () => this.setState({ cx: { id: S.sel, prev: selA ? selA.st : 'pendiente', reason: 0, notify: true } }),
+      cxOpen: !!S.cx, cxWho: S.cx && selA ? selA.p + ' · ' + selA.s : '', cxNotify: S.cx ? S.cx.notify : false, closeCx: () => this.setState({ cx: null }), toggleCxN: () => this.setState({ cx: Object.assign({}, S.cx, { notify: !S.cx.notify }) }),
+      cxReasons: ['Lo pidió el paciente', 'No contestó', 'Reprogramará', 'Otro'].map((t, i) => ({ t, pick: () => this.setState({ cx: Object.assign({}, S.cx, { reason: i }) }), bg: S.cx && S.cx.reason === i ? 'var(--brand-50)' : 'var(--surface)', fg: 'var(--ink-900)', sh: S.cx && S.cx.reason === i ? 'inset 0 0 0 2px var(--brand-500)' : 'inset 0 0 0 1px var(--line)' })),
+      confirmCx: () => { const c = S.cx; this.upd(c.id, { st: 'cancelada' }); this.setState({ cx: null }); this.flash('Cita cancelada' + (c.notify ? ' · se avisó al paciente' : ''), null, { id: c.id, prev: c.prev }); },
+      doPay: () => this.setState({ pay: { id: S.sel, amount: String(this.priceFor(selA)), method: 0 }, receipt: null }),
+      payOpen: !!S.pay, payForm: !!S.pay && !S.receipt, payDone: !!S.receipt, payTitle: S.receipt ? 'Cobro registrado' : 'Cobrar cita', receipt: S.receipt || {}, name: (window.DA ? window.DA.brand().name : 'Clínica Sonríe'),
+      payAl: selA ? this.alertsFor(selA.p).join(' · ') : '', payAlD: selA && this.alertsFor(selA.p).length ? 'block' : 'none', pay: S.pay || { amount: '' }, payWho: selA ? selA.p + ' · ' + selA.s : '', payBd: S.pay && !(parseFloat(S.pay.amount) > 0) ? '2px solid var(--error-fg)' : '1px solid var(--line)',
+      payMethods: (window.DA ? window.DA.methods : ['Efectivo']).map((t, i) => seg([t], S.pay && S.pay.method === i ? 0 : -1, () => this.setState({ pay: Object.assign({}, S.pay, { method: i }) }))[0]),
+      setAmt: e => this.setState({ pay: Object.assign({}, S.pay, { amount: e.target.value }) }), closePay: () => this.setState({ pay: null, receipt: null }),
+      confirmPay: () => { const amt = parseFloat(String(S.pay.amount).replace(',', '.')); if (!(amt > 0)) return; const a = S.appts.find(x => x.id === S.pay.id); const DA = window.DA; const p = DA.addPayment({ apptId: a.id, patient: a.p, concept: a.s, amount: amt, method: DA.methods[S.pay.method], date: this.dlabel(a.day) + ' ' + this.hm(a.slot) }); this.upd(a.id, { st: 'atendida' }); this.setState({ receipt: { no: p.no, date: p.date, concept: p.concept, patient: p.patient, amount: DA.money(amt), method: p.method } }); },
+      ...this.rsVals(S),
+      doResched: () => { const a = selA; if (a) this.setState({ rs: { id: a.id, date: this.strOf(a.day), time: this.hm(a.slot), doc: a.doc } }); },
+      modal: S.modal, isSeries: series, isSingle: !series, stop: e => e.stopPropagation(),
+      openNew: () => this.setState({ modal: true, mode: 'single', f: Object.assign({}, F, { patient: '', picked: false, isNew: false, date: this.strOf(S.day), time: this.firstFree(S.day, F.doc, F.dur), notes: '' }) }),
+      openSeries: () => this.setState({ modal: true, mode: 'series', f: Object.assign({}, F, { patient: '', picked: false, isNew: false, date: this.strOf(S.day), time: this.firstFree(S.day, F.doc, F.dur), notes: '' }), ser: Object.assign({}, R, { days: [0, 1, 2, 3, 4, 5, 6].map(i => i === this.dt(S.day).getDay()) }) }),
+      closeModal: () => this.setState({ modal: false }),
+      modes: seg(['Cita única', 'En serie'], series ? 1 : 0, i => this.setState({ mode: i ? 'series' : 'single' })),
+      f: F, dateLbl: series ? 'Primera fecha' : 'Fecha',
+      setPatient: e => this.setF({ patient: e.target.value, picked: false, isNew: false }),
+      showSugg: !!q && !F.picked, sugg,
+      svcOpts: this.SV.map((s, i) => ({ v: i, t: s[0] + ' · ' + s[1] * 15 + ' min' })), docOpts: this.DOCS.map((d, i) => ({ v: i, t: d })),
+      setSvc: e => { const i = +e.target.value; this.setF({ svc: i, dur: this.SV[i][1] }); },
+      setDoc: e => this.setF({ doc: +e.target.value }), setDate: e => this.setF({ date: e.target.value }), setTime: e => this.setF({ time: e.target.value }), setNotes: e => this.setF({ notes: e.target.value }),
+      durs: seg(durs.map(n => n * 15 + ' min'), durs.indexOf(F.dur), i => this.setF({ dur: durs[i] })),
+      freqs: seg(['Semanal', 'Cada 2 semanas', 'Mensual'], ['weekly', 'biweekly', 'monthly'].indexOf(R.freq), i => this.setS({ freq: ['weekly', 'biweekly', 'monthly'][i] })), showDays: R.freq !== 'monthly',
+      dayTog: ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((t, i) => { const wd = [1, 2, 3, 4, 5, 6, 0][i], on = R.days[wd]; return { t, pick: () => this.setS({ days: R.days.map((v, k) => k === wd ? !v : v) }), bg: on ? 'var(--grad-btn)' : 'var(--surface)', fg: on ? '#fff' : 'var(--ink-900)', sh: on ? 'none' : 'inset 0 0 0 1px var(--line)' }; }),
+      ends: seg(['Tras N citas', 'En una fecha'], R.endMode === 'count' ? 0 : 1, i => this.setS({ endMode: i ? 'date' : 'count' })), showCount: R.endMode === 'count' ? 'block' : 'none', showUntil: R.endMode === 'date' ? 'block' : 'none',
+      ser: R, setCount: e => this.setS({ count: e.target.value }), setUntil: e => this.setS({ until: e.target.value }),
+      clashOpts: seg(['Omitir esa fecha', 'Mover al siguiente hueco'], R.onClash === 'skip' ? 0 : 1, i => this.setS({ onClash: i ? 'move' : 'skip' })),
+      av, freeChips: free.slice(0, 12).map(s => ({ t: this.hm(s), pick: () => this.setF({ time: this.hm(s) }), bg: s === slot ? 'var(--grad-btn)' : 'var(--surface)', fg: s === slot ? '#fff' : 'var(--ink-900)', sh: s === slot ? 'none' : 'inset 0 0 0 1px var(--line)' })), noFree: free.length === 0,
+      preview: gen.map(x => ({ d: this.dlabel(x.day), tm: this.hm(x.slot), m: x.note || 'Libre', c: x.status === 'skip' ? 'var(--error-fg)' : x.status === 'moved' ? 'var(--warning-fg)' : 'var(--ink-500)', s: x.status === 'ok' ? 'OK' : x.status === 'moved' ? 'Movida' : 'Omitida', bg: x.status === 'ok' ? 'var(--success-bg)' : x.status === 'moved' ? 'var(--warning-bg)' : 'var(--error-bg)', fg: x.status === 'ok' ? 'var(--success-fg)' : x.status === 'moved' ? 'var(--warning-fg)' : 'var(--error-fg)' })),
+      noPreview: series && gen.length === 0, prevSummary: gen.length ? okN + ' de ' + gen.length + ' fechas disponibles' : '',
+      blockMsg: err, ctaBg: err ? 'var(--muted)' : 'var(--grad-btn)', ctaFg: err ? 'var(--ink-300)' : '#fff',
+      createLabel: series ? 'Crear ' + (okN || '') + ' citas' : 'Crear cita', create: this.create,
+      theme: dk ? 'dark' : 'light', themeLbl: dk ? 'Modo claro' : 'Modo oscuro', toggleTheme: () => { window.DA && window.DA.setTheme(dk ? 'light' : 'dark'); this.setState(s => ({ tick: s.tick + 1 })); },
+      resetData: () => { try { localStorage.removeItem('da-agenda-v1'); } catch (e) {} this.setState({ appts: this.SEED, sel: null, nid: 100 }); this.flash('Datos restablecidos'); },
+      toast: S.toast, undoShow: S.undoIds || S.undoC ? 'block' : 'none',
+      undo: () => { if (S.undoC) { this.upd(S.undoC.id, { st: S.undoC.prev }); this.setState({ toast: '', undoC: null }); return; } const ids = S.undoIds || []; this.setState(s => ({ appts: s.appts.filter(a => !ids.includes(a.id)), sel: null, toast: '', undoIds: null })); }
+    };
+  }
+}
+</script>
+</body>
+</html>

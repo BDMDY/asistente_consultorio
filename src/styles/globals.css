@@ -1,0 +1,19 @@
+@import "./tokens.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { background: var(--bone); }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bone);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--brand-700); text-decoration: none; }
+a:hover { color: var(--brand-800); }
+input, select, textarea, button { font-family: inherit; }
+@keyframes da-sk { 0%, 100% { opacity: 1 } 50% { opacity: .45 } }
+.da-skeleton { animation: da-sk 1.4s infinite; }
+@media (prefers-reduced-motion: reduce) { .da-skeleton { animation: none; } }
