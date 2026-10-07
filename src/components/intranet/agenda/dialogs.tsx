@@ -84,7 +84,7 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
               </button>
             ))}
             {!exact && (
-              <button type="button" onClick={() => patch({ picked: true, isNew: true })} style={{ cursor: "pointer", display: "block", width: "100%", textAlign: "left", padding: "11px 14px", fontSize: 14, fontWeight: 700, color: "var(--brand-700)", border: 0, borderTop: "1px solid var(--line)", background: "transparent", fontFamily: "inherit" }}>
+              <button type="button" onClick={() => patch({ picked: true, isNew: true })} style={{ cursor: "pointer", display: "block", width: "100%", textAlign: "left", padding: "11px 14px", fontSize: 14, fontWeight: 700, color: "var(--brand-text)", border: 0, borderTop: "1px solid var(--line)", background: "transparent", fontFamily: "inherit" }}>
                 + Crear paciente nuevo «{f.patient.trim()}»
               </button>
             )}

@@ -92,7 +92,7 @@ export function Odontograma({ p, onSaved }: { p: Patient; onSaved: () => void })
         <div className={s.g2} style={{ gap: "4px 16px" }}>
           {(Object.keys(ODO_SURF_NAME) as Surface[]).map((k) => (
             <div key={k} style={{ display: "flex", gap: 8, alignItems: "baseline", fontSize: 12, lineHeight: 1.35 }}>
-              <b style={{ minWidth: 16, fontSize: 13, color: "var(--brand-700)" }}>{k}</b><span><b>{ODO_SURF_NAME[k]}</b> · {ODO_SURF_HINT[k]}</span>
+              <b style={{ minWidth: 16, fontSize: 13, color: "var(--brand-text)" }}>{k}</b><span><b>{ODO_SURF_NAME[k]}</b> · {ODO_SURF_HINT[k]}</span>
             </div>
           ))}
         </div>

@@ -11,7 +11,7 @@ export default function MapEmbed({ address, title = "Mapa de la clínica" }: { a
         href={`https://www.google.com/maps/search/?api=1&query=${q}`}
         target="_blank"
         rel="noopener noreferrer"
-        style={{ position: "absolute", right: 10, bottom: 10, padding: "8px 12px", borderRadius: 10, background: "var(--surface)", color: "var(--brand-700)", fontWeight: 700, fontSize: 13, boxShadow: "var(--shadow-md)" }}
+        style={{ position: "absolute", right: 10, bottom: 10, padding: "8px 12px", borderRadius: 10, background: "var(--surface)", color: "var(--brand-text)", fontWeight: 700, fontSize: 13, boxShadow: "var(--shadow-md)" }}
       >
         Abrir en Google Maps
       </a>

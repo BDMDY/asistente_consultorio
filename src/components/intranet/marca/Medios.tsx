@@ -11,7 +11,7 @@ export default function Medios() {
       <div className={s.editor}>
         <div style={{ padding: "24px 24px 12px" }}>
           <Link href="/intranet/modulos/configuracion" style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 36, fontWeight: 700, fontSize: 14 }}><Icon name="arrow-left" size={16} />Configuración</Link>
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".1em", color: "var(--brand-700)", marginTop: 6 }}>MEDIOS DEL SITIO</div>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".1em", color: "var(--brand-text)", marginTop: 6 }}>MEDIOS DEL SITIO</div>
           <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-.02em" }}>Logo y fotos</div>
           <div style={{ fontSize: 13, color: "var(--ink-500)" }}>PNG, JPG, WebP o SVG · máx. 2 MB. Agrega los doctores, espacios y casos que necesites. Los cambios se guardan al instante.</div>
         </div>

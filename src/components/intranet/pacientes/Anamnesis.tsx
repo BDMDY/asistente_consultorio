@@ -88,7 +88,7 @@ export function Anamnesis({ p, onGoPlan }: { p: Patient; onGoPlan: () => void })
           <span className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{pct}% completa · se guarda sola y puedes seguir actualizándola en cada visita{a.at ? " · guardado" : ""}</span>
           {missing && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--warning-fg)" }}>{missing}</span>}
           <div style={{ display: "flex", gap: 6, overflow: "auto", paddingTop: 4 }}>
-            {NAV.map(([t, id]) => <button key={id} type="button" onClick={() => jump(id)} style={{ cursor: "pointer", whiteSpace: "nowrap", minHeight: 36, display: "flex", alignItems: "center", padding: "0 12px", borderRadius: 999, background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--brand-200)", fontSize: 12, fontWeight: 700, color: "var(--brand-700)", border: 0, fontFamily: "inherit" }}>{t}</button>)}
+            {NAV.map(([t, id]) => <button key={id} type="button" onClick={() => jump(id)} style={{ cursor: "pointer", whiteSpace: "nowrap", minHeight: 36, display: "flex", alignItems: "center", padding: "0 12px", borderRadius: 999, background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--brand-200)", fontSize: 12, fontWeight: 700, color: "var(--brand-text)", border: 0, fontFamily: "inherit" }}>{t}</button>)}
           </div>
         </div>
         <button type="button" onClick={complete} style={{ cursor: "pointer", minHeight: 44, display: "flex", alignItems: "center", padding: "0 18px", borderRadius: 12, fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit",
@@ -149,7 +149,7 @@ export function Anamnesis({ p, onGoPlan }: { p: Patient; onGoPlan: () => void })
           {TXT_CIERRE.map(text)}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" onClick={onGoPlan} style={{ cursor: "pointer", minHeight: 44, display: "flex", alignItems: "center", padding: "0 16px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>Crear plan de tratamiento</button>
-            <Link href={`/intranet/agenda?nueva=${encodeURIComponent(p.name)}`} style={{ minHeight: 44, display: "flex", alignItems: "center", padding: "0 16px", borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-700)", fontWeight: 700, fontSize: 14 }}>Agendar siguiente cita</Link>
+            <Link href={`/intranet/agenda?nueva=${encodeURIComponent(p.name)}`} style={{ minHeight: 44, display: "flex", alignItems: "center", padding: "0 16px", borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", fontWeight: 700, fontSize: 14 }}>Agendar siguiente cita</Link>
           </div>
         </>)}
     </>

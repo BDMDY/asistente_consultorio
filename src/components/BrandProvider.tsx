@@ -1,6 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { useBrand } from "@/lib/brand";
+import { useMedia } from "@/lib/media";
 import { themeStore } from "@/lib/theme";
 
 /**
@@ -10,10 +11,24 @@ import { themeStore } from "@/lib/theme";
 export default function BrandProvider() {
   const brand = useBrand();
   const [theme] = themeStore.useStore();
+  const { img } = useMedia();
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  // Favicon de la empresa (si subió uno); si no, queda el predeterminado.
+  useEffect(() => {
+    if (!img.favicon) return;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"][data-da]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      link.dataset.da = "1";
+      document.head.appendChild(link);
+    }
+    link.href = img.favicon;
+  }, [img.favicon]);
 
   const keepInDark = ["--brand-50", "--brand-100", "--brand-800"];
   let light = `--font-sans:${brand.body};--font-display:${brand.head};`;

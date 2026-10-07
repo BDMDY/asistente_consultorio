@@ -25,7 +25,7 @@ export default function Privacidad() {
       </div>
       <main style={{ maxWidth: 760, margin: "0 auto", padding: "48px 24px 72px", display: "flex", flexDirection: "column", gap: 26 }}>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".1em", color: "var(--brand-700)" }}>LEY N.° 29733 · PROTECCIÓN DE DATOS PERSONALES</div>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".1em", color: "var(--brand-text)" }}>LEY N.° 29733 · PROTECCIÓN DE DATOS PERSONALES</div>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: 40, lineHeight: 1.1, letterSpacing: "-.02em", margin: "8px 0 6px" }}>Aviso de privacidad</h1>
           <div style={{ color: "var(--ink-500)", fontSize: 14 }}>Última actualización: 6 de octubre de 2026</div>
         </div>

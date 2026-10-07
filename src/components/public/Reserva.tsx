@@ -137,7 +137,7 @@ export default function Reserva() {
           <>
             {services.map((o) => (
               <button key={o.id} type="button" style={choiceStyle(d.svcId === o.id)} onClick={() => patch({ svcId: o.id, slot: null })}>
-                <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={ICONS[media.services.indexOf(o) % 5]} /></span>
+                <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--brand-50)", color: "var(--brand-text)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={ICONS[media.services.indexOf(o) % 5]} /></span>
                 <span style={{ flex: 1 }}>
                   <b>{o.name}</b>
                   <span className="tnum" style={{ display: "block", fontSize: 12, color: "var(--ink-500)" }}>{o.price ? `Desde S/ ${o.price} · ` : ""}{serviceSlots(o, media.services.indexOf(o)) * 15} min</span>
@@ -224,7 +224,7 @@ export default function Reserva() {
             </div>
             {d.doc === "any" && <div style={{ fontSize: 13, color: "var(--ink-500)", textAlign: "center" }}>Como no elegiste doctor, te asignamos a {bookedDoc?.name}.</div>}
             <Link href={`/mi-cita/${booked.id}`} style={{ minHeight: 50, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>Ver mi cita</Link>
-            <button type="button" onClick={reset} style={{ cursor: "pointer", minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-700)", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: 0, fontSize: 16 }}>Reservar otra cita</button>
+            <button type="button" onClick={reset} style={{ cursor: "pointer", minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: 0, fontSize: 16 }}>Reservar otra cita</button>
           </>
         )}
       </div>

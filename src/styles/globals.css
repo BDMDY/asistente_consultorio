@@ -11,7 +11,7 @@ body {
   color: var(--ink-900);
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--brand-700); text-decoration: none; }
+a { color: var(--brand-text); text-decoration: none; }
 a:hover { color: var(--brand-800); }
 input, select, textarea, button { font-family: inherit; }
 @keyframes da-sk { 0%, 100% { opacity: 1 } 50% { opacity: .45 } }

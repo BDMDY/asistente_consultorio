@@ -19,6 +19,25 @@ Sistema web (PWA) para organizar consultorios de **ortodoncia / odontología** y
 
 ---
 
+## Estado de implementación (modo demo)
+
+Todo el diseño de Claude Design está implementado en Next.js (rama `claude/magical-dijkstra-g5o3bs`), con los datos en el navegador (`localStorage`) detrás de una capa de datos pensada para cambiar a Supabase sin tocar las pantallas.
+
+| Área | Estado |
+|---|---|
+| Sitio público: landing, reserva en 5 pasos, "Mi cita", privacidad, banner de consentimiento | Hecho |
+| Intranet: acceso y recuperación, navegación, inicio, permisos por rol | Hecho |
+| Agenda: grilla por doctor, arrastrar/teclado, series con vista previa, reprogramar, cobrar, cancelar con deshacer | Hecho |
+| Pacientes: historia clínica, historia inicial (formato del consultorio), odontograma, plan, archivos, pagos | Hecho |
+| Módulos: planes, inventario, finanzas, servicios, campañas, reportes, configuración | Hecho |
+| Marca y medios white-label (color libre AA, tipografía, logos, fotos, vista previa en vivo) | Hecho |
+| Móvil y modo oscuro | Hecho (diseño responsivo, mismas pantallas) |
+| Supabase: esquema, RLS, autenticación, almacenamiento de archivos | Pendiente |
+| WhatsApp (envío real), mapas (geocodificación), facturación electrónica, pagos en línea | Pendiente (APIs). Hoy los avisos quedan en una cola de salida (`outbox`) |
+| Índice, Dirección visual y Componentes del handoff | No van en la app (son para el equipo y el cliente); quedan en `design/prototipo/` |
+
+---
+
 ## 1. Visión
 
 Un solo lugar donde el consultorio:

@@ -13,7 +13,7 @@ type View = "login" | "recover" | "sent";
 
 const input = (border = "1px solid var(--line)"): React.CSSProperties => ({ height: 48, borderRadius: 12, padding: "0 14px", fontSize: 15, background: "var(--surface)", border, color: "inherit", width: "100%", boxSizing: "border-box" });
 const primary: React.CSSProperties = { cursor: "pointer", height: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: 0, fontSize: 15, width: "100%" };
-const link: React.CSSProperties = { cursor: "pointer", fontWeight: 600, color: "var(--brand-700)", background: "transparent", border: 0, padding: 0, minHeight: 24, fontSize: 14 };
+const link: React.CSSProperties = { cursor: "pointer", fontWeight: 600, color: "var(--brand-text)", background: "transparent", border: 0, padding: 0, minHeight: 24, fontSize: 14 };
 const h1: React.CSSProperties = { fontSize: 32, fontWeight: 800, letterSpacing: "-.02em", margin: 0 };
 
 export default function Login() {
@@ -103,7 +103,7 @@ export default function Login() {
           </div>
         )}
       </div>
-      <div className="da-login-art" aria-hidden="true" style={{ margin: 24, borderRadius: 24, background: "repeating-linear-gradient(135deg,var(--brand-100) 0 14px,var(--brand-50) 14px 28px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-700)", fontWeight: 600, fontSize: 14 }}>foto / ilustración de marca</div>
+      <div className="da-login-art" aria-hidden="true" style={{ margin: 24, borderRadius: 24, background: "repeating-linear-gradient(135deg,var(--brand-100) 0 14px,var(--brand-50) 14px 28px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-text)", fontWeight: 600, fontSize: 14 }}>foto / ilustración de marca</div>
       <Toaster />
     </div>
   );

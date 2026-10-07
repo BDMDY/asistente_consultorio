@@ -81,7 +81,7 @@ export default function Landing() {
                 <span className={s.svcIcon}><Icon name={SERVICE_ICONS[i % 5]} size={24} /></span>
                 <b style={{ fontSize: 18 }}>{sv.name}</b>
                 <span style={{ fontSize: 14, lineHeight: 1.5, color: "var(--ink-500)" }}>{sv.desc}</span>
-                {sv.price && <span className="tnum" style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-700)" }}>Desde S/ {sv.price}</span>}
+                {sv.price && <span className="tnum" style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-text)" }}>Desde S/ {sv.price}</span>}
               </div>
             ))}
           </div>
@@ -140,7 +140,7 @@ export default function Landing() {
                       <span className={s.caseTag} style={{ color: "var(--ink-500)" }}>ANTES</span>
                     </div>
                     <div className={s.caseImg} style={{ background: "var(--brand-50)", ...bg(c.after) }}>
-                      <span className={s.caseTag} style={{ color: "var(--brand-700)" }}>DESPUÉS</span>
+                      <span className={s.caseTag} style={{ color: "var(--brand-text)" }}>DESPUÉS</span>
                     </div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, marginTop: 10 }}>{c.label}</div>

@@ -13,7 +13,7 @@
 .area { border-radius: 10px; border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; background: var(--surface); color: inherit; width: 100%; box-sizing: border-box; resize: vertical; line-height: 1.45; font-family: inherit; }
 .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; overflow: auto; position: sticky; top: -22px; z-index: 3; background: var(--surface); flex-shrink: 0; margin-top: -4px; padding-top: 4px; }
 .tab { cursor: pointer; white-space: nowrap; padding: 10px 0; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--ink-500); font: inherit; }
-.tab[aria-selected="true"] { border-bottom-color: var(--brand-500); color: var(--brand-700); }
+.tab[aria-selected="true"] { border-bottom-color: var(--brand-500); color: var(--brand-text); }
 .back { display: none; }
 .yn { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .ynQ { flex: 1 1 220px; line-height: 1.35; }
@@ -37,5 +37,5 @@
   .grid { grid-template-columns: minmax(0, 1fr); }
   .detail { padding: 14px; }
   .tabs { top: 34px; }
-  .back { display: flex; position: sticky; top: -14px; z-index: 4; background: var(--surface); margin: -14px -14px 0; padding: 0 14px; border-bottom: 1px solid var(--line); cursor: pointer; align-items: center; gap: 6px; min-height: 48px; font-weight: 700; font-size: 14px; color: var(--brand-700); flex-shrink: 0; border-top: 0; border-left: 0; border-right: 0; font-family: inherit; text-align: left; width: calc(100% + 28px); }
+  .back { display: flex; position: sticky; top: -14px; z-index: 4; background: var(--surface); margin: -14px -14px 0; padding: 0 14px; border-bottom: 1px solid var(--line); cursor: pointer; align-items: center; gap: 6px; min-height: 48px; font-weight: 700; font-size: 14px; color: var(--brand-text); flex-shrink: 0; border-top: 0; border-left: 0; border-right: 0; font-family: inherit; text-align: left; width: calc(100% + 28px); }
 }

@@ -28,7 +28,7 @@ function Pick({ src, label, w, h, round, icon, fit = "cover", logoMode, onPick, 
     toast("Imagen cargada");
   }
   return (
-    <label aria-label={label} title={label} style={{ cursor: "pointer", width: w ?? "100%", height: h, flexShrink: 0, borderRadius: round ? "50%" : 10, border: src ? "1.5px solid var(--brand-200)" : "1.5px dashed var(--brand-300)", background: bg, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-700)", backgroundImage: src ? `url("${src}")` : undefined, backgroundSize: fit, backgroundRepeat: "no-repeat", backgroundPosition: "center" }}>
+    <label aria-label={label} title={label} style={{ cursor: "pointer", width: w ?? "100%", height: h, flexShrink: 0, borderRadius: round ? "50%" : 10, border: src ? "1.5px solid var(--brand-200)" : "1.5px dashed var(--brand-300)", background: bg, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-text)", backgroundImage: src ? `url("${src}")` : undefined, backgroundSize: fit, backgroundRepeat: "no-repeat", backgroundPosition: "center" }}>
       <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onFile} style={{ display: "none" }} />
       {!src && <Icon name={icon} />}
     </label>
@@ -147,7 +147,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
           {m.cases.map((d) => (
             <div key={d.id} style={row}>
               <div style={{ position: "relative" }}><Pick src={d.before} label="Foto antes" w={64} h={56} icon="image" bg="var(--muted)" onPick={(u) => setItem("cases", d.id, { before: u })} />{!d.before && <small style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontSize: 11, fontWeight: 700, color: "var(--ink-500)" }}>ANTES</small>}</div>
-              <div style={{ position: "relative" }}><Pick src={d.after} label="Foto después" w={64} h={56} icon="image" onPick={(u) => setItem("cases", d.id, { after: u })} />{!d.after && <small style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontSize: 11, fontWeight: 700, color: "var(--brand-700)" }}>DESPUÉS</small>}</div>
+              <div style={{ position: "relative" }}><Pick src={d.after} label="Foto después" w={64} h={56} icon="image" onPick={(u) => setItem("cases", d.id, { after: u })} />{!d.after && <small style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", fontSize: 11, fontWeight: 700, color: "var(--brand-text)" }}>DESPUÉS</small>}</div>
               <input aria-label="Tratamiento (ej. Ortodoncia 14 meses)" value={d.label} onChange={(e) => setItem("cases", d.id, { label: e.target.value })} placeholder="Tratamiento (ej. Ortodoncia 14 meses)" style={{ ...inp, flex: 1, height: 34, padding: "0 10px" }} />
               {trash(() => delItem("cases", d.id), "Quitar caso")}
             </div>

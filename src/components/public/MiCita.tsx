@@ -11,6 +11,7 @@ import { addDays, dayOfMonth, diffDays, limaMinutesNow, weekday, WEEKDAYS_SHORT 
 import { useToday } from "@/lib/hooks";
 import { buildIcs, icsHref } from "@/lib/ics";
 import { doctorsOf, useMedia } from "@/lib/media";
+import { useMediaQuery } from "@/lib/media-query";
 
 const STATUS_NAME: Record<Appt["st"], string> = {
   pendiente: "Pendiente de confirmar",
@@ -30,6 +31,7 @@ const chip = (on: boolean, extra: React.CSSProperties = {}): React.CSSProperties
 export default function MiCita({ id }: { id: number }) {
   const brand = useBrand();
   const media = useMedia();
+  const wide = useMediaQuery("(min-width: 900px)");
   const [{ appts }] = agendaStore.useStore();
   const docs = doctorsOf(media);
   const [ready, setReady] = useState(false);
@@ -58,8 +60,8 @@ export default function MiCita({ id }: { id: number }) {
   const days = today ? Array.from({ length: 12 }, (_, i) => addDays(today, i)).filter((d) => !isClosedDay(d)) : [];
 
   const shell = (children: React.ReactNode) => (
-    <div style={{ maxWidth: 460, margin: "0 auto", minHeight: "100vh", background: "var(--grad-hero)", display: "flex", flexDirection: "column", position: "relative" }}>
-      <div style={{ padding: "14px 20px", background: "var(--surface)", borderBottom: "1px solid var(--line)", display: "flex", gap: 8, alignItems: "center" }}>
+    <div style={{ maxWidth: wide ? undefined : 460, margin: "0 auto", minHeight: "100vh", background: "var(--grad-hero)", display: "flex", flexDirection: "column", position: "relative" }}>
+      <div style={{ padding: wide ? "18px 72px" : "14px 20px", background: "var(--surface)", borderBottom: "1px solid var(--line)", display: "flex", gap: 8, alignItems: "center" }}>
         <Link href="/" style={{ flex: 1, color: "inherit" }} aria-label="Ir al sitio"><BrandMark size="sm" /></Link>
         <ThemeToggle style={{ margin: "-6px -10px -6px 0" }} />
       </div>
@@ -81,7 +83,7 @@ export default function MiCita({ id }: { id: number }) {
   if (!a) {
     return shell(
       <div style={{ padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-        <span style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar-x" /></span>
+        <span style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-text)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar-x" /></span>
         <b style={{ fontSize: 20 }}>No encontramos tu cita</b>
         <span style={{ color: "var(--ink-500)", fontSize: 14, lineHeight: 1.5 }}>El enlace puede estar incompleto o la cita fue eliminada. Escríbenos por WhatsApp y te ayudamos.</span>
         <a href={brand.waLink} style={{ marginTop: 6, minHeight: 48, padding: "0 20px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center" }}>Escribir por WhatsApp</a>
@@ -103,10 +105,40 @@ export default function MiCita({ id }: { id: number }) {
 
   return shell(
     <>
+      {wide ? (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ width: 880, maxWidth: "100%", background: "var(--surface)", borderRadius: 20, boxShadow: "var(--shadow-lg)", display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
+            <div style={{ background: "var(--brand-900)", color: "#fff", padding: 36, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
+              <span style={{ alignSelf: "flex-start", padding: "4px 10px", borderRadius: 999, background: `var(--st-${a.st}-bg)`, color: `var(--st-${a.st}-fg)`, fontSize: 12, fontWeight: 700 }}>{STATUS_NAME[a.st]}</span>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 56, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-.02em", marginTop: 10 }}>{count}</div>
+              <div className="tnum" style={{ color: "var(--brand-200)", fontSize: 17 }}>{apptWhenLong(a)}</div>
+            </div>
+            <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 14 }}>
+              <b style={{ fontSize: 20 }}>Tu cita</b>
+              {past && <div role="alert" style={{ padding: "12px 14px", borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14, lineHeight: 1.4 }}>Este enlace ya venció porque la fecha de la cita pasó. Puedes reservar una nueva.</div>}
+              {rows.map(([t, i]) => (
+                <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", fontSize: 15 }}><Icon name={i} style={{ color: "var(--brand-600)" }} />{t}</div>
+              ))}
+              {canAct && (
+                <>
+                  <div style={{ height: 6 }} />
+                  {canConfirm && <button type="button" onClick={() => { patchAppt(a.id, { st: "confirmada" }); setToast("¡Asistencia confirmada!"); }} style={{ ...btn, minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff" }}>Confirmar asistencia</button>}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <button type="button" onClick={() => { setRs({ date: null, slot: null, doc: null }); setSheet("resched"); }} style={{ ...btn, minHeight: 48, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", background: "var(--surface)" }}>Reprogramar</button>
+                    <button type="button" onClick={() => setSheet("cancel")} style={{ ...btn, minHeight: 48, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)", color: "var(--error-fg)", background: "var(--surface)" }}>Cancelar</button>
+                  </div>
+                  <a href={ics} download="cita-dentassist.ics" style={{ ...btn, minHeight: 44, color: "var(--brand-text)", textDecoration: "none", fontSize: 14 }}><Icon name="calendar-plus" />Agregar al calendario</a>
+                </>
+              )}
+              {canRebook && <Link href="/reserva" style={{ minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>Reservar una nueva cita</Link>}
+            </div>
+          </div>
+        </div>
+      ) : (
       <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
         <div style={{ borderRadius: 18, padding: 20, boxShadow: "inset 0 0 0 1px var(--brand-100)", display: "flex", flexDirection: "column", gap: 6, background: "var(--grad-hero)" }}>
           <span style={{ alignSelf: "flex-start", padding: "4px 10px", borderRadius: 999, background: `var(--st-${a.st}-bg)`, color: `var(--st-${a.st}-fg)`, fontSize: 12, fontWeight: 700 }}>{STATUS_NAME[a.st]}</span>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-.02em", color: "var(--brand-700)" }}>{count}</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 38, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-.02em", color: "var(--brand-text)" }}>{count}</div>
           <div className="tnum" style={{ color: "var(--ink-500)", fontSize: 15 }}>{apptWhenLong(a)}</div>
         </div>
         {past && <div role="alert" style={{ padding: "12px 14px", borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14, lineHeight: 1.4 }}>Este enlace ya venció porque la fecha de la cita pasó. Puedes reservar una nueva.</div>}
@@ -119,13 +151,14 @@ export default function MiCita({ id }: { id: number }) {
           <>
             <div style={{ flex: 1 }} />
             {canConfirm && <button type="button" onClick={() => { patchAppt(a.id, { st: "confirmada" }); setToast("¡Asistencia confirmada!"); }} style={{ ...btn, minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff" }}>Confirmar asistencia</button>}
-            <a href={ics} download="cita-dentassist.ics" style={{ ...btn, minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-700)", textDecoration: "none" }}><Icon name="calendar-plus" />Agregar al calendario</a>
-            <button type="button" onClick={() => { setRs({ date: null, slot: null, doc: null }); setSheet("resched"); }} style={{ ...btn, minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-700)", background: "var(--surface)" }}>Reprogramar</button>
+            <a href={ics} download="cita-dentassist.ics" style={{ ...btn, minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", textDecoration: "none" }}><Icon name="calendar-plus" />Agregar al calendario</a>
+            <button type="button" onClick={() => { setRs({ date: null, slot: null, doc: null }); setSheet("resched"); }} style={{ ...btn, minHeight: 50, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", background: "var(--surface)" }}>Reprogramar</button>
             <button type="button" onClick={() => setSheet("cancel")} style={{ ...btn, minHeight: 44, color: "var(--error-fg)", background: "transparent" }}>Cancelar cita</button>
           </>
         )}
         {canRebook && <Link href="/reserva" style={{ minHeight: 52, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>Reservar una nueva cita</Link>}
       </div>
+      )}
 
       {sheet && (
         <div onClick={() => setSheet(null)} style={{ position: "fixed", inset: 0, background: "rgba(16,36,27,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>

@@ -13,7 +13,7 @@ import s from "./pac.module.css";
 
 const payLabel = (d: string) => (isISODate(d) ? labelDate(d) : d);
 const primaryBtn: React.CSSProperties = { cursor: "pointer", padding: "12px 16px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" };
-const outlineBtn: React.CSSProperties = { cursor: "pointer", padding: "12px 16px", borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-700)", fontWeight: 700, fontSize: 14, background: "transparent", border: 0, fontFamily: "inherit" };
+const outlineBtn: React.CSSProperties = { cursor: "pointer", padding: "12px 16px", borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", fontWeight: 700, fontSize: 14, background: "transparent", border: 0, fontFamily: "inherit" };
 
 // ───────────── Historia clínica (línea de tiempo) ─────────────
 export function TabHistoria({ p }: { p: Patient }) {
@@ -50,7 +50,7 @@ export function TabHistoria({ p }: { p: Patient }) {
       {timeline.map((t) => (
         <div key={t.ord + t.t} style={{ display: "flex", gap: 14 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={t.icon} size={16} /></span>
+            <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-text)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={t.icon} size={16} /></span>
             <span style={{ flex: 1, width: 2, background: "var(--line)" }} />
           </div>
           <div style={{ paddingBottom: 14 }}>
@@ -140,7 +140,7 @@ export function TabArchivos({ p }: { p: Patient }) {
   }
   return (
     <>
-      <label style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 64, borderRadius: 14, border: "1.5px dashed var(--brand-300)", color: "var(--brand-700)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+      <label style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 64, borderRadius: 14, border: "1.5px dashed var(--brand-300)", color: "var(--brand-text)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
         <input type="file" onChange={onFile} aria-label="Subir archivo" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }} />
         <Icon name="upload" />Subir radiografía, foto o documento
       </label>

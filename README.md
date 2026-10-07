@@ -14,6 +14,7 @@ npm run typecheck && npm run lint && npm test
 
 ## Estructura
 - `src/app/(public)/`: sitio público de la empresa (`/`, `/reserva`, `/mi-cita/[id]`, `/privacidad`).
+- `src/app/intranet/`: acceso del personal (`/intranet`) y aplicación (`inicio`, `agenda`, `pacientes`, `modulos/[mod]`, `marca`, `medios`).
 - `src/components/`: pantallas y componentes.
 - `src/lib/`: dominio (agenda, fechas, marca, medios, pacientes), con pruebas `*.test.ts`.
 - `src/styles/tokens.css`: tokens de diseño (marca 50–950, estados, modo oscuro). `tailwind.preset.cjs` los expone a Tailwind.

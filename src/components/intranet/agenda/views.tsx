@@ -49,7 +49,7 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button type="button" onClick={() => ctx.open({ kind: "new", mode: "series" })} style={{ cursor: "pointer", padding: "13px 16px", borderRadius: 12, background: "var(--surface)", boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-700)", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>Citas en serie</button>
+          <button type="button" onClick={() => ctx.open({ kind: "new", mode: "series" })} style={{ cursor: "pointer", padding: "13px 16px", borderRadius: 12, background: "var(--surface)", boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>Citas en serie</button>
           <button type="button" onClick={() => ctx.open({ kind: "new", mode: "single" })} style={{ cursor: "pointer", padding: "13px 18px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>+ Nueva cita</button>
         </div>
       </div>
@@ -98,7 +98,7 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
         <aside aria-label="Detalle de la cita" style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "var(--shadow-lg)", padding: 22, display: "flex", flexDirection: "column", gap: 14, minHeight: 360, position: "sticky", top: 16 }}>
           {!sel ? (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 8, color: "var(--ink-500)" }}>
-              <span style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="mouse-pointer-click" /></span>
+              <span style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-text)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="mouse-pointer-click" /></span>
               <b style={{ color: "var(--ink-900)" }}>Selecciona una cita</b>
               <span style={{ fontSize: 13 }}>Verás el detalle y las acciones.</span>
             </div>
@@ -152,7 +152,7 @@ export function AgendaMobile({ ctx }: { ctx: AgendaCtx }) {
         ))}
         {list.length === 0 && (
           <div style={{ textAlign: "center", padding: "40px 20px", display: "flex", flexDirection: "column", gap: 8, alignItems: "center", color: "var(--ink-500)" }}>
-            <span style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-700)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar-x" /></span>
+            <span style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--brand-50)", color: "var(--brand-text)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="calendar-x" /></span>
             <b style={{ color: "var(--ink-900)" }}>Sin citas este día</b>
             <span style={{ fontSize: 13 }}>Toca + para agendar.</span>
           </div>

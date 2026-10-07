@@ -15,7 +15,7 @@
 .topTitle { font-size: 17px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tabs { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; grid-template-columns: repeat(3, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
 .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; font-size: 12px; font-weight: 700; color: var(--ink-500) !important; }
-.tab[aria-current="page"] { color: var(--brand-700) !important; }
+.tab[aria-current="page"] { color: var(--brand-text) !important; }
 .backdrop { position: fixed; inset: 0; z-index: 90; background: rgba(16,36,27,.45); }
 .drawer { position: fixed; left: 0; top: 0; bottom: 0; width: 280px; max-width: 86vw; z-index: 91; box-sizing: border-box; background: var(--surface); box-shadow: 0 0 40px rgba(16,36,27,.3); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; overflow: auto; }
 .drawerHead { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; }
