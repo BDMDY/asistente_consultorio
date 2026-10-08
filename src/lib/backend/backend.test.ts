@@ -4,7 +4,7 @@ import type { Appt } from "../agenda";
 import type { Patient } from "../patients";
 import { apptToRow, diffById, flatten, groupByPatient, patientToRow, rowToAppt, rowToPatient, rowToPayment, paymentToRow } from "./rows";
 import { fetchAll, registerSpecs } from "./specs";
-import { defineSpec, getCtx, queueSave, registerStore, setCtx } from "./sync";
+import { defineSpec, getCtx, queueSave, refreshAll, refreshIfStale, registerStore, setCtx } from "./sync";
 
 describe("conversores de filas", () => {
   it("cita ↔ fila conserva los datos y el enlace", () => {
@@ -94,5 +94,20 @@ describe("adaptadores", () => {
     registerStore("t-late", { hydrate: (v) => { value = v as string; }, reset: () => {} });
     await new Promise((r) => setTimeout(r, 20));
     expect(value).toBe("cargado");
+  });
+
+  it("actualiza al entrar a un módulo, sin repetir cargas seguidas", async () => {
+    const { db } = fakeDb();
+    setCtx({ db, clinicId: "c1" });
+    let n = 0;
+    defineSpec<number>("t-stale", { tables: [], load: async () => ++n, save: async () => {} });
+    registerStore("t-stale", { hydrate: () => {}, reset: () => {} });
+    await new Promise((r) => setTimeout(r, 20));
+    await refreshAll();
+    const base = n;
+    await refreshIfStale(60000);
+    expect(n).toBe(base); // recién cargado: no repite
+    await refreshIfStale(0);
+    expect(n).toBe(base + 1);
   });
 });

@@ -6,7 +6,7 @@ import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { agendaStore } from "@/lib/agenda-store";
-import { useAuth } from "@/lib/backend/auth";
+import { refreshData, useAuth } from "@/lib/backend/auth";
 import { useMounted, useToday } from "@/lib/hooks";
 import { initialsOf, modStore, pendingCharges, stockLow } from "@/lib/mod";
 import { MOBILE_TABS, NAV, navTitle } from "@/lib/nav";
@@ -40,6 +40,11 @@ export default function IntranetShell({ children }: { children: React.ReactNode 
     const settled = auth.status === "off" || auth.status === "ready" || auth.status === "anon" || auth.status === "denied";
     if (mounted && settled && !user) router.replace("/intranet");
   }, [mounted, user, router, auth.status]);
+
+  // Cada vez que se entra a un módulo se actualizan los datos desde el servidor (modo remoto).
+  useEffect(() => {
+    if (auth.status === "ready") void refreshData();
+  }, [pathname, auth.status]);
 
   // Los menús se cierran al elegir un enlace y con Escape.
   useEffect(() => {

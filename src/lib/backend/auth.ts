@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { sessionStore } from "../session";
 import { getClient } from "./client";
 import { CLINIC_SLUG, isRemote } from "./config";
-import { loadPublic, refreshAll, resetAll, setCtx, startRealtime, stopRealtime } from "./sync";
+import { loadPublic, refreshAll, refreshIfStale, resetAll, setCtx, startRealtime, stopRealtime } from "./sync";
 import { registerSpecs } from "./specs";
 
 /** loading: comprobando · anon: sin sesión · denied: con cuenta pero sin ficha de personal · ready: datos cargados */
@@ -21,6 +21,8 @@ const subscribe = (cb: () => void) => {
   listeners.add(cb);
   return () => void listeners.delete(cb);
 };
+/** Actualiza los datos de la empresa (se usa al entrar a cada módulo). */
+export const refreshData = () => (isRemote ? refreshIfStale(2000) : Promise.resolve());
 export const getAuth = () => state;
 export const useAuth = () => useSyncExternalStore(subscribe, () => state, () => state);
 
@@ -67,6 +69,10 @@ export function initBackend() {
   started = true;
   registerSpecs();
   const db = getClient();
+  // Al volver a la pestaña se actualiza lo que haya cambiado mientras tanto.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void refreshIfStale(10000);
+  });
   db.auth.onAuthStateChange((event, session) => {
     // No se llama a la base dentro del callback (puede bloquear el cliente de autenticación).
     setTimeout(() => {

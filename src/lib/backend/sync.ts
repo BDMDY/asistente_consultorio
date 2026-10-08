@@ -56,7 +56,14 @@ export async function refresh(name: string): Promise<void> {
   }
 }
 
-export const refreshAll = async () => void (await Promise.all([...stores.keys()].map(refresh)));
+let lastAll = 0;
+export const refreshAll = async () => {
+  lastAll = Date.now();
+  await Promise.all([...stores.keys()].map(refresh));
+};
+
+/** Recarga todo si pasaron al menos `gapMs` desde la última carga completa (al cambiar de módulo o volver a la pestaña). */
+export const refreshIfStale = (gapMs = 2000) => (ctx && Date.now() - lastAll >= gapMs ? refreshAll() : Promise.resolve());
 export const resetAll = () => stores.forEach((s) => s.reset());
 
 /** Encola el guardado de un cambio (en orden por store). Si falla, avisa y vuelve al estado del servidor. */
