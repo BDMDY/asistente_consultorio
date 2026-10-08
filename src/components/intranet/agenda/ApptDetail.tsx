@@ -3,7 +3,7 @@ import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { type Appt, STATUS_LABEL, apptWhenShort, hm } from "@/lib/agenda";
 import { agendaStore, removeAppts } from "@/lib/agenda-store";
-import { balanceFor, confirmAppt } from "@/lib/agenda-actions";
+import { balanceFor, confirmAppt, reactivateAppt } from "@/lib/agenda-actions";
 import { labelShort } from "@/lib/dates";
 import { modStore } from "@/lib/mod";
 import { money } from "@/lib/payments";
@@ -20,6 +20,12 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, 
   const [mod] = modStore.useStore();
   const [sure, setSure] = useState(false);
   const isAdmin = currentUser(session, mod)?.rol === "Administrador";
+
+  function reactivate() {
+    const r = reactivateAppt(a);
+    if ("error" in r) return toast(r.error);
+    toast("Cita reactivada · pendiente de confirmar", r.undo);
+  }
 
   function remove() {
     const copy = a;
@@ -61,6 +67,9 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, 
       </div>
       {a.st !== "cancelada" && a.st !== "atendida" && (
         <button type="button" onClick={onCancel} style={{ cursor: "pointer", background: "transparent", border: 0, textAlign: "center", color: "var(--error-fg)", fontWeight: 700, fontSize: 14, minHeight: 44, fontFamily: "inherit" }}>Cancelar cita</button>
+      )}
+      {isAdmin && a.st === "cancelada" && (
+        <button type="button" onClick={reactivate} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Reactivar cita</button>
       )}
       {isAdmin && (
         sure ? (

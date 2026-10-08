@@ -34,6 +34,14 @@ export function cancelAppt(a: Appt, o: { reason: number; notify: boolean }) {
   return () => patchAppt(a.id, { st: a.st, notes: a.notes });
 }
 
+/** Reactiva una cita cancelada (queda pendiente de confirmar). Devuelve el error si su horario fue ocupado, o un deshacer. */
+export function reactivateAppt(a: Appt): { error: string } | { undo: () => void } {
+  const hit = clash(agendaStore.get().appts, a, a.id);
+  if (hit) return { error: `No se puede reactivar: ese horario lo ocupa ${hit.p} (${hm(hit.slot)}–${hm(hit.slot + hit.dur)})` };
+  patchAppt(a.id, { st: "pendiente" });
+  return { undo: () => patchAppt(a.id, { st: "cancelada" }) };
+}
+
 export function rescheduleAppt(a: Appt, to: { date: string; slot: number; doc: number }) {
   patchAppt(a.id, { ...to, st: "reprogramada" });
   enqueue({ kind: "reprogramacion", channel: "whatsapp", patient: a.p, apptId: a.id, text: `Tu cita se reprogramó para el ${apptWhenShort({ date: to.date, slot: to.slot })}.` });
