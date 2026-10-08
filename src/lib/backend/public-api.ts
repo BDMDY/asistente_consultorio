@@ -3,7 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Appt } from "../agenda";
 import { addAppts, agendaStore } from "../agenda-store";
 import { addDays, todayISO } from "../dates";
-import { ensurePatient } from "../patients";
+import { ensurePatient, patchPatient, patientsStore } from "../patients";
 import { getClient, errText } from "./client";
 import { CLINIC_SLUG, isRemote } from "./config";
 
@@ -37,8 +37,9 @@ export function useBusy(): Appt[] {
   return isRemote ? remote : local.appts;
 }
 
-export interface BookInput { doc: number | null; date: string; slot: number; dur: number; service: string; name: string; dni: string; phone: string }
-export type BookResult = { ok: true; ref: string; doc: number } | { ok: false; taken: boolean; error: string };
+export interface BookInput { doc: number | null; date: string; slot: number; dur: number; service: string; name: string; dni: string; phone: string; email?: string }
+/** `existing`: el DNI ya era paciente de la clínica; `name` es el nombre con el que quedó registrado. */
+export type BookResult = { ok: true; ref: string; doc: number; existing: boolean; name: string } | { ok: false; taken: boolean; error: string };
 
 export async function bookPublic(b: BookInput, doctorIds: number[]): Promise<BookResult> {
   if (!isRemote) {
@@ -46,24 +47,29 @@ export async function bookPublic(b: BookInput, doctorIds: number[]): Promise<Boo
     const free = (d: number) => !fresh.some((x) => x.doc === d && x.date === b.date && x.st !== "cancelada" && b.slot < x.slot + x.dur && x.slot < b.slot + b.dur);
     const doc = b.doc ?? doctorIds.find(free) ?? null;
     if (doc === null || !free(doc)) return { ok: false, taken: true, error: "Ese horario ya fue ocupado" };
-    const [a] = addAppts([{ date: b.date, doc, slot: b.slot, dur: b.dur, p: b.name, s: b.service, st: "pendiente", web: true, dni: b.dni, phone: b.phone }]);
-    ensurePatient({ name: b.name, dni: b.dni, phone: b.phone, web: true });
-    return { ok: true, ref: String(a.id), doc };
+    const known = patientsStore.get().find((p) => p.dni === b.dni);
+    const name = known?.name ?? b.name;
+    const [a] = addAppts([{ date: b.date, doc, slot: b.slot, dur: b.dur, p: name, s: b.service, st: "pendiente", web: true, dni: b.dni, phone: b.phone }]);
+    if (known) {
+      if (b.email && !known.email) patchPatient(known.id, { email: b.email });
+    } else ensurePatient({ name: b.name, dni: b.dni, phone: b.phone, email: b.email, web: true });
+    return { ok: true, ref: String(a.id), doc, existing: !!known, name };
   }
   const { data, error } = await getClient().rpc("public_book", {
-    p_slug: CLINIC_SLUG, p_doctor: b.doc, p_date: b.date, p_slot: b.slot, p_dur: b.dur, p_service: b.service, p_name: b.name, p_dni: b.dni, p_phone: b.phone,
+    p_slug: CLINIC_SLUG, p_doctor: b.doc, p_date: b.date, p_slot: b.slot, p_dur: b.dur, p_service: b.service, p_name: b.name, p_dni: b.dni, p_phone: b.phone, p_email: b.email?.trim() || null,
   });
   if (error) {
     const taken = error.message.includes("slot_taken");
     return { ok: false, taken, error: taken ? "Ese horario ya fue ocupado" : BOOK_ERRORS[error.message] ?? errText(error) };
   }
-  const r = data as { token: string; doctor_id: number };
-  return { ok: true, ref: r.token, doc: r.doctor_id };
+  const r = data as { token: string; doctor_id: number; existing: boolean; patient: string };
+  return { ok: true, ref: r.token, doc: r.doctor_id, existing: r.existing, name: r.patient };
 }
 
 const BOOK_ERRORS: Record<string, string> = {
   too_many_pending: "Ya tienes 3 citas pendientes con este DNI. Confirma o cancela alguna para reservar otra.",
   invalid_dni: "El DNI debe tener 8 dígitos",
+  invalid_email: "Revisa el correo electrónico",
   invalid_phone: "Revisa el número de teléfono",
   invalid_name: "Revisa el nombre",
   invalid_date: "Elige otra fecha",

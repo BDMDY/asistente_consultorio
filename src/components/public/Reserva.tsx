@@ -5,6 +5,7 @@ import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { hm, isClosedDay, isSlotTaken } from "@/lib/agenda";
+import { isEmail } from "@/lib/session";
 import { bookPublic, useBusy } from "@/lib/backend/public-api";
 import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, labelLong, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
@@ -17,9 +18,9 @@ const TITLES = ["Elige un servicio", "¿Con qué doctor?", "Elige día y hora", 
 const LABELS = ["PASO 1 DE 5", "PASO 2 DE 5 · OPCIONAL", "PASO 3 DE 5", "PASO 4 DE 5"];
 
 type DocChoice = "any" | number | null;
-interface Form { name: string; dni: string; phone: string }
+interface Form { name: string; dni: string; phone: string; email?: string }
 interface Draft { step: number; svcId: number | null; doc: DocChoice; date: string | null; slot: number | null; consent: boolean; f: Form }
-const EMPTY: Draft = { step: 0, svcId: null, doc: null, date: null, slot: null, consent: false, f: { name: "", dni: "", phone: "" } };
+const EMPTY: Draft = { step: 0, svcId: null, doc: null, date: null, slot: null, consent: false, f: { name: "", dni: "", phone: "", email: "" } };
 /** Borrador de la reserva: persiste en la sesión del navegador (se pierde al cerrar la pestaña). */
 const draftStore = defineStore<Draft>("da-draft-v1", () => EMPTY, { session: true });
 
@@ -44,7 +45,7 @@ export default function Reserva() {
   const [d] = draftStore.useStore();
   const [tried, setTried] = useState(false);
   const [race, setRace] = useState(false);
-  const [booked, setBooked] = useState<{ ref: string; doc: number } | null>(null);
+  const [booked, setBooked] = useState<{ ref: string; doc: number; existing: boolean; name: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [bookErr, setBookErr] = useState("");
   const today = useToday();
@@ -67,16 +68,17 @@ export default function Reserva() {
     name: d.f.name.trim().length > 4,
     dni: /^\d{8}$/.test(d.f.dni),
     phone: d.f.phone.replace(/\D/g, "").length >= 9,
+    email: !(d.f.email ?? "").trim() || isEmail((d.f.email ?? "").trim()),
   };
   const can = [d.svcId !== null, d.doc !== null, d.slot !== null, true, false][d.step];
-  const formOk = valid.name && valid.dni && valid.phone && d.consent;
+  const formOk = valid.name && valid.dni && valid.phone && valid.email && d.consent;
 
   async function book() {
     if (!d.date || d.slot === null || !svc || d.doc === null || sending) return;
     setSending(true);
     setBookErr("");
     // El servidor valida de nuevo: otra persona pudo reservar mientras se llenaba el formulario.
-    const res = await bookPublic({ doc: d.doc === "any" ? null : d.doc, date: d.date, slot: d.slot, dur, service: svc.name, name: d.f.name.trim(), dni: d.f.dni, phone: d.f.phone }, doctorIds);
+    const res = await bookPublic({ doc: d.doc === "any" ? null : d.doc, date: d.date, slot: d.slot, dur, service: svc.name, name: d.f.name.trim(), dni: d.f.dni, phone: d.f.phone, email: (d.f.email ?? "").trim() || undefined }, doctorIds);
     setSending(false);
     if (!res.ok) {
       if (res.taken) {
@@ -85,7 +87,7 @@ export default function Reserva() {
       } else setBookErr(res.error);
       return;
     }
-    setBooked({ ref: res.ref, doc: res.doc });
+    setBooked({ ref: res.ref, doc: res.doc, existing: res.existing, name: res.name });
     patch({ step: 4 });
   }
 
@@ -202,6 +204,9 @@ export default function Reserva() {
             <label style={{ fontSize: 13, fontWeight: 700, display: "flex", flexDirection: "column", gap: 5 }}>Celular (WhatsApp)
               <input value={d.f.phone} onChange={(e) => patch({ f: { ...d.f, phone: e.target.value } })} inputMode="tel" placeholder="987 654 321" autoComplete="tel" style={input(bd(valid.phone))} />
             </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 14, fontWeight: 600 }}>Correo electrónico <span style={{ fontWeight: 500, color: "var(--ink-500)" }}>(opcional)</span>
+              <input value={d.f.email ?? ""} onChange={(e) => patch({ f: { ...d.f, email: e.target.value } })} type="email" inputMode="email" placeholder="nombre@correo.com" autoComplete="email" style={input(bd(valid.email))} />
+            </label>
             <label style={{ cursor: "pointer", display: "flex", gap: 10, fontSize: 13, color: "var(--ink-500)", alignItems: "flex-start", lineHeight: 1.5 }}>
               <input type="checkbox" checked={d.consent} onChange={() => patch({ consent: !d.consent })} style={{ position: "absolute", opacity: 0, width: 22, height: 22 }} />
               <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: 6, background: d.consent ? "var(--brand-600)" : "transparent", boxShadow: `inset 0 0 0 1.5px ${tried && !d.consent ? "var(--error-fg)" : d.consent ? "var(--brand-600)" : "var(--ink-300)"}`, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -219,6 +224,7 @@ export default function Reserva() {
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, paddingTop: 16 }}>
               <span style={{ width: 76, height: 76, borderRadius: "50%", background: "var(--grad-accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="check" size={40} /></span>
               <b style={{ fontSize: 26 }}>¡Cita reservada!</b>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--brand-text)" }}>{booked.existing ? `¡Qué gusto verte de nuevo, ${booked.name.split(" ")[0]}! Encontramos tu ficha.` : `Te registramos como paciente, ${booked.name.split(" ")[0]}.`}</span>
               <span style={{ fontSize: 14, color: "var(--ink-500)" }}>Te enviaremos el enlace por WhatsApp al {d.f.phone}.</span>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-md)", display: "flex", flexDirection: "column", gap: 10, fontSize: 15 }}>

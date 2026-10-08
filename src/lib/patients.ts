@@ -29,9 +29,9 @@ export const seedPatients = (): Patient[] => [
 export const patientsStore = defineStore<Patient[]>("da-patients-v1", seedPatients, { remote: { name: "patients", empty: () => [] } });
 
 /** Crea el paciente si el DNI no existe todavía. */
-export function ensurePatient(p: Pick<Patient, "name" | "dni" | "phone"> & { web?: boolean }) {
+export function ensurePatient(p: Pick<Patient, "name" | "dni" | "phone"> & { web?: boolean; email?: string }) {
   patientsStore.update((list) =>
-    list.some((x) => x.dni === p.dni) ? list : [...list, { id: newId(), name: p.name, dni: p.dni, phone: p.phone, web: p.web, alerts: [] }],
+    list.some((x) => x.dni === p.dni) ? list : [...list, { id: newId(), name: p.name, dni: p.dni, phone: p.phone, ...(p.email ? { email: p.email } : {}), web: p.web, alerts: [] }],
   );
 }
 
