@@ -1,5 +1,4 @@
 "use client";
-import { newId } from "@/lib/ids";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -13,6 +12,7 @@ import { PAY_METHODS, type PayMethod, addPayment, money } from "@/lib/payments";
 import { toast } from "@/lib/toast";
 import { todayISO } from "@/lib/dates";
 import { Anamnesis } from "./Anamnesis";
+import NewPatientDialog from "./NewPatientDialog";
 import { Odontograma } from "./Odontograma";
 import { TabArchivos, TabDatos, TabHistoria, TabPagos, TabPlan } from "./tabs";
 import s from "./pac.module.css";
@@ -118,7 +118,7 @@ export default function Pacientes() {
         )}
       </div>
 
-      {modal === "new" && <NewPatientDialog sheet={!wide} onClose={() => setModal(null)} onCreated={(id) => { setSelId(id); setView("detail"); setTab("anam"); }} />}
+      {modal === "new" && <NewPatientDialog sheet={!wide} onClose={() => setModal(null)} toastText="Paciente creado · completa la historia inicial" onCreated={(np) => { setSelId(np.id); setView("detail"); setTab("anam"); }} />}
       {modal === "plan" && cur && <PlanDialog p={cur} sheet={!wide} onClose={() => setModal(null)} onCreated={() => setTab("plan")} />}
       {modal === "pay" && cur && <PayDialog p={cur} concept={plans[cur.id]?.name ?? ""} sheet={!wide} onClose={() => setModal(null)} onSaved={() => setTab("pagos")} />}
     </div>
@@ -138,36 +138,6 @@ function Frame({ title, onClose, sheet, children }: { title: string; onClose: ()
   );
 }
 const border = (ok: boolean, tried: boolean) => (tried && !ok ? "2px solid var(--error-fg)" : "1px solid var(--line)");
-
-function NewPatientDialog({ sheet, onClose, onCreated }: { sheet: boolean; onClose: () => void; onCreated: (id: number) => void }) {
-  const [f, setF] = useState({ name: "", dni: "", phone: "", alerts: "" });
-  const [tried, setTried] = useState(false);
-  const v = { name: f.name.trim().length > 4, dni: /^\d{8}$/.test(f.dni), phone: f.phone.replace(/\D/g, "").length >= 9 };
-  function save() {
-    if (!(v.name && v.dni && v.phone)) return setTried(true);
-    if (patientsStore.get().some((p) => p.dni === f.dni)) return toast("Ya existe un paciente con ese DNI");
-    const np: Patient = { id: newId(), name: f.name.trim(), dni: f.dni, phone: f.phone, alerts: f.alerts.split(",").map((x) => x.trim()).filter(Boolean) };
-    patientsStore.update((l) => [...l, np]);
-    onCreated(np.id);
-    onClose();
-    toast("Paciente creado · completa la historia inicial");
-  }
-  const input = (ok: boolean): React.CSSProperties => ({ ...fieldStyle, height: 46, fontSize: 15, border: border(ok, tried) });
-  return (
-    <Frame title="Nuevo paciente" onClose={onClose} sheet={sheet}>
-      <label style={labelStyle}>Nombre completo<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} style={input(v.name)} /></label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <label style={labelStyle}>DNI<input value={f.dni} inputMode="numeric" onChange={(e) => setF({ ...f, dni: e.target.value.replace(/\D/g, "").slice(0, 8) })} style={input(v.dni)} /></label>
-        <label style={labelStyle}>Celular<input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} style={input(v.phone)} /></label>
-      </div>
-      <label style={labelStyle}>Alertas médicas (separadas por coma)<input value={f.alerts} placeholder="Ej. Alergia a la penicilina, Diabetes" onChange={(e) => setF({ ...f, alerts: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-        <button type="button" onClick={onClose} style={btnOutline}>Cancelar</button>
-        <button type="button" onClick={save} style={btnPrimary()}>Guardar paciente</button>
-      </div>
-    </Frame>
-  );
-}
 
 function PlanDialog({ p, sheet, onClose, onCreated }: { p: Patient; sheet: boolean; onClose: () => void; onCreated: () => void }) {
   const [f, setF] = useState({ name: "", total: "12", price: "" });

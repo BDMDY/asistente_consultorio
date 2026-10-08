@@ -8,6 +8,7 @@ import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { type Doctor, activeServices, serviceSlots, useMedia } from "@/lib/media";
 import { PAY_METHODS, type PayMethod, type Payment, money } from "@/lib/payments";
 import { patientsStore } from "@/lib/patients";
+import NewPatientDialog from "../pacientes/NewPatientDialog";
 import { toast } from "@/lib/toast";
 import { useBrand } from "@/lib/brand";
 
@@ -48,7 +49,9 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
   const series = mode === "series";
   const q = f.patient.trim().toLowerCase();
   const matches = patients.filter((p) => q && (p.name.toLowerCase().includes(q) || p.dni.includes(q))).slice(0, 4);
-  const exact = patients.some((p) => p.name.toLowerCase() === q);
+  const exact = patients.some((p) => p.name.toLowerCase() === q || p.dni === q);
+  const [regOpen, setRegOpen] = useState(false);
+  const asDni = /^\d+$/.test(q);
   const free = freeStarts(appts, f.date, f.doc, f.dur).slice(0, 12);
   const hit = slot !== null ? clash(appts, { date: f.date, doc: f.doc, slot, dur: f.dur }) : null;
   const plan = series && slot !== null ? generateSeries(appts, { date: f.date, slot, doc: f.doc, dur: f.dur }, rule) : [];
@@ -83,12 +86,11 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
                 {p.name}{p.dni && <span className="tnum" style={{ color: "var(--ink-500)", fontWeight: 500 }}> · DNI {p.dni}</span>}
               </button>
             ))}
-            {!exact && /^\d+$/.test(q) && matches.length === 0 && <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--ink-500)", borderTop: "1px solid var(--line)" }}>No hay un paciente con ese DNI. Regístralo primero en Pacientes → Nuevo paciente.</div>}
-            {!exact && !/^\d+$/.test(q) && (
-              <button type="button" onClick={() => patch({ picked: true, isNew: true })} style={{ cursor: "pointer", display: "block", width: "100%", textAlign: "left", padding: "11px 14px", fontSize: 14, fontWeight: 700, color: "var(--brand-text)", border: 0, borderTop: "1px solid var(--line)", background: "transparent", fontFamily: "inherit" }}>
-                + Crear paciente nuevo «{f.patient.trim()}»
+            {!exact && (
+              <button type="button" onClick={() => setRegOpen(true)} style={{ cursor: "pointer", display: "block", width: "100%", textAlign: "left", padding: "11px 14px", fontSize: 14, fontWeight: 700, color: "var(--brand-text)", border: 0, borderTop: "1px solid var(--line)", background: "transparent", fontFamily: "inherit" }}>
+                {asDni && matches.length === 0 ? `No hay un paciente con DNI ${q} · ` : ""}+ Registrar paciente nuevo
               </button>
-            )}
+                        )}
           </div>
         )}
         {f.isNew && <span style={{ display: "inline-block", marginTop: 6, padding: "3px 9px", borderRadius: 999, background: "var(--info-bg)", color: "var(--info-fg)", fontSize: 12, fontWeight: 700 }}>Paciente nuevo · se creará su ficha</span>}
@@ -202,6 +204,16 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
         <button type="button" onClick={onClose} style={btnOutline}>Cancelar</button>
         <button type="button" onClick={create} disabled={!!err} style={btnPrimary(!err)}>{series ? `Crear ${okN || ""} citas` : "Crear cita"}</button>
       </div>
+      {regOpen && (
+        <NewPatientDialog
+          sheet={sheet}
+          z={130}
+          initial={asDni ? { dni: q.slice(0, 8) } : { name: f.patient.trim() }}
+          toastText="Paciente registrado · ya puedes agendar su cita"
+          onClose={() => setRegOpen(false)}
+          onCreated={(np) => patch({ patient: np.name, picked: true, isNew: false })}
+        />
+      )}
     </Modal>
   );
 }

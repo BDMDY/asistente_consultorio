@@ -23,15 +23,23 @@ export function Segmented<T extends string | number>({ options, value, onChange,
   );
 }
 
+const modalStack: object[] = [];
+
 /** Diálogo modal accesible: Escape y clic fuera cierran; devuelve el foco al abrir. */
 export function Modal({ onClose, children, width = 560, label, sheet = false, z = 110 }: { onClose: () => void; children: React.ReactNode; width?: number; label: string; sheet?: boolean; z?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const token = {};
+    modalStack.push(token);
+    // Con diálogos apilados, Escape cierra solo el de encima.
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && modalStack[modalStack.length - 1] === token && onClose();
     window.addEventListener("keydown", onKey);
     ref.current?.querySelector<HTMLElement>("input,select,button")?.focus();
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      modalStack.splice(modalStack.indexOf(token), 1);
+    };
   }, [onClose]);
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: z, background: "rgba(16,36,27,.5)", display: "flex", alignItems: sheet ? "flex-end" : "center", justifyContent: "center", padding: sheet ? 0 : 16 }}>
