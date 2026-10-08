@@ -1,9 +1,13 @@
 "use client";
+import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { type Appt, STATUS_LABEL, apptWhenShort, hm } from "@/lib/agenda";
+import { agendaStore, removeAppts } from "@/lib/agenda-store";
 import { balanceFor, confirmAppt } from "@/lib/agenda-actions";
 import { labelShort } from "@/lib/dates";
+import { modStore } from "@/lib/mod";
 import { money } from "@/lib/payments";
+import { currentUser, sessionStore } from "@/lib/session";
 import { toast } from "@/lib/toast";
 
 /** Contenido del detalle de una cita (panel lateral en escritorio, hoja inferior en móvil). */
@@ -12,6 +16,18 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, 
   onResched: () => void; onPay: () => void; onCancel: () => void; onClose?: () => void; compact?: boolean;
 }) {
   const open = a.st !== "cancelada" && a.st !== "atendida";
+  const [session] = sessionStore.useStore();
+  const [mod] = modStore.useStore();
+  const [sure, setSure] = useState(false);
+  const isAdmin = currentUser(session, mod)?.rol === "Administrador";
+
+  function remove() {
+    const copy = a;
+    removeAppts([a.id]);
+    setSure(false);
+    onClose?.();
+    toast("Cita eliminada", () => agendaStore.update((s) => ({ ...s, appts: [...s.appts, copy] })));
+  }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -45,6 +61,21 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, 
       </div>
       {a.st !== "cancelada" && a.st !== "atendida" && (
         <button type="button" onClick={onCancel} style={{ cursor: "pointer", background: "transparent", border: 0, textAlign: "center", color: "var(--error-fg)", fontWeight: 700, fontSize: 14, minHeight: 44, fontFamily: "inherit" }}>Cancelar cita</button>
+      )}
+      {isAdmin && (
+        sure ? (
+          <div role="alert" style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, borderRadius: 12, background: "var(--error-bg)" }}>
+            <b style={{ fontSize: 13, color: "var(--error-fg)" }}>¿Eliminar esta cita definitivamente? Cancelarla conserva el historial.</b>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button type="button" onClick={() => setSure(false)} style={ghost(false)}>No, volver</button>
+              <button type="button" onClick={remove} style={{ ...ghost(false), background: "var(--error-fg)", color: "#fff", boxShadow: "none" }}>Sí, eliminar</button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" disabled={paid > 0} onClick={() => setSure(true)} title={paid > 0 ? "Tiene cobros registrados: no se puede eliminar" : undefined} style={{ cursor: paid > 0 ? "not-allowed" : "pointer", background: "transparent", border: 0, textAlign: "center", color: paid > 0 ? "var(--ink-300)" : "var(--ink-500)", fontWeight: 600, fontSize: 13, minHeight: 36, fontFamily: "inherit" }}>
+            {paid > 0 ? "No se puede eliminar: tiene cobros" : "Eliminar cita (solo administrador)"}
+          </button>
+        )
       )}
     </div>
   );
