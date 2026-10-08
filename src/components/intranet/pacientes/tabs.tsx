@@ -17,7 +17,7 @@ const primaryBtn: React.CSSProperties = { cursor: "pointer", padding: "12px 16px
 const outlineBtn: React.CSSProperties = { cursor: "pointer", padding: "12px 16px", borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", fontWeight: 700, fontSize: 14, background: "transparent", border: 0, fontFamily: "inherit" };
 
 // ───────────── Historia clínica (línea de tiempo) ─────────────
-export function TabHistoria({ p }: { p: Patient }) {
+export function TabHistoria({ p, autoFocus }: { p: Patient; autoFocus?: boolean }) {
   const [notes] = notesStore.useStore();
   const [payments] = paymentsStore.useStore();
   const [{ appts }] = agendaStore.useStore();
@@ -45,7 +45,7 @@ export function TabHistoria({ p }: { p: Patient }) {
   return (
     <>
       <div style={{ display: "flex", gap: 8 }}>
-        <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} aria-label="Nueva nota clínica" placeholder="Agregar nota clínica (ej. control, indicaciones, dolor)" className={s.input} style={{ height: 44, fontSize: 14, flex: 1 }} />
+        <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} aria-label="Nueva nota clínica" autoFocus={autoFocus} placeholder="Agregar nota clínica (ej. control, indicaciones, dolor)" className={s.input} style={{ height: 44, fontSize: 14, flex: 1 }} />
         <button type="button" disabled={!can} onClick={add} style={{ cursor: can ? "pointer" : "not-allowed", padding: "0 18px", minHeight: 44, display: "flex", alignItems: "center", borderRadius: 12, background: can ? "var(--grad-btn)" : "var(--muted)", color: can ? "#fff" : "var(--ink-300)", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>Agregar</button>
       </div>
       {timeline.map((t) => (

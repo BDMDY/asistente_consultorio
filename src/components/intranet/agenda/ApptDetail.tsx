@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { type Appt, STATUS_LABEL, apptWhenShort, hm } from "@/lib/agenda";
@@ -7,6 +8,7 @@ import { balanceFor, confirmAppt, finishAttention, reactivateAppt, startAttentio
 import { inProgress, isClosed, limaHM, minutesBetween } from "@/lib/attention";
 import { labelShort } from "@/lib/dates";
 import { modStore } from "@/lib/mod";
+import { patientOf, patientsStore } from "@/lib/patients";
 import { money } from "@/lib/payments";
 import { currentUser, sessionStore } from "@/lib/session";
 import { toast } from "@/lib/toast";
@@ -21,6 +23,10 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResche
   const [session] = sessionStore.useStore();
   const [mod] = modStore.useStore();
   const [sure, setSure] = useState(false);
+  const router = useRouter();
+  const [patients] = patientsStore.useStore();
+  const patient = patientOf(patients, a);
+  const openPatient = (inAttention = true) => router.push(`/intranet/pacientes?id=${patient!.id}${inAttention ? `&atencion=${a.id}` : ""}`);
   const isAdmin = currentUser(session, mod)?.rol === "Administrador";
 
   const running = inProgress(a);
@@ -80,7 +86,14 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResche
       {!compact && <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Teclado: con la cita enfocada, ↑ ↓ la mueven 15 min, ← → la cambian de doctor y Mayús + ↑ ↓ cambian su duración.</div>}
       <div style={{ flex: 1 }} />
       {canStart && !a.t0 && (
-        <button type="button" onClick={() => { startAttention(a); toast("Atención iniciada"); }} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--info-bg)", color: "var(--info-fg)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Iniciar atención</button>
+        <button type="button" onClick={() => {
+          startAttention(a);
+          if (patient) { toast("Atención iniciada · ficha del paciente"); openPatient(); }
+          else toast("Atención iniciada. Este paciente aún no tiene ficha: regístralo en Pacientes.");
+        }} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--info-bg)", color: "var(--info-fg)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Iniciar atención</button>
+      )}
+      {patient && (
+        <button type="button" onClick={() => openPatient(running)} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: running ? "var(--info-bg)" : "transparent", boxShadow: running ? "none" : "inset 0 0 0 1px var(--line)", color: running ? "var(--info-fg)" : "var(--brand-text)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Abrir ficha del paciente</button>
       )}
       {running && (
         <button type="button" onClick={finish} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Finalizar atención</button>

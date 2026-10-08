@@ -1,17 +1,21 @@
 "use client";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { CloseBtn, Modal, btnOutline, btnPrimary, chipStyle, fieldStyle, labelStyle } from "@/components/ui/kit";
+import { agendaStore } from "@/lib/agenda-store";
+import { finishAttention } from "@/lib/agenda-actions";
+import { inProgress } from "@/lib/attention";
 import { anamnesisStore, emptyAnam, plansStore } from "@/lib/clinical";
 import { useMediaQuery } from "@/lib/media-query";
 import { initials } from "@/lib/media";
-import { type Patient, patientsStore } from "@/lib/patients";
+import { type Patient, patientOf, patientsStore } from "@/lib/patients";
 import { PAY_METHODS, type PayMethod, addPayment, money } from "@/lib/payments";
 import { toast } from "@/lib/toast";
 import { todayISO } from "@/lib/dates";
 import { Anamnesis } from "./Anamnesis";
+import AtencionBanner from "./AtencionBanner";
 import NewPatientDialog from "./NewPatientDialog";
 import { Odontograma } from "./Odontograma";
 import { TabArchivos, TabDatos, TabHistoria, TabPagos, TabPlan } from "./tabs";
@@ -23,6 +27,8 @@ type Modal = null | "new" | "plan" | "pay";
 
 export default function Pacientes() {
   const params = useSearchParams();
+  const router = useRouter();
+  const [{ appts }] = agendaStore.useStore();
   const wide = useMediaQuery("(min-width: 900px)");
   const [patients] = patientsStore.useStore();
   const [anam] = anamnesisStore.useStore();
@@ -35,12 +41,15 @@ export default function Pacientes() {
   const [view, setView] = useState<"list" | "detail">(params.get("id") ? "detail" : "list");
   const [tab, setTab] = useState<TabKey>("hist");
   const [modal, setModal] = useState<Modal>(params.get("nuevo") ? "new" : null);
+  /** se llegó desde "Iniciar atención" de la agenda: la nota clínica queda lista para escribir */
+  const fromAgenda = !!params.get("atencion");
 
   const ql = q.trim().toLowerCase();
   const list = patients.filter((p) => !ql || `${p.name} ${p.dni} ${p.phone}`.toLowerCase().includes(ql));
   const cur = patients.find((p) => p.id === selId) ?? null;
   const showList = wide || view === "list";
   const showDetail = wide || view === "detail";
+  const running = cur ? appts.find((a) => inProgress(a) && patientOf([cur], a)) : undefined;
 
   return (
     <div className={s.page}>
@@ -92,6 +101,9 @@ export default function Pacientes() {
                   </div>
                   <Link href={`/intranet/agenda?nueva=${encodeURIComponent(cur.name)}`} style={{ padding: "12px 16px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap" }}>Nueva cita</Link>
                 </div>
+                {running && (
+                  <AtencionBanner a={running} onBack={() => router.push("/intranet/agenda")} onFinish={() => { const min = finishAttention(running); toast(`Atención finalizada · ${min} min (programados ${running.dur * 15})`); }} />
+                )}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   {cur.alerts.map((a) => (
                     <span key={a} style={{ padding: "7px 12px", borderRadius: 999, background: "var(--error-bg)", color: "var(--error-fg)", fontSize: 13, fontWeight: 700, display: "inline-flex", gap: 6, alignItems: "center" }}><Icon name="triangle-alert" size={14} />{a}</span>
@@ -105,7 +117,7 @@ export default function Pacientes() {
                   {TABS.map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={s.tab} onClick={() => setTab(k)}>{t}</button>)}
                 </div>
 
-                {tab === "hist" && <TabHistoria p={cur} />}
+                {tab === "hist" && <TabHistoria p={cur} autoFocus={fromAgenda} />}
                 {tab === "anam" && <Anamnesis p={cur} onGoPlan={() => setModal("plan")} />}
                 {tab === "odo" && <Odontograma p={cur} onSaved={() => setTab("hist")} />}
                 {tab === "datos" && <TabDatos p={cur} />}

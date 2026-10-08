@@ -52,6 +52,11 @@ export function samePatientName(stored: string, full: string): boolean {
   return false;
 }
 
+/** Paciente de una cita: por DNI si lo tiene, o por nombre (las citas guardan el nombre, a veces abreviado). */
+export function patientOf(list: Patient[], a: { p: string; dni?: string }): Patient | undefined {
+  return list.find((x) => a.dni && x.dni === a.dni) ?? list.find((x) => samePatientName(a.p, x.name));
+}
+
 export function patchPatient(id: number, patch: Partial<Patient>) {
   patientsStore.update((l) => l.map((p) => (p.id === id ? { ...p, ...patch } : p)));
 }
