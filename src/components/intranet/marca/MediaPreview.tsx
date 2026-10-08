@@ -1,6 +1,7 @@
 "use client";
 import Icon from "@/components/ui/Icon";
 import { useBrand } from "@/lib/brand";
+import { useDoctors } from "@/lib/doctors";
 import { activeServices, useMedia } from "@/lib/media";
 
 const bgi = (u?: string) => (u ? { backgroundImage: `url("${u}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined);
@@ -9,6 +10,7 @@ const bgi = (u?: string) => (u ? { backgroundImage: `url("${u}")`, backgroundSiz
 export default function MediaPreview() {
   const b = useBrand();
   const m = useMedia();
+  const doctors = useDoctors();
   const { img } = m;
   const logo = (src?: string, h = 36, name = "") => <span role="img" aria-label={name} style={{ display: "block", width: 200, height: h, backgroundImage: `url("${src}")`, backgroundRepeat: "no-repeat", backgroundSize: "contain", backgroundPosition: "left center" }} />;
   return (
@@ -39,11 +41,11 @@ export default function MediaPreview() {
             </div>
           </div>
         )}
-        {m.docs.length > 0 && (
+        {doctors.length > 0 && (
           <div style={{ padding: "28px 32px 8px", display: "flex", flexDirection: "column", gap: 12, color: "var(--ink-900)" }}>
             <b style={{ fontSize: 20 }}>{b.teamTitle}</b>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 12 }}>
-              {m.docs.map((t) => (
+              {doctors.map((t) => (
                 <div key={t.id} style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-md)" }}>
                   <div style={{ height: 140, background: "repeating-linear-gradient(135deg,var(--brand-100) 0 10px,var(--brand-50) 10px 20px)", ...bgi(t.photo) }} />
                   <div style={{ padding: "10px 12px", fontSize: 13 }}><b>{t.name || "Sin nombre"}</b><div style={{ color: "var(--ink-500)", fontSize: 12 }}>{t.spec}</div><div className="tnum" style={{ color: "var(--ink-500)", fontSize: 12 }}>{t.cop ? `COP ${t.cop}` : ""}</div></div>

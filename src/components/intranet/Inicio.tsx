@@ -5,7 +5,7 @@ import { agendaStore } from "@/lib/agenda-store";
 import { SLOTS, STATUS_LABEL, hm, type ApptStatus } from "@/lib/agenda";
 import { labelLong } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
-import { doctorsOf, useMedia } from "@/lib/media";
+import { useDoctors } from "@/lib/doctors";
 import { useMod } from "@/lib/mod";
 import { canAccess, permsStore } from "@/lib/perms";
 import { currentUser, sedeStore, sessionStore } from "@/lib/session";
@@ -21,14 +21,13 @@ function greeting() {
 
 export default function Inicio() {
   const today = useToday();
-  const media = useMedia();
   const { data: mod, low, pending } = useMod();
   const [{ appts }] = agendaStore.useStore();
   const [session] = sessionStore.useStore();
   const [perms] = permsStore.useStore();
   const [sede] = sedeStore.useStore();
   const user = currentUser(session, mod);
-  const docs = doctorsOf(media);
+  const docs = useDoctors();
 
   const todays = appts.filter((a) => a.date === today && a.st !== "cancelada").sort((a, b) => a.slot - b.slot);
   const unconfirmed = todays.filter((a) => a.st === "pendiente").length;

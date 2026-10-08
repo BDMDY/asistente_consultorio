@@ -10,7 +10,8 @@ import { bookPublic, useBusy } from "@/lib/backend/public-api";
 import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, labelLong, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
-import { activeServices, doctorsOf, initials, serviceSlots, useMedia } from "@/lib/media";
+import { useDoctors } from "@/lib/doctors";
+import { activeServices, initials, serviceSlots, useMedia } from "@/lib/media";
 import { defineStore } from "@/lib/store";
 
 const ICONS: IconName[] = ["smile", "sparkles", "sun", "shield-check", "stethoscope"];
@@ -38,7 +39,7 @@ export default function Reserva() {
   const brand = useBrand();
   const media = useMedia();
   const appts = useBusy();
-  const docs = doctorsOf(media);
+  const docs = useDoctors();
   const services = activeServices(media);
   const doctorIds = docs.map((d) => d.id);
 
@@ -70,7 +71,7 @@ export default function Reserva() {
     phone: d.f.phone.replace(/\D/g, "").length >= 9,
     email: !(d.f.email ?? "").trim() || isEmail((d.f.email ?? "").trim()),
   };
-  const can = [d.svcId !== null, d.doc !== null, d.slot !== null, true, false][d.step];
+  const can = [d.svcId !== null && docs.length > 0, d.doc !== null, d.slot !== null, true, false][d.step];
   const formOk = valid.name && valid.dni && valid.phone && valid.email && d.consent;
 
   async function book() {
@@ -150,6 +151,9 @@ export default function Reserva() {
                 </span>
               </button>
             ))}
+            {services.length > 0 && docs.length === 0 && (
+              <div role="alert" style={{ padding: 16, borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14, lineHeight: 1.5 }}>Por ahora no tenemos doctores disponibles para reservar en línea. Escríbenos por WhatsApp y te ayudamos.</div>
+            )}
             {services.length === 0 && (
               <div style={{ padding: 16, borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14 }}>Por ahora no hay servicios disponibles para reservar en línea. Escríbenos por WhatsApp.</div>
             )}

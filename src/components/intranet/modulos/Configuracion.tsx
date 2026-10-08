@@ -1,7 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { isRemote } from "@/lib/backend/config";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
+import { nextAgenda } from "@/lib/doctors";
 import { type DiscountCamp, type DiscountCode, type Role, type Sede, type StaffUser, modStore, money0, saveMod, seedMod, uid, useMod } from "@/lib/mod";
 import { enqueue } from "@/lib/outbox";
 import { type PermRow, permsStore } from "@/lib/perms";
@@ -106,7 +108,10 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
   function save() {
     if (err) return toast(err);
     if (rec && rec.rol === "Administrador" && o.rol !== "Administrador" && admins <= 1) return toast("Debe quedar al menos un administrador");
-    const item: StaffUser = { id: rec?.id ?? uid(), nom: o.nom, dni: o.dni, cmp: o.cmp, mail: o.mail, tel: o.tel, rol: o.rol, on: f.on === "Activo" };
+    // Número de agenda del doctor: lo asigna el servidor en modo remoto; en demo se toma el siguiente libre.
+    const agenda = rec?.agenda ?? (o.rol === "Doctor" && !isRemote ? nextAgenda(d.users) : undefined);
+    const item: StaffUser = { id: rec?.id ?? uid(), nom: o.nom, dni: o.dni, cmp: o.cmp, mail: o.mail, tel: o.tel, rol: o.rol, on: f.on === "Activo", ...(agenda ? { agenda } : {}) };
+    if (rec && o.rol === "Doctor" && !agenda && !isRemote) item.agenda = nextAgenda(d.users);
     if (rec) commit(d.users.map((u) => (u.id === rec.id ? item : u)), "Usuario actualizado");
     else { enqueue({ kind: "invitacion", channel: "correo", patient: o.mail, text: `Invitación al equipo (${o.rol})` }); commit([item, ...d.users], `Usuario registrado · invitación en cola para ${o.mail}`); }
   }

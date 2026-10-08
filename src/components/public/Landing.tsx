@@ -4,6 +4,7 @@ import { useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useBrand } from "@/lib/brand";
+import { useDoctors } from "@/lib/doctors";
 import { activeServices, useMedia } from "@/lib/media";
 import MapEmbed from "./MapEmbed";
 import s from "@/app/(public)/landing.module.css";
@@ -29,6 +30,7 @@ const bg = (url?: string) => (url ? { backgroundImage: `url("${url}")` } : undef
 export default function Landing() {
   const brand = useBrand();
   const media = useMedia();
+  const doctors = useDoctors();
   const [menu, setMenu] = useState(false);
   const [faq, setFaq] = useState(0);
   const { img } = media;
@@ -102,11 +104,11 @@ export default function Landing() {
         ))}
       </div>
 
-      {media.docs.length > 0 && (
+      {doctors.length > 0 && (
         <section id="equipo" className={s.section}>
           <h2 className={s.h2}>{brand.teamTitle}</h2>
           <div className={s.team}>
-            {media.docs.map((d) => (
+            {doctors.map((d) => (
               <div key={d.id} className={s.docCard}>
                 <div className={s.docPhoto} style={bg(d.photo)} role={d.photo ? "img" : undefined} aria-label={d.photo ? d.name : undefined} />
                 <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 2 }}>

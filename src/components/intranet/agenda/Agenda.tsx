@@ -8,7 +8,7 @@ import { agendaStore } from "@/lib/agenda-store";
 import { addDays, todayISO, nextOpenDay, weekday } from "@/lib/dates";
 import { useNowMin, useToday } from "@/lib/hooks";
 import { outboxStore } from "@/lib/outbox";
-import { doctorsOf, useMedia } from "@/lib/media";
+import { useDoctors } from "@/lib/doctors";
 import { useMediaQuery } from "@/lib/media-query";
 import { alertsFor, patientsStore } from "@/lib/patients";
 import { paymentsStore } from "@/lib/payments";
@@ -26,7 +26,7 @@ export type Dialog =
 export interface AgendaCtx {
   date: string;
   today: string;
-  docs: ReturnType<typeof doctorsOf>;
+  docs: ReturnType<typeof useDoctors>;
   appts: Appt[];
   selId: number | null;
   setSel: (id: number | null) => void;
@@ -43,14 +43,13 @@ export interface AgendaCtx {
 export default function Agenda() {
   const params = useSearchParams();
   const today = useToday();
-  const media = useMedia();
   const [{ appts }] = agendaStore.useStore();
   const [patients] = patientsStore.useStore();
   const [payments] = paymentsStore.useStore();
   const [outbox] = outboxStore.useStore();
   const nowMin = useNowMin();
   const wide = useMediaQuery("(min-width: 900px)");
-  const docs = doctorsOf(media);
+  const docs = useDoctors();
 
   const [date, setDate] = useState(() => nextOpenDay(todayISO()));
   const [selId, setSel] = useState<number | null>(null);

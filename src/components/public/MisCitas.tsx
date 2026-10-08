@@ -6,14 +6,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { STATUS_LABEL, hm } from "@/lib/agenda";
 import { type FoundAppt, lookupAppts } from "@/lib/backend/public-api";
 import { labelLong } from "@/lib/dates";
-import { doctorsOf, useMedia } from "@/lib/media";
+import { useDoctors } from "@/lib/doctors";
 
 const field: React.CSSProperties = { height: 50, borderRadius: 12, border: "1px solid var(--line)", padding: "0 14px", fontSize: 16, background: "var(--surface)", color: "inherit", width: "100%", boxSizing: "border-box" };
 
 /** El paciente consulta sus citas con DNI + teléfono (los mismos de la reserva) y abre "Mi cita" para confirmar, reprogramar o cancelar. */
 export default function MisCitas() {
-  const media = useMedia();
-  const docs = doctorsOf(media);
+  const docs = useDoctors();
   const [f, setF] = useState({ dni: "", phone: "" });
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);

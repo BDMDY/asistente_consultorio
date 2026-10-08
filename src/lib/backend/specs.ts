@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AgendaState } from "../agenda";
 import type { Anamnesis, ClinicalNote, Odontogram, PatientFile, TreatmentPlan } from "../clinical";
+import type { PublicDoctor } from "../doctors";
 import { type ModData, type StaffUser, emptyMod } from "../mod";
 import type { OutboxItem } from "../outbox";
 import type { Patient } from "../patients";
@@ -88,8 +89,8 @@ function recordSpec<V>(name: string, kind: "anamnesis" | "odontogram" | "plan") 
   });
 }
 
-const staffToRow = (c: string, u: StaffUser): Row => ({ id: u.id, clinic_id: c, nom: u.nom, dni: u.dni, cmp: u.cmp, mail: u.mail, tel: u.tel, rol: u.rol, active: u.on });
-const rowToStaff = (r: Row): StaffUser => ({ id: r.id as string, nom: r.nom as string, dni: r.dni as string, cmp: (r.cmp as string) ?? "", mail: r.mail as string, tel: (r.tel as string) ?? "", rol: r.rol as StaffUser["rol"], on: !!r.active });
+const staffToRow = (c: string, u: StaffUser): Row => ({ id: u.id, clinic_id: c, nom: u.nom, dni: u.dni, cmp: u.cmp, mail: u.mail, tel: u.tel, rol: u.rol, active: u.on, agenda_id: u.agenda ?? null });
+const rowToStaff = (r: Row): StaffUser => ({ id: r.id as string, nom: r.nom as string, dni: r.dni as string, cmp: (r.cmp as string) ?? "", mail: r.mail as string, tel: (r.tel as string) ?? "", rol: r.rol as StaffUser["rol"], on: !!r.active, ...(r.agenda_id != null ? { agenda: Number(r.agenda_id) } : {}) });
 
 let registered = false;
 /** Registra todos los adaptadores (una sola vez). */
@@ -139,6 +140,14 @@ export function registerSpecs() {
   recordSpec<Anamnesis>("anamnesis", "anamnesis");
   recordSpec<Odontogram>("odontogram", "odontogram");
   recordSpec<TreatmentPlan>("plans", "plan");
+
+  // Doctores que ve el sitio público (sin sesión): vienen en la respuesta de public_site.
+  defineSpec<PublicDoctor[]>("pubdoctors", {
+    tables: [],
+    load: async () => [],
+    save: async () => {},
+    fromPublic: (site) => ((site.doctors as { id: number; nom: string; cmp: string }[] | undefined) ?? []).map((d) => ({ id: Number(d.id), nom: d.nom, cmp: d.cmp ?? "" })),
+  });
 
   docSpec<Record<string, unknown>>("brand", () => ({}), "brand");
   docSpec<Record<string, unknown>>("media", () => ({}), "media");

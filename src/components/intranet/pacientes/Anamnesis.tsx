@@ -3,7 +3,7 @@ import Link from "next/link";
 import { type ReactNode } from "react";
 import { type Anamnesis as AnamData, HABITOS, RISKS, SUFRE, TXT_ACLAR, TXT_CIERRE, TXT_EGEN, TXT_ESTO, TXT_INICIO, VITALES, type YNQ, type TXTQ, addNote, anamProgress, anamnesisStore, derivedAlerts, emptyAnam, patchAnam } from "@/lib/clinical";
 import { todayISO } from "@/lib/dates";
-import { doctorsOf, useMedia } from "@/lib/media";
+import { useDoctors } from "@/lib/doctors";
 import { type Patient, patchPatient } from "@/lib/patients";
 import { toast } from "@/lib/toast";
 import s from "./pac.module.css";
@@ -16,14 +16,13 @@ function ageFrom(iso: string, today: string): string {
 }
 
 export function Anamnesis({ p, onGoPlan }: { p: Patient; onGoPlan: () => void }) {
-  const media = useMedia();
   const [all] = anamnesisStore.useStore();
   const a: AnamData = all[p.id] ?? emptyAnam();
-  const docs = doctorsOf(media);
+  const docs = useDoctors();
   const today = todayISO();
   const { pct, missing } = anamProgress(a);
   const derived = derivedAlerts(a);
-  const docId = a.v.doc ?? String(docs[0].id);
+  const docId = a.v.doc ?? String(docs[0]?.id ?? "");
 
   const setV = (k: string, v: string) => patchAnam(p.id, { v: { ...a.v, [k]: v } });
   const setYN = (k: string, v: "si" | "no") => {

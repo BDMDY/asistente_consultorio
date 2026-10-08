@@ -12,7 +12,7 @@ import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, diffDays, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
 import { buildIcs, icsHref } from "@/lib/ics";
-import { doctorsOf, useMedia } from "@/lib/media";
+import { useDoctors } from "@/lib/doctors";
 import { useMediaQuery } from "@/lib/media-query";
 
 const STATUS_NAME: Record<Appt["st"], string> = {
@@ -32,11 +32,10 @@ const chip = (on: boolean, extra: React.CSSProperties = {}): React.CSSProperties
 
 export default function MiCita({ id }: { id: string }) {
   const brand = useBrand();
-  const media = useMedia();
   const wide = useMediaQuery("(min-width: 900px)");
   const [{ appts: localAppts }] = agendaStore.useStore();
   const mine = useMine(id);
-  const docs = doctorsOf(media);
+  const docs = useDoctors();
   const [ready, setReady] = useState(false);
   const appts = isRemote ? (mine.appt ? [...mine.busy, mine.appt] : mine.busy) : localAppts;
   const today = useToday();

@@ -1,6 +1,8 @@
 "use client";
+import Link from "next/link";
 import Icon, { type IconName } from "@/components/ui/Icon";
-import { DEFAULT_MEDIA, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
+import { useDoctors } from "@/lib/doctors";
+import { DEFAULT_MEDIA, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
 import { loadImage } from "@/lib/image";
 import { toast } from "@/lib/toast";
 
@@ -55,6 +57,7 @@ const row: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center"
 /** Editor de logos, fotos y listas del sitio público. Las secciones sin elementos se ocultan en el sitio. */
 export default function MediaEditor({ showIdentity = true }: { showIdentity?: boolean }) {
   const m = useMedia();
+  const doctors = useDoctors();
   const setImg = (k: keyof MediaImages, url: string) => commit((x) => ({ img: { ...x.img, [k]: url } }));
   const delImg = (k: keyof MediaImages) => commit((x) => { const n = { ...x.img }; delete n[k]; return { img: n }; });
   const singles: [keyof MediaImages, string, "contain" | "cover", string, boolean][] = [
@@ -111,22 +114,31 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
           ))}
         </>)}
 
-      {section("Equipo", m.docs.length, addBtn("+ Agregar doctor", () => commit((x) => ({ docs: [...x.docs, { id: nextId(x.docs), name: "", spec: "", cop: "", photo: "" }] }))),
+      {section("Equipo", doctors.length, null,
         <>
-          {m.docs.length === 0 && empty("Sin doctores: la sección Equipo se oculta en el sitio.")}
-          {m.docs.map((d) => (
-            <div key={d.id} style={{ ...row, gap: 10 }}>
-              <Pick src={d.photo} label={`Foto de ${d.name || "doctor"}`} w={56} h={56} icon="user" onPick={(u) => setItem("docs", d.id, { photo: u })} />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-                <input aria-label="Nombre" value={d.name} onChange={(e) => setItem("docs", d.id, { name: e.target.value })} placeholder="Nombre" style={{ ...inp, height: 30, fontWeight: 600 }} />
-                <div style={{ display: "flex", gap: 4 }}>
-                  <input aria-label="Especialidad" value={d.spec} onChange={(e) => setItem("docs", d.id, { spec: e.target.value })} placeholder="Especialidad" style={{ ...inp, flex: 1, height: 28, fontSize: 12 }} />
-                  <input aria-label="COP" value={d.cop} onChange={(e) => setItem("docs", d.id, { cop: e.target.value })} placeholder="COP" style={{ ...inp, width: 70, height: 28, fontSize: 12 }} />
+          <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
+            El equipo sale de los usuarios con perfil <b>Doctor</b> (nombre y colegiatura incluidos) y es el mismo de la agenda y la reserva. Para agregar o quitar doctores ve a <Link href="/intranet/modulos/configuracion" style={{ color: "var(--brand-text)", fontWeight: 700 }}>Configuración → Usuarios</Link>. Aquí completas cómo se presentan en el sitio.
+          </div>
+          {doctors.length === 0 && empty("Aún no hay doctores registrados: la sección Equipo se oculta en el sitio y no se pueden tomar reservas.")}
+          {doctors.map((d) => {
+            const p = m.docs.find((x) => x.id === d.id);
+            const upsert = (patch: Partial<DoctorProfile>) => commit((x) => ({ docs: x.docs.some((y) => y.id === d.id) ? x.docs.map((y) => (y.id === d.id ? { ...y, ...patch } : y)) : [...x.docs, { id: d.id, spec: "", photo: "", ...patch }] }));
+            return (
+              <div key={d.id} style={{ ...row, gap: 10 }}>
+                <Pick src={d.photo} label={`Foto de ${d.name}`} w={56} h={56} icon="user" onPick={(u) => upsert({ photo: u })} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                    <input aria-label={`Título de ${d.name}`} value={p?.title ?? ""} onChange={(e) => upsert({ title: e.target.value })} placeholder="Dr./Dra." style={{ ...inp, width: 64, height: 30, fontWeight: 600 }} />
+                    <b style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name.replace(/^(Dra?\.)\s*/, "")}</b>
+                  </div>
+                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                    <input aria-label={`Especialidad de ${d.name}`} value={p?.spec ?? ""} onChange={(e) => upsert({ spec: e.target.value })} placeholder="Especialidad" style={{ ...inp, flex: 1, height: 28, fontSize: 12 }} />
+                    <span className="tnum" style={{ fontSize: 12, color: "var(--ink-500)", whiteSpace: "nowrap" }}>COP {d.cop}</span>
+                  </div>
                 </div>
               </div>
-              {trash(() => delItem("docs", d.id), "Quitar doctor")}
-            </div>
-          ))}
+            );
+          })}
         </>)}
 
       {section("Instalaciones", m.facs.length, addBtn("+ Agregar foto", () => commit((x) => ({ facs: [...x.facs, { id: nextId(x.facs), cap: "", photo: "" }] }))),

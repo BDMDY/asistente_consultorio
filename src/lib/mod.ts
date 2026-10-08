@@ -14,7 +14,7 @@ export type MsgStatus = "activa" | "pausada" | "borrador";
 export interface MsgSeg { t: "Todos" | "Inactivos" | "Edad" | "Inconclusos" | "Citas"; a: number; b: number }
 export interface Msg { id: string; n: string; seg?: MsgSeg; aud: string; link?: string; lp?: string; txt: string; st: MsgStatus; sent: number }
 export type Role = "Administrador" | "Doctor" | "Asistente";
-export interface StaffUser { id: string; nom: string; dni: string; cmp: string; mail: string; tel: string; rol: Role; on: boolean }
+export interface StaffUser { id: string; nom: string; dni: string; cmp: string; mail: string; tel: string; rol: Role; on: boolean; /** número de agenda del doctor (columna de la agenda y de la reserva) */ agenda?: number }
 export interface Sede { id: string; n: string; dir: string; h: string }
 export interface NotifPrefs { wa24: boolean; wa2: boolean; mail: boolean; resumen: boolean }
 export interface DiscountCode { id: string; code: string; type: "%" | "S/"; val: number; max: number; used: number; on: boolean }
@@ -57,8 +57,9 @@ export const seedMod = (): ModData => ({
     { id: "m3", n: "Promoción blanqueamiento", aud: "Todos", txt: "20% en blanqueamiento este mes.", st: "borrador", sent: 0 },
   ],
   users: [
-    { id: "u1", nom: "Carmen Quispe Huamán", dni: "40123456", cmp: "45821", mail: "ana@clinicasonrie.pe", tel: "987654321", rol: "Doctor", on: true },
-    { id: "u2", nom: "Luis Paredes Salazar", dni: "41234567", cmp: "51376", mail: "luis@clinicasonrie.pe", tel: "986543210", rol: "Doctor", on: true },
+    { id: "u1", nom: "Ana Quispe Huamán", dni: "40123456", cmp: "45821", mail: "ana@clinicasonrie.pe", tel: "987654321", rol: "Doctor", on: true, agenda: 1 },
+    { id: "u2", nom: "Luis Paredes Salazar", dni: "41234567", cmp: "51376", mail: "luis@clinicasonrie.pe", tel: "986543210", rol: "Doctor", on: true, agenda: 2 },
+    { id: "u5", nom: "Carla Vega Ríos", dni: "42345678", cmp: "34567", mail: "carla@clinicasonrie.pe", tel: "985432100", rol: "Doctor", on: true, agenda: 3 },
     { id: "u3", nom: "Rosa Medina Flores", dni: "45678901", cmp: "", mail: "recepcion@clinicasonrie.pe", tel: "985432109", rol: "Asistente", on: true },
     { id: "u4", nom: "Ana Cruz Torres", dni: "45218790", cmp: "", mail: "admin@clinicasonrie.pe", tel: "984321098", rol: "Administrador", on: true },
   ],

@@ -3,7 +3,7 @@ import { toast } from "../toast";
 import { errText } from "./client";
 
 export interface Ctx { db: SupabaseClient; clinicId: string }
-export interface PublicSite { clinic?: { id: string; name: string; slug: string }; brand?: unknown; media?: unknown }
+export interface PublicSite { clinic?: { id: string; name: string; slug: string }; brand?: unknown; media?: unknown; doctors?: unknown }
 
 /** Adaptador de un store con Supabase. `save` recibe el estado anterior y el nuevo y escribe solo la diferencia. */
 export interface RemoteSpec<T> {

@@ -4,7 +4,10 @@ import { defineStore } from "./store";
 
 export interface Stat { id: number; n: string; l: string }
 export interface Quote { id: number; t: string; a: string }
+/** Doctor tal como lo ven la agenda, la reserva y el sitio: el nombre y el COP salen del usuario registrado (Configuración → Usuarios). */
 export interface Doctor { id: number; name: string; spec: string; cop: string; photo: string }
+/** Perfil público de un doctor registrado, enlazado por su número de agenda: lo que el usuario no tiene (título, especialidad y foto). */
+export interface DoctorProfile { id: number; title?: string; spec: string; photo: string }
 export interface Facility { id: number; cap: string; photo: string }
 export interface BeforeAfter { id: number; label: string; before: string; after: string }
 /** Catálogo único: lo editan el módulo Servicios y Medios de marca; lo usan landing, reserva y agenda. */
@@ -15,7 +18,7 @@ export interface Media {
   stats: Stat[];
   quotes: Quote[];
   img: MediaImages;
-  docs: Doctor[];
+  docs: DoctorProfile[];
   facs: Facility[];
   cases: BeforeAfter[];
   services: Service[];
@@ -34,10 +37,11 @@ export const DEFAULT_MEDIA: Media = {
   ],
   img: {},
   docs: [
-    { id: 1, name: "Dra. Ana Quispe", spec: "Ortodoncista", cop: "12345", photo: "" },
-    { id: 2, name: "Dr. Luis Paredes", spec: "Odontólogo general", cop: "23456", photo: "" },
-    { id: 3, name: "Dra. Carla Vega", spec: "Endodoncista", cop: "34567", photo: "" },
+    { id: 1, title: "Dra.", spec: "Ortodoncista", photo: "" },
+    { id: 2, title: "Dr.", spec: "Odontólogo general", photo: "" },
+    { id: 3, title: "Dra.", spec: "Endodoncista", photo: "" },
   ],
+
   facs: [{ id: 1, cap: "Recepción", photo: "" }],
   cases: [{ id: 1, label: "Ortodoncia · 14 meses", before: "", after: "" }],
   services: [
@@ -78,8 +82,6 @@ export function parsePrice(price: string): number {
   return n > 0 ? n : NaN;
 }
 
-/** Doctores con respaldo a la lista por defecto, como en el prototipo (siempre al menos uno). */
-export const doctorsOf = (m: Media) => (m.docs.length ? m.docs : DEFAULT_MEDIA.docs);
 
 export const initials = (name: string) =>
   name.replace(/^(Dra?\.)\s*/, "").split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
