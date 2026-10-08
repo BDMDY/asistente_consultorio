@@ -9,7 +9,11 @@ export interface Session { userId: string; email: string }
 /** Sesión de demostración. Se reemplaza por Supabase Auth en la fase de backend. */
 export const sessionStore = defineStore<Session | null>("da-session-v1", () => null, { memory: isRemote });
 
-export const sedeStore = defineStore<string>("da-sede-v1", () => "Sede Miraflores");
+/** Sede activa elegida en el menú ("" = la primera). */
+export const sedeStore = defineStore<string>("da-sede-v1", () => "");
+
+/** La sede elegida solo vale si sigue existiendo en Configuración → Sedes; si no, se usa la primera registrada. */
+export const resolveSede = (chosen: string, sedes: string[]) => (sedes.includes(chosen) ? chosen : (sedes[0] ?? ""));
 
 export const isEmail = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
 

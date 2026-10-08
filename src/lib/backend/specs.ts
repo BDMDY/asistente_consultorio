@@ -89,8 +89,8 @@ function recordSpec<V>(name: string, kind: "anamnesis" | "odontogram" | "plan") 
   });
 }
 
-const staffToRow = (c: string, u: StaffUser): Row => ({ id: u.id, clinic_id: c, nom: u.nom, dni: u.dni, cmp: u.cmp, mail: u.mail, tel: u.tel, rol: u.rol, active: u.on, agenda_id: u.agenda ?? null });
-const rowToStaff = (r: Row): StaffUser => ({ id: r.id as string, nom: r.nom as string, dni: r.dni as string, cmp: (r.cmp as string) ?? "", mail: r.mail as string, tel: (r.tel as string) ?? "", rol: r.rol as StaffUser["rol"], on: !!r.active, ...(r.agenda_id != null ? { agenda: Number(r.agenda_id) } : {}) });
+const staffToRow = (c: string, u: StaffUser): Row => ({ id: u.id, clinic_id: c, nom: u.nom, dni: u.dni, cmp: u.cmp, mail: u.mail, tel: u.tel, rol: u.rol, active: u.on, agenda_id: u.agenda ?? null, titulo: u.titulo ?? null });
+const rowToStaff = (r: Row): StaffUser => ({ id: r.id as string, nom: r.nom as string, dni: r.dni as string, cmp: (r.cmp as string) ?? "", mail: r.mail as string, tel: (r.tel as string) ?? "", rol: r.rol as StaffUser["rol"], on: !!r.active, ...(r.agenda_id != null ? { agenda: Number(r.agenda_id) } : {}), ...(r.titulo ? { titulo: r.titulo as string } : {}) });
 
 let registered = false;
 /** Registra todos los adaptadores (una sola vez). */
@@ -146,7 +146,7 @@ export function registerSpecs() {
     tables: [],
     load: async () => [],
     save: async () => {},
-    fromPublic: (site) => ((site.doctors as { id: number; nom: string; cmp: string }[] | undefined) ?? []).map((d) => ({ id: Number(d.id), nom: d.nom, cmp: d.cmp ?? "" })),
+    fromPublic: (site) => ((site.doctors as { id: number; nom: string; cmp: string; titulo?: string }[] | undefined) ?? []).map((d) => ({ id: Number(d.id), nom: d.nom, cmp: d.cmp ?? "", titulo: d.titulo ?? "" })),
   });
 
   docSpec<Record<string, unknown>>("brand", () => ({}), "brand");

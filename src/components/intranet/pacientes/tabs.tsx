@@ -2,6 +2,7 @@
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { STATUS_LABEL, hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
+import { useDoctors } from "@/lib/doctors";
 import { type ClinicalNote, type PatientFile, type TreatmentPlan, addNote, filesStore, notesStore, plansStore } from "@/lib/clinical";
 import { newId } from "@/lib/ids";
 import { isISODate, labelDate, labelShort, todayISO } from "@/lib/dates";
@@ -21,6 +22,7 @@ export function TabHistoria({ p, autoFocus }: { p: Patient; autoFocus?: boolean 
   const [notes] = notesStore.useStore();
   const [payments] = paymentsStore.useStore();
   const [{ appts }] = agendaStore.useStore();
+  const doctors = useDoctors();
   const [text, setText] = useState("");
   const can = text.trim().length > 2;
 
@@ -32,7 +34,7 @@ export function TabHistoria({ p, autoFocus }: { p: Patient; autoFocus?: boolean 
   const timeline: Item[] = [
     ...(notes[p.id] ?? []).map((n: ClinicalNote): Item => ({ ord: n.date + String(n.id).padStart(16, "0"), icon: "notebook-pen", t: n.t, d: labelDate(n.date) })),
     ...pays.map((x): Item => ({ ord: (isISODate(x.date) ? x.date : x.at.slice(0, 10)) + String(x.id).padStart(16, "0"), icon: "banknote", t: `Pago registrado · ${money(x.amount)} (${x.method})`, d: payLabel(x.date) })),
-    ...done.map((a): Item => ({ ord: a.date + "0".repeat(16), icon: "stethoscope", t: `${a.s} · atendida`, d: labelShort(a.date) })),
+    ...done.map((a): Item => ({ ord: a.date + "0".repeat(16), icon: "stethoscope", t: `${a.s} · atendida${doctors.find((d) => d.id === a.doc) ? " · " + doctors.find((d) => d.id === a.doc)!.full : ""}`, d: labelShort(a.date) })),
   ].sort((a, b) => b.ord.localeCompare(a.ord));
 
   function add() {

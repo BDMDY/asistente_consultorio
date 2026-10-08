@@ -5,7 +5,7 @@ import { defineStore } from "./store";
 import { useMemo } from "react";
 
 /** Doctor visible sin sesión (sitio público): número de agenda, nombre y COP que publica la clínica. */
-export interface PublicDoctor { id: number; nom: string; cmp: string }
+export interface PublicDoctor { id: number; nom: string; cmp: string; titulo?: string }
 export const publicDoctorsStore = defineStore<PublicDoctor[]>("da-pubdocs-v1", () => [], { memory: true, remote: { name: "pubdoctors", empty: () => [] } });
 
 /** "Ana Quispe Huamán" → "Ana Quispe"; con cuatro palabras o más toma el primer nombre y el primer apellido ("Carmen Rosa Quispe Huamán" → "Carmen Quispe"). */
@@ -23,7 +23,7 @@ export const displayName = (nom: string, title?: string) => [title?.trim(), shor
  */
 export function resolveDoctors(users: StaffUser[], media: Media, pub: PublicDoctor[] = []): Doctor[] {
   const docs = users.filter((u) => u.rol === "Doctor" && u.on);
-  if (!docs.length) return pub.map((p) => toDoctor(p.id, p.nom, p.cmp, media));
+  if (!docs.length) return pub.map((p) => toDoctor(p.id, p.nom, p.cmp, media, p.titulo));
   const used = new Set(docs.map((u) => u.agenda).filter((n): n is number => !!n));
   let next = 1;
   const free = () => {
@@ -31,12 +31,13 @@ export function resolveDoctors(users: StaffUser[], media: Media, pub: PublicDoct
     used.add(next);
     return next;
   };
-  return docs.map((u) => toDoctor(u.agenda ?? free(), u.nom, u.cmp, media)).sort((a, b) => a.id - b.id);
+  return docs.map((u) => toDoctor(u.agenda ?? free(), u.nom, u.cmp, media, u.titulo)).sort((a, b) => a.id - b.id);
 }
 
-function toDoctor(id: number, nom: string, cmp: string, media: Media): Doctor {
+function toDoctor(id: number, nom: string, cmp: string, media: Media, titulo?: string): Doctor {
   const p = media.docs.find((x) => x.id === id);
-  return { id, name: displayName(nom, p?.title), spec: p?.spec ?? "", cop: cmp, photo: p?.photo ?? "" };
+  const title = titulo?.trim() || p?.title;
+  return { id, name: displayName(nom, title), full: [title?.trim(), nom.trim()].filter(Boolean).join(" "), spec: p?.spec ?? "", cop: cmp, photo: p?.photo ?? "" };
 }
 
 /** Siguiente número de agenda libre para un doctor nuevo. */

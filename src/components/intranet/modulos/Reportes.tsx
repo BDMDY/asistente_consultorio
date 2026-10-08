@@ -1,20 +1,14 @@
 "use client";
 import { useState } from "react";
-import { MONTHS_LONG } from "@/lib/dates";
+import { agendaStore } from "@/lib/agenda-store";
+import { MONTHS_LONG, labelShort } from "@/lib/dates";
+import { useDoctors } from "@/lib/doctors";
 import { useToday } from "@/lib/hooks";
+import { patientsStore } from "@/lib/patients";
+import { paymentsStore } from "@/lib/payments";
+import { PERIOD_NAMES, type Period, buildReports, detailRows, fmtValue } from "@/lib/reports";
 import { toast } from "@/lib/toast";
 import { Actions, BarChart, ModuleLayout, N, type Row, SheetSub } from "./kit";
-
-/** Datos de ejemplo hasta acumular historial; al conectar la base se calculan desde citas y cobros. */
-type Report = { id: string; title: string; sub: string; bars: [string, number][]; unit: "%" | "S/" | "" };
-const REPORTS: Report[] = [
-  { id: "ocu", title: "Ocupación por doctor", sub: "Citas atendidas", bars: [["Quispe", 82], ["Paredes", 74], ["Rojas", 61]], unit: "%" },
-  { id: "ing", title: "Ingresos por servicio", sub: "Soles cobrados", bars: [["Orto", 18400], ["Impl", 9800], ["Limp", 4200], ["Blanq", 3600]], unit: "S/" },
-  { id: "nue", title: "Pacientes nuevos", sub: "Por semana", bars: [["S1", 8], ["S2", 11], ["S3", 7], ["S4", 8]], unit: "" },
-  { id: "can", title: "Cancelaciones y motivos", sub: "Por motivo", bars: [["Pac.", 9], ["No resp.", 5], ["Repr.", 4]], unit: "" },
-];
-const FILTERS = ["Semana", "Mes", "Año"];
-const PER = [0.25, 1, 12];
 
 function csv(name: string, rows: (string | number)[][]) {
   const t = rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\n");
@@ -26,33 +20,66 @@ function csv(name: string, rows: (string | number)[][]) {
   a.remove();
 }
 
+const money = (n: number) => "S/ " + n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+
 export function Reportes() {
   const today = useToday();
+  const [{ appts }] = agendaStore.useStore();
+  const [payments] = paymentsStore.useStore();
+  const [patients] = patientsStore.useStore();
+  const doctors = useDoctors();
   const [chip, setChip] = useState(1);
   const [sel, setSel] = useState<string | "all" | null>(null);
-  const per = PER[chip];
-  const period = ["última semana", today ? `${MONTHS_LONG[Number(today.slice(5, 7)) - 1]} ${today.slice(0, 4)}` : "mes", today ? `año ${today.slice(0, 4)}` : "año"][chip];
-  const rows: Row[] = REPORTS.map((r) => ({ id: r.id, t: r.title, sub: r.sub, badge: "Ver", tone: N }));
-  const cur = REPORTS.find((r) => r.id === sel);
-  const val = (v: number) => Math.round(v * per);
+  const period = chip as Period;
+
+  if (!today) return null;
+  const { reports, summary, range } = buildReports({ today, period, appts, payments, patients, doctors });
+  const periodLabel = [`${labelShort(range.from)} al ${labelShort(range.to)}`, `${MONTHS_LONG[Number(today.slice(5, 7)) - 1]} ${today.slice(0, 4)}`, `año ${today.slice(0, 4)}`][chip];
+  const file = (n: string) => `${n}-${["semana", "mes", "anio"][chip]}-${today}.csv`;
+  const total = (r: (typeof reports)[number]) => r.bars.reduce((n, [, v]) => n + v, 0);
+  const summaryOf = (r: (typeof reports)[number]) =>
+    r.bars.length === 0 || (r.unit !== "%" && total(r) === 0) ? "Sin datos en este periodo"
+      : r.id === "ocu" ? r.bars.map(([l, v]) => `${l} ${v}%`).join(" · ")
+      : r.id === "ing" ? `${money(total(r))} cobrados`
+      : r.id === "nue" ? `${total(r)} pacientes nuevos`
+      : `${total(r)} citas canceladas`;
+  const rows: Row[] = reports.map((r) => ({ id: r.id, t: r.title, sub: summaryOf(r), badge: "Ver", tone: N }));
+  const cur = reports.find((r) => r.id === sel);
+
+  function exportAll() {
+    const d = detailRows({ appts, payments, doctors, range });
+    csv(file("reportes"), [
+      ["DentAssist · reportes", periodLabel], [],
+      ["Resumen"], ["Citas atendidas", summary.attended], ["Citas agendadas (sin canceladas)", summary.total], ["No-show (%)", summary.noShowPct ?? "—"], ["Ingresos (S/)", summary.income], [],
+      ...reports.flatMap((r) => [[r.title, r.sub], ["Concepto", r.unit ? `Valor (${r.unit})` : "Valor"], ...r.bars.map(([l, v]): (string | number)[] => [l, v]), []]),
+      ["Detalle de citas"], ["Fecha", "Tramo (0 = 09:00)", "Paciente", "Servicio", "Doctor", "Estado", "Duración (min)"], ...d.appts, [],
+      ["Detalle de cobros"], ["Fecha", "Comprobante", "Paciente", "Concepto", "Método", "Monto (S/)"], ...d.payments,
+    ]);
+  }
 
   return (
-    <ModuleLayout title="Reportes" sub={`${period} · datos de ejemplo hasta acumular historial`} kpis={[{ l: "Citas atendidas", v: String(Math.round(286 * per)) }, { l: "No-show", v: "6%", c: "var(--warning-fg)" }]}
-      chips={FILTERS} chip={chip} onChip={setChip} query="" onQuery={() => {}} showSearch={false} cta="Exportar todo" onCta={() => setSel("all")} rows={rows}
+    <ModuleLayout title="Reportes" sub={`${periodLabel} · calculado con las citas, cobros y pacientes registrados`}
+      kpis={[{ l: "Citas atendidas", v: String(summary.attended) }, { l: "No-show", v: summary.noShowPct === null ? "—" : `${summary.noShowPct}%`, c: summary.noShowPct ? "var(--warning-fg)" : undefined }, { l: "Ingresos", v: money(summary.income) }]}
+      chips={[...PERIOD_NAMES]} chip={chip} onChip={setChip} query="" onQuery={() => {}} showSearch={false} cta="Exportar todo" onCta={() => setSel("all")} rows={rows}
       onOpen={(id) => setSel(id)} onClose={() => setSel(null)} panelTitle={sel === "all" ? "Exportar todo" : (cur?.title ?? "")}
       panel={sel === "all" ? (
-        <Actions items={[
-          { t: "Descargar todo (CSV)", kind: "p", icon: "download", run: () => { csv(`reportes-${["semana", "mes", "año"][chip]}.csv`, [["Reporte", "Concepto", "Valor"], ...REPORTS.flatMap((r) => r.bars.map(([l, v]) => [r.title, l, val(v)]))]); setSel(null); toast("Descarga iniciada"); } },
-          { t: "Imprimir / guardar PDF", icon: "printer", run: () => window.print() },
-        ]} />
+        <>
+          <SheetSub sub={`Resumen, los 4 reportes y el detalle de citas y cobros · ${periodLabel}`} badge={`Periodo: ${PERIOD_NAMES[chip]}`} tone={N} />
+          <Actions items={[
+            { t: "Descargar todo (CSV)", kind: "p", icon: "download", run: () => { exportAll(); setSel(null); toast("Descarga iniciada"); } },
+            { t: "Imprimir / guardar PDF", icon: "printer", run: () => window.print() },
+          ]} />
+        </>
       ) : cur ? (
         <>
-          <SheetSub sub={`${cur.sub} · ${period}`} badge={`Periodo: ${FILTERS[chip]}`} tone={N} />
-          <BarChart bars={(() => { const mx = Math.max(...cur.bars.map(([, v]) => val(v))); return cur.bars.map(([l, v]) => ({ l, v: (cur.unit === "S/" ? "S/ " : "") + val(v).toLocaleString("en-US") + (cur.unit === "%" ? "%" : ""), h: Math.max(6, Math.round((val(v) / mx) * 70)) })); })()} />
+          <SheetSub sub={`${cur.sub} · ${periodLabel}`} badge={`Periodo: ${PERIOD_NAMES[chip]}`} tone={N} />
+          {cur.bars.length === 0 || (cur.unit !== "%" && total(cur) === 0)
+            ? <div style={{ padding: 18, borderRadius: 12, border: "1.5px dashed var(--brand-200)", textAlign: "center", fontSize: 14, color: "var(--ink-500)" }}>Aún no hay datos en este periodo.</div>
+            : <BarChart bars={(() => { const mx = Math.max(...cur.bars.map(([, v]) => v), 1); return cur.bars.map(([l, v]) => ({ l, v: fmtValue(v, cur.unit), h: Math.max(6, Math.round((v / mx) * 100)) })); })()} />}
           <Actions items={[
-            { t: "Descargar Excel (CSV)", kind: "p", icon: "download", run: () => { csv(`${cur.id}.csv`, [["Concepto", "Valor"], ...cur.bars.map(([l, v]) => [l, val(v)])]); setSel(null); toast("Descarga iniciada"); } },
+            { t: "Descargar Excel (CSV)", kind: "p", icon: "download", run: () => { csv(file(cur.id), [[cur.title, periodLabel], ["Concepto", cur.unit ? `Valor (${cur.unit})` : "Valor"], ...cur.bars.map(([l, v]): (string | number)[] => [l, v])]); setSel(null); toast("Descarga iniciada"); } },
             { t: "Imprimir / guardar PDF", icon: "printer", run: () => window.print() },
-            { t: "Compartir por WhatsApp", icon: "share-2", run: () => window.open("https://wa.me/?text=" + encodeURIComponent(`${cur.title}: ${cur.bars.map(([l, v]) => `${l} ${val(v)}`).join(", ")}`), "_blank", "noopener") },
+            { t: "Compartir por WhatsApp", icon: "share-2", run: () => window.open("https://wa.me/?text=" + encodeURIComponent(`${cur.title} (${periodLabel}): ${cur.bars.map(([l, v]) => `${l} ${fmtValue(v, cur.unit)}`).join(", ") || "sin datos"}`), "_blank", "noopener") },
           ]} />
         </>
       ) : null} />

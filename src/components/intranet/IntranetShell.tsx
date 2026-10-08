@@ -7,11 +7,12 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { agendaStore } from "@/lib/agenda-store";
 import { refreshData, useAuth } from "@/lib/backend/auth";
-import { useMounted, useToday } from "@/lib/hooks";
+import { delayAlerts } from "@/lib/attention";
+import { useMounted, useNowMin, useToday } from "@/lib/hooks";
 import { initialsOf, modStore, pendingCharges, stockLow } from "@/lib/mod";
 import { MOBILE_TABS, NAV, navTitle } from "@/lib/nav";
 import { canAccess, permsStore } from "@/lib/perms";
-import { currentUser, sedeStore, sessionStore, signOut } from "@/lib/session";
+import { currentUser, resolveSede, sedeStore, sessionStore, signOut } from "@/lib/session";
 import { toast } from "@/lib/toast";
 import Toaster from "./Toaster";
 import s from "./shell.module.css";
@@ -23,6 +24,7 @@ export default function IntranetShell({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const mounted = useMounted();
   const today = useToday();
+  const nowMin = useNowMin();
   const auth = useAuth();
   const [session] = sessionStore.useStore();
   const [mod] = modStore.useStore();
@@ -71,6 +73,15 @@ export default function IntranetShell({ children }: { children: React.ReactNode 
   const unconfirmed = appts.filter((a) => a.date === today && a.st === "pendiente").length;
   const ini = initialsOf(user.nom);
   const sedes = mod.sedes.map((z) => z.n);
+  const sedeActiva = resolveSede(sede, sedes);
+  const delays = delayAlerts(appts, today, nowMin);
+  // Solo hay aviso (y punto rojo) cuando algo requiere atención.
+  const notices: [IconName, string, string, string, string][] = [
+    ...delays.map((d): [IconName, string, string, string, string] => ["clock", "var(--warning-fg)", `Demora: ${d.current.p} sigue en atención`, `Próximo: ${d.next.p}`, "/intranet/agenda"]),
+    ...(low.length ? [["package", "var(--error-fg)", `${low.length} ${low.length === 1 ? "producto con stock bajo" : "productos con stock bajo"}`, low.slice(0, 2).map((i) => i.n).join(", "), "/intranet/modulos/inventario"] as [IconName, string, string, string, string]] : []),
+    ...(pend.length ? [["wallet", "var(--warning-fg)", `${pend.length} ${pend.length === 1 ? "cobro pendiente" : "cobros pendientes"}`, "Registra el pago o envía recordatorio", "/intranet/modulos/finanzas"] as [IconName, string, string, string, string]] : []),
+    ...(unconfirmed ? [["message-circle", "var(--warning-fg)", `${unconfirmed} ${unconfirmed === 1 ? "cita sin confirmar hoy" : "citas sin confirmar hoy"}`, "Envía el recordatorio por WhatsApp", "/intranet/agenda"] as [IconName, string, string, string, string]] : []),
+  ];
 
   function logout() {
     signOut();
@@ -105,9 +116,9 @@ export default function IntranetShell({ children }: { children: React.ReactNode 
         </nav>
         <div className={s.railBottom}>
           <ThemeToggle style={{ borderRadius: 12 }} />
-          <button type="button" className={s.iconBtn} aria-label="Notificaciones" onClick={() => setPop(pop?.kind === "notif" ? null : { kind: "notif", mode: "rail" })}>
+          <button type="button" className={s.iconBtn} aria-label={notices.length ? `Notificaciones (${notices.length})` : "Notificaciones"} onClick={() => setPop(pop?.kind === "notif" ? null : { kind: "notif", mode: "rail" })}>
             <Icon name="bell" />
-            <span className={s.dot} />
+            {notices.length > 0 && <span className={s.dot} aria-hidden="true" />}
           </button>
           <button type="button" className={s.avatar} aria-label="Perfil" title={`${user.nom} · ${user.rol}`} onClick={() => setPop(pop?.kind === "perfil" ? null : { kind: "perfil", mode: "rail" })}>{ini}</button>
         </div>
@@ -117,7 +128,7 @@ export default function IntranetShell({ children }: { children: React.ReactNode 
         <button type="button" className={s.iconBtn} aria-label="Abrir menú" onClick={() => setDrawer(true)}><Icon name="menu" size={22} /></button>
         <b className={s.topTitle}>{navTitle(pathname)}</b>
         <ThemeToggle style={{ borderRadius: 12 }} />
-        <button type="button" className={s.iconBtn} aria-label="Notificaciones" onClick={() => setPop(pop?.kind === "notif" ? null : { kind: "notif", mode: "top" })}>
+        <button type="button" className={s.iconBtn} aria-label={notices.length ? `Notificaciones (${notices.length})` : "Notificaciones"} onClick={() => setPop(pop?.kind === "notif" ? null : { kind: "notif", mode: "top" })}>
           <Icon name="bell" />
           <span className={s.dot} />
         </button>
@@ -144,9 +155,9 @@ export default function IntranetShell({ children }: { children: React.ReactNode 
               <button type="button" className={s.iconBtn} aria-label="Cerrar menú" onClick={() => setDrawer(false)}><Icon name="x" /></button>
             </div>
             {sedes.length > 1 && (
-              <button type="button" className={s.sede} onClick={() => { const next = sedes[(sedes.indexOf(sede) + 1) % sedes.length]; setSede(next); toast(`Sede activa: ${next}`); }} aria-label={`Sede activa: ${sede}. Cambiar de sede`}>
+              <button type="button" className={s.sede} onClick={() => { const next = sedes[(sedes.indexOf(sedeActiva) + 1) % sedes.length]; setSede(next); toast(`Sede activa: ${next}`); }} aria-label={`Sede activa: ${sedeActiva}. Cambiar de sede`}>
                 <Icon name="building-2" size={18} />
-                <span style={{ flex: 1 }}>{sede}</span>
+                <span style={{ flex: 1 }}>{sedeActiva}</span>
                 <Icon name="chevron-down" size={16} />
               </button>
             )}
@@ -182,9 +193,8 @@ export default function IntranetShell({ children }: { children: React.ReactNode 
                   <b style={{ fontSize: 16 }}>Notificaciones</b>
                   <Link href="/intranet/modulos/configuracion" style={{ fontSize: 13, fontWeight: 700 }} onClick={() => setPop(null)}>Ajustes</Link>
                 </div>
-                {popLink("package", "var(--error-fg)", `${low.length} productos con stock bajo`, low.slice(0, 2).map((i) => i.n).join(", ") || "Todo en orden", "/intranet/modulos/inventario")}
-                {popLink("wallet", "var(--warning-fg)", `${pend.length} cobros pendientes`, "Registra el pago o envía recordatorio", "/intranet/modulos/finanzas")}
-                {popLink("message-circle", "var(--warning-fg)", `${unconfirmed} citas sin confirmar hoy`, "Envía el recordatorio por WhatsApp", "/intranet/agenda")}
+                {notices.length === 0 && <div style={{ padding: "6px 16px 18px", fontSize: 14, color: "var(--ink-500)" }}>Sin alertas por ahora. Todo está al día.</div>}
+                {notices.map(([icon, color, title, sub, href]) => popLink(icon, color, title, sub, href))}
               </>
             ) : (
               <>

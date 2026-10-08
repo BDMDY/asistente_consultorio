@@ -97,11 +97,11 @@ const isEmail = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
 
 function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
   const { data: d } = useMod();
-  const [f, setF] = useState({ nom: rec?.nom ?? "", dni: rec?.dni ?? "", rol: (rec?.rol ?? "Asistente") as Role, cmp: rec?.cmp ?? "", mail: rec?.mail ?? "", tel: rec?.tel ?? "", on: rec ? (rec.on ? "Activo" : "Suspendido") : "Activo" });
+  const [f, setF] = useState({ nom: rec?.nom ?? "", dni: rec?.dni ?? "", rol: (rec?.rol ?? "Asistente") as Role, cmp: rec?.cmp ?? "", titulo: rec?.titulo ?? "", mail: rec?.mail ?? "", tel: rec?.tel ?? "", on: rec ? (rec.on ? "Activo" : "Suspendido") : "Activo" });
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const o = { ...f, nom: f.nom.trim(), dni: f.dni.trim(), mail: f.mail.trim(), tel: f.tel.trim(), cmp: f.rol === "Doctor" ? f.cmp.trim() : "" };
   const err = !o.nom ? "Indica el nombre completo" : !/^\d{8}$/.test(o.dni) ? "El DNI debe tener 8 dígitos" : d.users.some((u) => u.id !== rec?.id && u.dni === o.dni) ? "Ya existe un usuario con ese DNI"
-    : o.rol === "Doctor" && !/^\d{4,6}$/.test(o.cmp) ? "Indica el N.º de colegiatura (4 a 6 dígitos)" : !isEmail(o.mail) ? "Correo no válido" : d.users.some((u) => u.id !== rec?.id && u.mail === o.mail) ? "Ese correo ya está registrado"
+      : o.rol === "Doctor" && !f.titulo ? "Elige el tratamiento: Dr. o Dra." : o.rol === "Doctor" && !/^\d{4,6}$/.test(o.cmp) ? "Indica el N.º de colegiatura (4 a 6 dígitos)" : !isEmail(o.mail) ? "Correo no válido" : d.users.some((u) => u.id !== rec?.id && u.mail === o.mail) ? "Ese correo ya está registrado"
     : !/^9\d{8}$/.test(o.tel) ? "El celular debe tener 9 dígitos y empezar con 9" : "";
   const admins = d.users.filter((u) => u.rol === "Administrador" && u.on).length;
   const commit = (users: StaffUser[], msg: string) => { const prev = modStore.get(); saveMod({ ...prev, users }, msg, prev); onDone(); };
@@ -110,7 +110,7 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
     if (rec && rec.rol === "Administrador" && o.rol !== "Administrador" && admins <= 1) return toast("Debe quedar al menos un administrador");
     // Número de agenda del doctor: lo asigna el servidor en modo remoto; en demo se toma el siguiente libre.
     const agenda = rec?.agenda ?? (o.rol === "Doctor" && !isRemote ? nextAgenda(d.users) : undefined);
-    const item: StaffUser = { id: rec?.id ?? uid(), nom: o.nom, dni: o.dni, cmp: o.cmp, mail: o.mail, tel: o.tel, rol: o.rol, on: f.on === "Activo", ...(agenda ? { agenda } : {}) };
+    const item: StaffUser = { id: rec?.id ?? uid(), nom: o.nom, dni: o.dni, cmp: o.cmp, mail: o.mail, tel: o.tel, rol: o.rol, on: f.on === "Activo", ...(o.rol === "Doctor" && f.titulo ? { titulo: f.titulo } : {}), ...(agenda ? { agenda } : {}) };
     if (rec && o.rol === "Doctor" && !agenda && !isRemote) item.agenda = nextAgenda(d.users);
     if (rec) commit(d.users.map((u) => (u.id === rec.id ? item : u)), "Usuario actualizado");
     else { enqueue({ kind: "invitacion", channel: "correo", patient: o.mail, text: `Invitación al equipo (${o.rol})` }); commit([item, ...d.users], `Usuario registrado · invitación en cola para ${o.mail}`); }
@@ -120,6 +120,7 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
       <TextField label="Nombre completo" value={f.nom} onChange={(v) => set({ nom: v })} />
       <TextField label="DNI" value={f.dni} num onChange={(v) => set({ dni: v })} />
       <ChipField label="Perfil" value={f.rol} options={ROLES} onChange={(rol) => set({ rol })} />
+      {f.rol === "Doctor" && <ChipField label="Tratamiento" value={f.titulo as "Dr." | "Dra."} options={["Dr.", "Dra."] as const} onChange={(titulo) => set({ titulo })} />}
       {f.rol === "Doctor" && <TextField label="N.º de colegiatura (CMP)" value={f.cmp} num onChange={(v) => set({ cmp: v })} />}
       <TextField label="Correo" value={f.mail} onChange={(v) => set({ mail: v })} />
       <TextField label="Teléfono celular" value={f.tel} num onChange={(v) => set({ tel: v })} />

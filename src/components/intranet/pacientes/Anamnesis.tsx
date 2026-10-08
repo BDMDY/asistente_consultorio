@@ -38,7 +38,7 @@ export function Anamnesis({ p, onGoPlan }: { p: Patient; onGoPlan: () => void })
       return toast("Historia inicial reabierta");
     }
     if (!(a.v.motivo ?? "").trim()) return toast("Indica al menos el motivo de consulta");
-    const doc = docs.find((d) => String(d.id) === docId)?.name ?? "Odontólogo tratante";
+    const doc = docs.find((d) => String(d.id) === docId)?.full ?? "Odontólogo tratante";
     addNote(p.id, `Historia clínica inicial completada · ${doc} · ${pct}% del cuestionario`, today);
     patchAnam(p.id, { done: true });
     toast("Historia clínica inicial completada");
@@ -97,7 +97,7 @@ export function Anamnesis({ p, onGoPlan }: { p: Patient; onGoPlan: () => void })
       {card("ingreso", "DATOS DE INGRESO",
         <div className={s.g3}>
           <label className={s.field}>Odontólogo tratante
-            <select value={docId} onChange={(e) => setV("doc", e.target.value)} className={s.input}>{docs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+            <select value={docId} onChange={(e) => setV("doc", e.target.value)} className={s.input}>{docs.map((d) => <option key={d.id} value={d.id}>{d.full}</option>)}</select>
           </label>
           {input("Emp. aseguradora", a.v.aseg ?? "", (v) => setV("aseg", v))}
           {input("Fecha de ingreso", a.v.fecha ?? today, (v) => setV("fecha", v), { type: "date" })}

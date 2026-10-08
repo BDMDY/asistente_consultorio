@@ -8,7 +8,7 @@ import { useToday } from "@/lib/hooks";
 import { useDoctors } from "@/lib/doctors";
 import { useMod } from "@/lib/mod";
 import { canAccess, permsStore } from "@/lib/perms";
-import { currentUser, sedeStore, sessionStore } from "@/lib/session";
+import { currentUser, resolveSede, sedeStore, sessionStore } from "@/lib/session";
 import s from "./inicio.module.css";
 
 const money = (n: number) => "S/ " + Number(n || 0).toLocaleString("en-US");
@@ -28,6 +28,7 @@ export default function Inicio() {
   const [sede] = sedeStore.useStore();
   const user = currentUser(session, mod);
   const docs = useDoctors();
+  const sedeActiva = resolveSede(sede, mod.sedes.map((z) => z.n));
 
   const todays = appts.filter((a) => a.date === today && a.st !== "cancelada").sort((a, b) => a.slot - b.slot);
   const unconfirmed = todays.filter((a) => a.st === "pendiente").length;
@@ -61,7 +62,7 @@ export default function Inicio() {
       <div className={s.head}>
         <div>
           <h1 className={s.h1}>{greeting()}, {user?.nom.split(" ")[0]}</h1>
-          <div className={s.date}>{today ? labelLong(today).replace(/^./, (c) => c.toUpperCase()) : ""} · {sede}</div>
+          <div className={s.date}>{today ? labelLong(today).replace(/^./, (c) => c.toUpperCase()) : ""}{sedeActiva ? ` · ${sedeActiva}` : ""}</div>
         </div>
         <div className={s.shortcuts}>
           {shortcuts.filter((x) => x.show).map((x) => (

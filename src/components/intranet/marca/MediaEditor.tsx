@@ -128,8 +128,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
                 <Pick src={d.photo} label={`Foto de ${d.name}`} w={56} h={56} icon="user" onPick={(u) => upsert({ photo: u })} />
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                    <input aria-label={`Título de ${d.name}`} value={p?.title ?? ""} onChange={(e) => upsert({ title: e.target.value })} placeholder="Dr./Dra." style={{ ...inp, width: 64, height: 30, fontWeight: 600 }} />
-                    <b style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name.replace(/^(Dra?\.)\s*/, "")}</b>
+                    <b style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</b>
                   </div>
                   <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                     <input aria-label={`Especialidad de ${d.name}`} value={p?.spec ?? ""} onChange={(e) => upsert({ spec: e.target.value })} placeholder="Especialidad" style={{ ...inp, flex: 1, height: 28, fontSize: 12 }} />

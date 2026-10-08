@@ -5,7 +5,7 @@ import { defineStore } from "./store";
 export interface Stat { id: number; n: string; l: string }
 export interface Quote { id: number; t: string; a: string }
 /** Doctor tal como lo ven la agenda, la reserva y el sitio: el nombre y el COP salen del usuario registrado (Configuración → Usuarios). */
-export interface Doctor { id: number; name: string; spec: string; cop: string; photo: string }
+export interface Doctor { id: number; name: string; /** nombre completo con tratamiento (historia clínica) */ full: string; spec: string; cop: string; photo: string }
 /** Perfil público de un doctor registrado, enlazado por su número de agenda: lo que el usuario no tiene (título, especialidad y foto). */
 export interface DoctorProfile { id: number; title?: string; spec: string; photo: string }
 export interface Facility { id: number; cap: string; photo: string }
