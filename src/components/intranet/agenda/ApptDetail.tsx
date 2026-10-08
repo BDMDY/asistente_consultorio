@@ -3,7 +3,8 @@ import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { type Appt, STATUS_LABEL, apptWhenShort, hm } from "@/lib/agenda";
 import { agendaStore, removeAppts } from "@/lib/agenda-store";
-import { balanceFor, confirmAppt, reactivateAppt } from "@/lib/agenda-actions";
+import { balanceFor, confirmAppt, finishAttention, reactivateAppt, startAttention } from "@/lib/agenda-actions";
+import { inProgress, isClosed, limaHM, minutesBetween } from "@/lib/attention";
 import { labelShort } from "@/lib/dates";
 import { modStore } from "@/lib/mod";
 import { money } from "@/lib/payments";
@@ -11,8 +12,9 @@ import { currentUser, sessionStore } from "@/lib/session";
 import { toast } from "@/lib/toast";
 
 /** Contenido del detalle de una cita (panel lateral en escritorio, hoja inferior en móvil). */
-export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, onCancel, onClose, compact }: {
+export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResched, onPay, onCancel, onClose, compact }: {
   a: Appt; doctor: string; alerts: string[]; paid: number;
+  onResize: (dur: number) => void;
   onResched: () => void; onPay: () => void; onCancel: () => void; onClose?: () => void; compact?: boolean;
 }) {
   const open = a.st !== "cancelada" && a.st !== "atendida";
@@ -20,6 +22,14 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, 
   const [mod] = modStore.useStore();
   const [sure, setSure] = useState(false);
   const isAdmin = currentUser(session, mod)?.rol === "Administrador";
+
+  const running = inProgress(a);
+  const canStart = !a.t0 && !isClosed(a);
+
+  function finish() {
+    const min = finishAttention(a);
+    toast(`Atención finalizada · ${min} min (programados ${a.dur * 15})`);
+  }
 
   function reactivate() {
     const r = reactivateAppt(a);
@@ -56,8 +66,25 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, 
         Saldo: <b>{money(balanceFor(a, paid))}</b>
         {a.notes && <><br /><span style={{ color: "var(--ink-500)" }}>{a.notes}</span></>}
       </div>
-      {!compact && <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Teclado: con la cita enfocada, ↑ ↓ la mueven 15 min y ← → la cambian de doctor.</div>}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }} role="group" aria-label="Duración de la cita">
+        <span style={{ fontSize: 14, fontWeight: 600 }}>Duración</span>
+        <button type="button" aria-label="Reducir 15 minutos" disabled={isClosed(a) || a.dur <= 1} onClick={() => onResize(a.dur - 1)} style={stepBtn(isClosed(a) || a.dur <= 1)}>−15</button>
+        <b className="tnum" style={{ minWidth: 58, textAlign: "center" }}>{a.dur * 15} min</b>
+        <button type="button" aria-label="Extender 15 minutos" disabled={isClosed(a)} onClick={() => onResize(a.dur + 1)} style={stepBtn(isClosed(a))}>+15</button>
+      </div>
+      {(a.t0 || a.t1) && (
+        <div role="status" className="tnum" style={{ fontSize: 13, padding: "8px 12px", borderRadius: 10, background: a.t1 ? "var(--success-bg)" : "var(--info-bg)", color: a.t1 ? "var(--success-fg)" : "var(--info-fg)", fontWeight: 600 }}>
+          {a.t1 && a.t0 ? `Atendida de ${limaHM(a.t0)} a ${limaHM(a.t1)} · ${minutesBetween(a.t0, a.t1)} min (programados ${a.dur * 15})` : a.t0 ? `En atención desde las ${limaHM(a.t0)}` : ""}
+        </div>
+      )}
+      {!compact && <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Teclado: con la cita enfocada, ↑ ↓ la mueven 15 min, ← → la cambian de doctor y Mayús + ↑ ↓ cambian su duración.</div>}
       <div style={{ flex: 1 }} />
+      {canStart && !a.t0 && (
+        <button type="button" onClick={() => { startAttention(a); toast("Atención iniciada"); }} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--info-bg)", color: "var(--info-fg)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Iniciar atención</button>
+      )}
+      {running && (
+        <button type="button" onClick={finish} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Finalizar atención</button>
+      )}
       {(a.st === "pendiente" || a.st === "reprogramada") && (
         <button type="button" onClick={() => { confirmAppt(a.id); toast("Cita confirmada"); }} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Confirmar</button>
       )}
@@ -89,6 +116,8 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResched, onPay, 
     </div>
   );
 }
+
+const stepBtn = (disabled: boolean): React.CSSProperties => ({ cursor: disabled ? "not-allowed" : "pointer", border: 0, minWidth: 52, minHeight: 40, borderRadius: 10, boxShadow: "inset 0 0 0 1px var(--line)", background: "transparent", color: disabled ? "var(--ink-300)" : "inherit", fontWeight: 700, fontSize: 14, fontFamily: "inherit" });
 
 const ghost = (disabled: boolean): React.CSSProperties => ({ cursor: disabled ? "not-allowed" : "pointer", border: 0, padding: 12, minHeight: 46, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)", textAlign: "center", background: "transparent", color: disabled ? "var(--ink-300)" : "inherit", fontWeight: 700, fontSize: 14, fontFamily: "inherit" });
 

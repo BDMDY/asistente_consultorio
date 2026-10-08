@@ -1,6 +1,7 @@
 "use client";
 import { type Appt, type ApptStatus, STATUS_LABEL, apptWhenShort, clash, generateSeries, hm, isClosedDay, slotOf, SLOTS, type SeriesRule } from "./agenda";
 import { addAppts, agendaStore, patchAppt, removeAppts } from "./agenda-store";
+import { checkResize, minutesBetween } from "./attention";
 import { isISODate } from "./dates";
 import { newId } from "./ids";
 import { mediaStore, parsePrice, resolveMedia } from "./media";
@@ -114,3 +115,25 @@ export function createAppts(f: NewApptForm, mode: "single" | "series", rule: Ser
 
 export const statusLabel = (s: ApptStatus) => STATUS_LABEL[s];
 export const slotLabel = hm;
+
+// ---------- atención en consulta ----------
+
+export function resizeAppt(a: Appt, dur: number): { error: string } | { undo: () => void } {
+  const c = checkResize(agendaStore.get().appts, a, dur);
+  if (!c.ok) return { error: c.error };
+  const before = a.dur;
+  patchAppt(a.id, { dur });
+  return { undo: () => patchAppt(a.id, { dur: before }) };
+}
+
+/** Marca el inicio real de la atención (el paciente pasa a "En sala"). */
+export function startAttention(a: Appt) {
+  patchAppt(a.id, { t0: new Date().toISOString(), t1: undefined, st: "en-sala" });
+}
+
+/** Marca el fin real de la atención; no cambia el estado (queda por cobrar). */
+export function finishAttention(a: Appt): number {
+  const now = new Date().toISOString();
+  patchAppt(a.id, { t1: now });
+  return a.t0 ? minutesBetween(a.t0, now) : 0;
+}

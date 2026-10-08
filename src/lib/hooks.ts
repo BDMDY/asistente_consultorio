@@ -1,6 +1,6 @@
 "use client";
 import { useSyncExternalStore } from "react";
-import { todayISO } from "./dates";
+import { limaMinutesNow, todayISO } from "./dates";
 
 const noop = () => () => {};
 
@@ -9,3 +9,14 @@ export const useMounted = () => useSyncExternalStore(noop, () => true, () => fal
 
 /** Fecha de hoy en Lima; cadena vacía durante el render del servidor. */
 export const useToday = () => useSyncExternalStore(noop, () => todayISO(), () => "");
+
+/** Minutos desde la medianoche en Lima, actualizados cada 20 s; -1 durante el render del servidor. */
+export const useNowMin = () =>
+  useSyncExternalStore(
+    (cb) => {
+      const t = setInterval(cb, 20000);
+      return () => clearInterval(t);
+    },
+    () => limaMinutesNow(),
+    () => -1,
+  );

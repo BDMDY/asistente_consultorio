@@ -10,10 +10,10 @@ export interface Row { [k: string]: unknown }
 export const patientToRow = (c: string, p: Patient): Row => ({ clinic_id: c, id: p.id, name: p.name, dni: p.dni, phone: p.phone, email: p.email ?? null, web: !!p.web, alerts: p.alerts });
 export const rowToPatient = (r: Row): Patient => ({ id: Number(r.id), name: r.name as string, dni: (r.dni as string) ?? "", phone: (r.phone as string) ?? "", ...(r.email ? { email: r.email as string } : {}), ...(r.web ? { web: true } : {}), alerts: (r.alerts as string[]) ?? [] });
 
-export const apptToRow = (c: string, a: Appt): Row => ({ clinic_id: c, id: a.id, date: a.date, doctor_id: a.doc, slot: a.slot, dur: a.dur, patient_name: a.p, service: a.s, status: a.st, web: !!a.web, notes: a.notes ?? null, dni: a.dni ?? null, phone: a.phone ?? null });
+export const apptToRow = (c: string, a: Appt): Row => ({ clinic_id: c, id: a.id, date: a.date, doctor_id: a.doc, slot: a.slot, dur: a.dur, patient_name: a.p, service: a.s, status: a.st, web: !!a.web, notes: a.notes ?? null, dni: a.dni ?? null, phone: a.phone ?? null, started_at: a.t0 ?? null, ended_at: a.t1 ?? null });
 export const rowToAppt = (r: Row): Appt => ({
   id: Number(r.id), date: r.date as string, doc: Number(r.doctor_id), slot: Number(r.slot), dur: Number(r.dur), p: r.patient_name as string, s: r.service as string, st: r.status as ApptStatus,
-  ...(r.web ? { web: true } : {}), ...(r.notes ? { notes: r.notes as string } : {}), ...(r.dni ? { dni: r.dni as string } : {}), ...(r.phone ? { phone: r.phone as string } : {}), ...(r.public_token ? { token: r.public_token as string } : {}),
+  ...(r.web ? { web: true } : {}), ...(r.notes ? { notes: r.notes as string } : {}), ...(r.dni ? { dni: r.dni as string } : {}), ...(r.phone ? { phone: r.phone as string } : {}), ...(r.public_token ? { token: r.public_token as string } : {}), ...(r.started_at ? { t0: r.started_at as string } : {}), ...(r.ended_at ? { t1: r.ended_at as string } : {}),
 });
 
 export const paymentToRow = (c: string, p: Payment): Row => ({ clinic_id: c, id: p.id, no: p.no, appt_id: p.apptId ?? null, patient: p.patient, concept: p.concept, amount: p.amount, method: p.method, label: p.date, at: p.at });

@@ -39,6 +39,10 @@ export interface Appt {
   phone?: string;
   /** enlace único de "Mi cita" (solo modo remoto) */
   token?: string;
+  /** inicio real de la atención (ISO) */
+  t0?: string;
+  /** fin real de la atención (ISO) */
+  t1?: string;
 }
 
 export interface AgendaState {

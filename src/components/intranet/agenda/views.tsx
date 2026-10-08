@@ -3,6 +3,7 @@ import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/kit";
 import { type Appt, STATUS_LABEL, type ApptStatus, hm } from "@/lib/agenda";
+import { inProgress } from "@/lib/attention";
 import { labelShort } from "@/lib/dates";
 import { initials } from "@/lib/media";
 import type { AgendaCtx } from "./Agenda";
@@ -20,11 +21,37 @@ const navBtn: React.CSSProperties = { cursor: "pointer", width: 40, height: 40, 
 export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
   const { date, docs, appts, selId } = ctx;
   const [dragId, setDragId] = useState<number | null>(null);
+  /** duración provisional mientras se arrastra el borde inferior de una cita */
+  const [resizing, setResizing] = useState<{ id: number; dur: number } | null>(null);
   const day = appts.filter((a) => a.date === date);
   const sel = appts.find((a) => a.id === selId) ?? null;
 
+  function startResize(e: React.PointerEvent<HTMLDivElement>, a: Appt) {
+    e.preventDefault();
+    e.stopPropagation();
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    const y0 = e.clientY;
+    let dur = a.dur;
+    const move = (ev: PointerEvent) => {
+      dur = Math.max(1, Math.min(32 - a.slot, a.dur + Math.round((ev.clientY - y0) / SLOT_H)));
+      setResizing({ id: a.id, dur });
+    };
+    const up = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", up);
+      setResizing(null);
+      ctx.resize(a, dur);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  }
+
   function onKey(e: React.KeyboardEvent, a: Appt) {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); return ctx.setSel(a.id); }
+    if (e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) { e.preventDefault(); return ctx.resize(a, a.dur + (e.key === "ArrowDown" ? 1 : -1)); }
     const di = docs.findIndex((d) => d.id === a.doc);
     const to = { doc: a.doc, slot: a.slot };
     if (e.key === "ArrowUp") to.slot -= 1;
@@ -79,18 +106,23 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
                     style={{ cursor: "pointer", height: SLOT_H, boxSizing: "border-box", borderTop: k % 4 === 0 ? "1px solid var(--line)" : "1px dashed rgba(220,229,224,.5)" }} />
                 ))}
               </div>
-              {day.filter((a) => a.doc === d.id).map((a) => (
+              {day.filter((a) => a.doc === d.id).map((a) => {
+                const dur = resizing?.id === a.id ? resizing.dur : a.dur;
+                const live = inProgress(a);
+                return (
                 <div key={a.id} role="button" tabIndex={0} draggable aria-pressed={selId === a.id}
                   aria-label={`${a.p}, ${a.s}, ${hm(a.slot)}, ${d.name}, ${STATUS_LABEL[a.st]}`}
                   onDragStart={(e) => { e.dataTransfer.setData("text/plain", String(a.id)); setDragId(a.id); }}
                   onDragEnd={() => setDragId(null)}
                   onKeyDown={(e) => onKey(e, a)}
                   onClick={(e) => { e.stopPropagation(); ctx.setSel(a.id); }}
-                  style={{ position: "absolute", left: 6, right: 6, top: HEAD_H + a.slot * SLOT_H, height: a.dur * SLOT_H - 2, borderRadius: 10, padding: "6px 10px", boxSizing: "border-box", background: `var(--st-${a.st}-bg)`, color: `var(--st-${a.st}-fg)`, fontSize: 13, overflow: "hidden", cursor: "grab", boxShadow: selId === a.id ? "0 0 0 2px var(--brand-500)" : "none", opacity: a.st === "cancelada" ? 0.6 : 1 }}>
+                  style={{ position: "absolute", left: 6, right: 6, top: HEAD_H + a.slot * SLOT_H, height: dur * SLOT_H - 2, borderRadius: 10, padding: "6px 10px", boxSizing: "border-box", background: `var(--st-${a.st}-bg)`, color: `var(--st-${a.st}-fg)`, fontSize: 13, overflow: "hidden", cursor: "grab", boxShadow: selId === a.id ? "0 0 0 2px var(--brand-500)" : "none", opacity: a.st === "cancelada" ? 0.6 : 1 }}>
                   <b>{a.p}</b>
-                  <div className="tnum" style={{ opacity: 0.85, fontSize: 12 }}>{hm(a.slot)}–{hm(a.slot + a.dur)} · {a.s}{a.web ? " · Web" : ""}</div>
+                  <div className="tnum" style={{ opacity: 0.85, fontSize: 12 }}>{live ? "● En atención · " : ""}{hm(a.slot)}–{hm(a.slot + dur)} · {a.s}{a.web ? " · Web" : ""}</div>
+                  <div role="separator" aria-orientation="horizontal" aria-label={`Cambiar duración de ${a.p}`} draggable={false} onPointerDown={(e) => startResize(e, a)} onClick={(e) => e.stopPropagation()} className="da-resize" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 8, cursor: "ns-resize", touchAction: "none" }} />
                 </div>
-              ))}
+                );
+              })}
             </div>
           ))}
         </div>
@@ -103,12 +135,12 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
               <span style={{ fontSize: 13 }}>Verás el detalle y las acciones.</span>
             </div>
           ) : (
-            <ApptDetail a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} alerts={ctx.alerts(sel.p)} paid={ctx.paid(sel.id)}
+            <ApptDetail a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} alerts={ctx.alerts(sel.p)} paid={ctx.paid(sel.id)} onResize={(d) => ctx.resize(sel, d)}
               onResched={() => ctx.open({ kind: "resched" })} onPay={() => ctx.open({ kind: "pay" })} onCancel={() => ctx.open({ kind: "cancel" })} onClose={() => ctx.setSel(null)} />
           )}
         </aside>
       </div>
-      <style>{`.da-slot:hover{background:var(--brand-50)}`}</style>
+      <style>{`.da-slot:hover{background:var(--brand-50)}.da-resize:hover{background:rgba(0,0,0,.14)}`}</style>
     </div>
   );
 }
@@ -166,7 +198,7 @@ export function AgendaMobile({ ctx }: { ctx: AgendaCtx }) {
       {detail && sel && (
         <Modal sheet onClose={() => setDetail(false)} label="Detalle de la cita">
           <div style={{ padding: "18px 18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <ApptDetail compact a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} alerts={ctx.alerts(sel.p)} paid={ctx.paid(sel.id)}
+            <ApptDetail compact a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} alerts={ctx.alerts(sel.p)} paid={ctx.paid(sel.id)} onResize={(d) => ctx.resize(sel, d)}
               onResched={() => act({ kind: "resched" })} onPay={() => act({ kind: "pay" })} onCancel={() => act({ kind: "cancel" })} />
           </div>
         </Modal>

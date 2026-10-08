@@ -7,7 +7,9 @@ import { agendaStore } from "@/lib/agenda-store";
 import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { type Doctor, activeServices, serviceSlots, useMedia } from "@/lib/media";
 import { PAY_METHODS, type PayMethod, type Payment, money } from "@/lib/payments";
-import { patientsStore } from "@/lib/patients";
+import { delayMessage, rescheduleMessage } from "@/lib/attention";
+import { enqueue } from "@/lib/outbox";
+import { patientsStore, samePatientName } from "@/lib/patients";
 import NewPatientDialog from "../pacientes/NewPatientDialog";
 import { toast } from "@/lib/toast";
 import { useBrand } from "@/lib/brand";
@@ -350,3 +352,64 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   );
 }
 
+
+// ───────────────────────── Avisar al siguiente paciente ─────────────────────────
+
+/** Mensaje de demora o de reprogramación para el próximo paciente; se abre en WhatsApp ya escrito y queda registrado en la cola de salida. */
+export function ContactDialog({ next, delayMin, mode: initialMode, sheet, onClose, onResched }: {
+  next: Appt;
+  delayMin: number;
+  mode: "demora" | "reprogramar";
+  sheet: boolean;
+  onClose: () => void;
+  onResched: () => void;
+}) {
+  const brand = useBrand();
+  const [patients] = patientsStore.useStore();
+  const [mode, setMode] = useState(initialMode);
+  const [minutes, setMinutes] = useState(delayMin);
+  const when = hm(next.slot);
+  const known = patients.find((p) => (next.dni && p.dni === next.dni) || samePatientName(next.p, p.name));
+  const fullName = known?.name ?? next.p;
+  const phone = (next.phone || known?.phone || "").replace(/\D/g, "");
+  const link = typeof window !== "undefined" ? `${window.location.origin}/mi-cita/${next.token ?? next.id}` : undefined;
+  const auto = mode === "demora"
+    ? delayMessage({ name: fullName, clinic: brand.name, minutes, when, link })
+    : rescheduleMessage({ name: fullName, clinic: brand.name, when, link });
+  const [custom, setCustom] = useState<string | null>(null);
+  const text = custom ?? auto;
+  const pick = (m: typeof mode) => { setMode(m); setCustom(null); };
+
+  function send() {
+    const intl = phone.length === 9 ? "51" + phone : phone;
+    if (intl) window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    enqueue({ kind: "demora", channel: "whatsapp", patient: next.p, apptId: next.id, text });
+    toast(intl ? `Aviso listo en WhatsApp para ${next.p}` : `Aviso registrado para ${next.p} (sin teléfono: envíalo manualmente)`);
+    onClose();
+    if (mode === "reprogramar") onResched();
+  }
+
+  return (
+    <Modal onClose={onClose} width={560} label="Avisar al paciente" sheet={sheet}>
+      <div style={{ padding: 26, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><b style={{ fontSize: 22 }}>Avisar a {next.p}</b><CloseBtn onClick={onClose} /></div>
+        <div className="tnum" style={{ fontSize: 14, color: "var(--ink-500)" }}>Cita de las {when} · {next.s}{phone ? ` · ${phone}` : " · sin teléfono registrado"}</div>
+        <Segmented value={mode} onChange={pick} options={[["demora", "Avisar demora"], ["reprogramar", "Ofrecer reprogramar"]]} />
+        {mode === "demora" && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }} role="group" aria-label="Demora estimada">
+            <span style={{ fontSize: 14, fontWeight: 600 }}>Demora estimada</span>
+            {[10, 15, 20, 30, 45].map((m) => <button key={m} type="button" aria-pressed={m === minutes} onClick={() => { setMinutes(m); setCustom(null); }} style={timeChip(m === minutes)}>{m} min</button>)}
+          </div>
+        )}
+        <label style={labelStyle}>Mensaje (puedes editarlo)
+          <textarea value={text} onChange={(e) => setCustom(e.target.value)} rows={6} style={{ ...fieldStyle, height: "auto", padding: 12, fontSize: 14, lineHeight: 1.5, resize: "vertical" }} />
+        </label>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+          <button type="button" onClick={onClose} style={btnOutline}>Cancelar</button>
+          <button type="button" onClick={send} style={btnPrimary()}>{phone ? "Abrir WhatsApp y registrar" : "Registrar aviso"}</button>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-500)" }}>El envío automático se activará al conectar la API de WhatsApp; mientras tanto se abre el chat con el mensaje listo.</div>
+      </div>
+    </Modal>
+  );
+}

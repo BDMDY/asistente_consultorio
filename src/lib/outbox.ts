@@ -8,7 +8,7 @@ import { defineStore } from "./store";
  */
 export interface OutboxItem {
   id: number;
-  kind: "cancelacion" | "recordatorio" | "reprogramacion" | "campana" | "cobranza" | "comprobante" | "pedido" | "invitacion";
+  kind: "cancelacion" | "recordatorio" | "reprogramacion" | "campana" | "cobranza" | "comprobante" | "pedido" | "invitacion" | "demora";
   channel: "whatsapp" | "correo";
   patient: string;
   apptId?: number;
