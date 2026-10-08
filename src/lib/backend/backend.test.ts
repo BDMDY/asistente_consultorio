@@ -4,7 +4,7 @@ import type { Appt } from "../agenda";
 import type { Patient } from "../patients";
 import { apptToRow, diffById, flatten, groupByPatient, patientToRow, rowToAppt, rowToPatient, rowToPayment, paymentToRow } from "./rows";
 import { fetchAll, registerSpecs } from "./specs";
-import { defineSpec, getCtx, queueSave, registerStore, refresh, setCtx } from "./sync";
+import { defineSpec, getCtx, queueSave, registerStore, setCtx } from "./sync";
 
 describe("conversores de filas", () => {
   it("cita ↔ fila conserva los datos y el enlace", () => {
@@ -78,10 +78,21 @@ describe("adaptadores", () => {
     defineSpec<number>("t-fail", { tables: [], load: async () => ++loaded, save: async () => { throw new Error("x"); } });
     let value = 0;
     registerStore("t-fail", { hydrate: (v) => { value = v as number; }, reset: () => {} });
-    queueSave("t-fail", 0, 1);
+    await new Promise((r) => setTimeout(r, 20));
+    const antes = loaded; // la carga inicial al registrarse
+    queueSave("t-fail", 0, 99);
     await new Promise((r) => setTimeout(r, 30));
-    expect(value).toBe(1);
-    await refresh("t-fail");
-    expect(loaded).toBe(2);
+    expect(loaded).toBe(antes + 1);
+    expect(value).toBe(loaded);
+  });
+
+  it("un store que se registra después de iniciar sesión se carga solo", async () => {
+    const { db } = fakeDb();
+    setCtx({ db, clinicId: "c1" });
+    defineSpec<string>("t-late", { tables: [], load: async () => "cargado", save: async () => {} });
+    let value = "";
+    registerStore("t-late", { hydrate: (v) => { value = v as string; }, reset: () => {} });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(value).toBe("cargado");
   });
 });

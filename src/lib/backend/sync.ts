@@ -24,8 +24,22 @@ const chains = new Map<string, Promise<void>>();
 let ctx: Ctx | null = null;
 
 export const defineSpec = <T,>(name: string, spec: RemoteSpec<T>) => void specs.set(name, spec as RemoteSpec<unknown>);
-export const registerStore = (name: string, handle: StoreHandle) => void stores.set(name, handle);
-export const setCtx = (c: Ctx | null) => void (ctx = c);
+let lastSite: PublicSite | null = null;
+
+/**
+ * Registra un store. Los stores viven en módulos que se cargan por pantalla: uno que se registra después de iniciar
+ * sesión (o de cargar el sitio público) se hidrata en el momento, no se queda vacío.
+ */
+export function registerStore(name: string, handle: StoreHandle) {
+  stores.set(name, handle);
+  const spec = specs.get(name);
+  if (ctx) void refresh(name);
+  else if (lastSite && spec?.fromPublic) handle.hydrate(spec.fromPublic(lastSite));
+}
+export const setCtx = (c: Ctx | null) => {
+  ctx = c;
+  if (c) lastSite = null;
+};
 export const getCtx = () => ctx;
 
 /** Recarga un store desde la base; se descarta si mientras tanto hubo cambios locales sin guardar. */
@@ -79,6 +93,7 @@ export async function loadPublic(db: SupabaseClient, slug: string) {
   const { data, error } = await db.rpc("public_site", { p_slug: slug });
   if (error || !data) return;
   const site = data as PublicSite;
+  lastSite = site;
   for (const [name, spec] of specs) if (spec.fromPublic) stores.get(name)?.hydrate(spec.fromPublic(site));
 }
 
