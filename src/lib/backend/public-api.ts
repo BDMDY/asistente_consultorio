@@ -114,3 +114,21 @@ export async function actMine(token: string, a: MineAction): Promise<string | nu
   void fetchBusy().then((busy) => emit({ ...mine, busy })).catch(() => {});
   return null;
 }
+
+// ───────── Consultar mis citas ─────────
+export interface FoundAppt { ref: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doc: number }
+
+/** Citas vigentes de un paciente: exige DNI y teléfono que coincidan con los de la cita. */
+export async function lookupAppts(dni: string, phone: string): Promise<FoundAppt[]> {
+  if (!isRemote) {
+    const digits = (v: string) => v.replace(/\D/g, "").slice(-9);
+    const min = addDays(todayISO(), -30);
+    return agendaStore.get().appts
+      .filter((a) => a.dni === dni && digits(a.phone ?? "") === digits(phone) && a.st !== "cancelada" && a.date >= min)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.slot - b.slot)
+      .map((a) => ({ ref: String(a.id), date: a.date, slot: a.slot, dur: a.dur, service: a.s, status: a.st, doc: a.doc }));
+  }
+  const { data, error } = await getClient().rpc("public_lookup", { p_slug: CLINIC_SLUG, p_dni: dni, p_phone: phone });
+  if (error) throw error;
+  return (data as { token: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doctor_id: number }[]).map((r) => ({ ref: r.token, date: r.date, slot: r.slot, dur: r.dur, service: r.service, status: r.status, doc: r.doctor_id }));
+}

@@ -45,12 +45,16 @@ export default function Landing() {
         <button type="button" className={s.menuBtn} aria-label="Menú" aria-expanded={menu} onClick={() => setMenu(!menu)}>
           <Icon name={menu ? "x" : "menu"} />
         </button>
+        <Link href="/mis-citas" className={s.headLink}>Mis citas</Link>
+        <Link href="/intranet" className={s.staffLink}>Acceso del personal</Link>
         <Link href="/reserva" className={s.cta}>Reservar cita</Link>
       </header>
       <nav className={`${s.mobileMenu} ${menu ? s.open : ""}`} aria-label="Menú móvil">
         {NAV.map(([t, h]) => (
           <a key={h} href={h} onClick={() => setMenu(false)}>{t}</a>
         ))}
+        <Link href="/mis-citas" onClick={() => setMenu(false)}>Consultar mis citas</Link>
+        <Link href="/intranet" onClick={() => setMenu(false)}>Acceso del personal</Link>
       </nav>
 
       <section className={s.hero}>
@@ -64,6 +68,7 @@ export default function Landing() {
               <Icon name="message-circle" />WhatsApp
             </a>
           </div>
+          <Link href="/mis-citas" className={s.heroLink}>¿Ya tienes una cita? Consúltala aquí</Link>
           <div className={s.rating}>
             <Icon name="star" style={{ color: "var(--accent-500)" }} />
             <b style={{ color: "var(--ink-900)" }}>{media.stats[2]?.n}</b> · {media.stats[1]?.n} pacientes · {brand.hours}
@@ -211,7 +216,11 @@ export default function Landing() {
             <span>Instagram {brand.instagram}</span>
             <span>Facebook {brand.facebook}</span>
           </span>
-          <Link href="/privacidad">Aviso de privacidad (Ley 29733)</Link>
+          <span style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+            <Link href="/mis-citas">Consultar mis citas</Link>
+            <Link href="/intranet">Acceso del personal</Link>
+            <Link href="/privacidad">Aviso de privacidad (Ley 29733)</Link>
+          </span>
         </div>
       </footer>
 

@@ -83,7 +83,8 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
                 {p.name}{p.dni && <span className="tnum" style={{ color: "var(--ink-500)", fontWeight: 500 }}> · DNI {p.dni}</span>}
               </button>
             ))}
-            {!exact && (
+            {!exact && /^\d+$/.test(q) && matches.length === 0 && <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--ink-500)", borderTop: "1px solid var(--line)" }}>No hay un paciente con ese DNI. Regístralo primero en Pacientes → Nuevo paciente.</div>}
+            {!exact && !/^\d+$/.test(q) && (
               <button type="button" onClick={() => patch({ picked: true, isNew: true })} style={{ cursor: "pointer", display: "block", width: "100%", textAlign: "left", padding: "11px 14px", fontSize: 14, fontWeight: 700, color: "var(--brand-text)", border: 0, borderTop: "1px solid var(--line)", background: "transparent", fontFamily: "inherit" }}>
                 + Crear paciente nuevo «{f.patient.trim()}»
               </button>
