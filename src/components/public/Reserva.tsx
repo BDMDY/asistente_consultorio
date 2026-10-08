@@ -20,7 +20,8 @@ const LABELS = ["PASO 1 DE 5", "PASO 2 DE 5 · OPCIONAL", "PASO 3 DE 5", "PASO 4
 
 type DocChoice = "any" | number | null;
 interface Form { name: string; dni: string; phone: string; email?: string }
-interface Draft { step: number; svcId: number | null; doc: DocChoice; date: string | null; slot: number | null; consent: boolean; f: Form }
+interface Booked { ref: string; doc: number; existing: boolean; name: string }
+interface Draft { booked?: Booked; step: number; svcId: number | null; doc: DocChoice; date: string | null; slot: number | null; consent: boolean; f: Form }
 const EMPTY: Draft = { step: 0, svcId: null, doc: null, date: null, slot: null, consent: false, f: { name: "", dni: "", phone: "", email: "" } };
 /** Borrador de la reserva: persiste en la sesión del navegador (se pierde al cerrar la pestaña). */
 const draftStore = defineStore<Draft>("da-draft-v1", () => EMPTY, { session: true });
@@ -46,7 +47,8 @@ export default function Reserva() {
   const [d] = draftStore.useStore();
   const [tried, setTried] = useState(false);
   const [race, setRace] = useState(false);
-  const [booked, setBooked] = useState<{ ref: string; doc: number; existing: boolean; name: string } | null>(null);
+  /** la confirmación vive en el borrador de la sesión: sobrevive a recargar la página */
+  const booked = d.booked ?? null;
   const [sending, setSending] = useState(false);
   const [bookErr, setBookErr] = useState("");
   const today = useToday();
@@ -88,8 +90,7 @@ export default function Reserva() {
       } else setBookErr(res.error);
       return;
     }
-    setBooked({ ref: res.ref, doc: res.doc, existing: res.existing, name: res.name });
-    patch({ step: 4 });
+    patch({ step: 4, booked: { ref: res.ref, doc: res.doc, existing: res.existing, name: res.name } });
   }
 
   function next() {
@@ -106,7 +107,6 @@ export default function Reserva() {
     draftStore.set(EMPTY);
     setTried(false);
     setRace(false);
-    setBooked(null);
     setBookErr("");
   }
 
@@ -223,6 +223,14 @@ export default function Reserva() {
           </>
         )}
 
+        {d.step === 4 && !booked && (
+          <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingTop: 24 }}>
+            <b style={{ fontSize: 22 }}>Tu reserva ya fue registrada</b>
+            <span style={{ fontSize: 14, color: "var(--ink-500)", lineHeight: 1.5 }}>Consulta tu cita con tu DNI y teléfono, o reserva otra.</span>
+            <Link href="/mis-citas" style={{ minHeight: 50, padding: "0 22px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center" }}>Consultar mis citas</Link>
+            <button type="button" onClick={reset} style={{ cursor: "pointer", minHeight: 50, padding: "0 22px", borderRadius: 12, border: 0, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", background: "transparent", fontWeight: 700, fontSize: 15, fontFamily: "inherit" }}>Reservar otra cita</button>
+          </div>
+        )}
         {d.step === 4 && booked && (
           <>
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, paddingTop: 16 }}>
