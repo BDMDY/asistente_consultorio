@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
@@ -102,6 +102,15 @@ export default function Reserva() {
     setRace(false);
     patch({ step: d.step + 1 });
   }
+
+  // La confirmación solo debe verse al recargar esta misma página: una visita nueva empieza una reserva en blanco.
+  useEffect(() => {
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (draftStore.get().step === 4 && nav?.type !== "reload") draftStore.set(EMPTY);
+    return () => {
+      if (draftStore.get().step === 4) draftStore.set(EMPTY);
+    };
+  }, []);
 
   function reset() {
     draftStore.set(EMPTY);
