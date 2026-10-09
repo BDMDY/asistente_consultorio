@@ -22,6 +22,9 @@ export interface NotifPrefs { wa24: boolean; wa2: boolean; mail: boolean; resume
 export interface DiscountCode { id: string; code: string; type: "%" | "S/"; val: number; max: number; used: number; on: boolean }
 export interface DiscountCamp { id: string; n: string; type: "%" | "S/"; val: number; ap: string; from: string; to: string; on: boolean }
 
+/** Liquidación de materiales de una atención: lo consumido sale del inventario. */
+export interface MatUse { id: string; apptId: number; at: string; patient: string; service: string; lines: { invId: string; n: string; u: string; qty: number }[] }
+
 export interface ModData {
   planes: Plan[];
   inv: InvItem[];
@@ -32,6 +35,8 @@ export interface ModData {
   notif: NotifPrefs;
   desc: { codes: DiscountCode[]; camps: DiscountCamp[] };
   sent: number;
+  /** liquidaciones de materiales por atención (más reciente primero) */
+  mats?: MatUse[];
 }
 
 export const seedMod = (): ModData => ({

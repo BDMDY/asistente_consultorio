@@ -4,7 +4,7 @@ import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { type Appt, STATUS_LABEL, apptWhenShort, hm } from "@/lib/agenda";
 import { agendaStore, removeAppts } from "@/lib/agenda-store";
-import { balanceFor, confirmAppt, finishAttention, reactivateAppt, startAttention } from "@/lib/agenda-actions";
+import { balanceFor, confirmAppt, reactivateAppt, startAttention } from "@/lib/agenda-actions";
 import { inProgress, isClosed, limaHM, minutesBetween } from "@/lib/attention";
 import { labelShort } from "@/lib/dates";
 import { modStore } from "@/lib/mod";
@@ -14,7 +14,9 @@ import { useBrand } from "@/lib/brand";
 import { openSessionReceipt } from "@/lib/receipts-open";
 import { apptCode, sessionGroup } from "@/lib/receipts";
 import { currentUser, sessionStore } from "@/lib/session";
+import { matUseOf } from "@/lib/materials";
 import { toast } from "@/lib/toast";
+import MaterialsDialog from "./MaterialsDialog";
 
 /** Contenido del detalle de una cita (panel lateral en escritorio, hoja inferior en móvil). */
 export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResched, onPay, onCancel, onClose, compact }: {
@@ -38,10 +40,8 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResche
   const running = inProgress(a);
   const canStart = !a.t0 && !isClosed(a);
 
-  function finish() {
-    const min = finishAttention(a);
-    toast(`Atención finalizada · ${min} min (programados ${a.dur * 15})`);
-  }
+  const [mats, setMats] = useState<null | "finish" | "late">(null);
+  const used = matUseOf(mod.mats, a.id);
 
   function reactivate() {
     const r = reactivateAppt(a);
@@ -106,8 +106,11 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResche
         <button type="button" onClick={() => openPatient(running)} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: running ? "var(--info-bg)" : "transparent", boxShadow: running ? "none" : "inset 0 0 0 1px var(--line)", color: running ? "var(--info-fg)" : "var(--brand-text)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Abrir ficha del paciente</button>
       )}
       {running && (
-        <button type="button" onClick={finish} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Finalizar atención</button>
+        <button type="button" onClick={() => setMats("finish")} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Finalizar atención</button>
       )}
+      {used && <div role="note" className="tnum" style={{ fontSize: 13, padding: "8px 12px", borderRadius: 10, background: "var(--surface-2, var(--brand-50))", color: "var(--ink-700)" }}><b>Materiales liquidados:</b> {used.lines.map((l) => `${l.n} ×${l.qty} ${l.u}`).join(" · ")}</div>}
+      {!used && a.t1 && <button type="button" onClick={() => setMats("late")} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "transparent", boxShadow: "inset 0 0 0 1px var(--line)", color: "var(--brand-text)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Liquidar materiales</button>}
+      {mats && <MaterialsDialog a={a} finish={mats === "finish"} onClose={() => setMats(null)} />}
       {(a.st === "pendiente" || a.st === "reprogramada") && (
         <button type="button" onClick={() => { confirmAppt(a.id); toast("Cita confirmada"); }} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Confirmar</button>
       )}

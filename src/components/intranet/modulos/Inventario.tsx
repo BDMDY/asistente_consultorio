@@ -62,6 +62,7 @@ function Product({ rec, soonFn, onDone }: { rec: InvItem; soonFn: (v: string) =>
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const dl = Math.max(1, Number(f.delta) || 1);
   const low = rec.qty < rec.min, soon = soonFn(rec.venc);
+  const uses = (modStore.get().mats ?? []).filter((m) => m.lines.some((l) => l.invId === rec.id));
   const patch = (p: Partial<InvItem>, msg: string) => {
     const prev = modStore.get();
     saveMod({ ...prev, inv: prev.inv.map((i) => (i.id === rec.id ? { ...i, ...p } : i)) }, msg, prev);
@@ -71,6 +72,12 @@ function Product({ rec, soonFn, onDone }: { rec: InvItem; soonFn: (v: string) =>
   return (
     <>
       <SheetSub sub={`Stock ${rec.qty} ${rec.u} · mínimo ${rec.min} ${rec.u}${rec.venc ? ` · vence ${rec.venc}` : ""}`} badge={low ? "Bajo" : soon ? "Por vencer" : "OK"} tone={low ? E : soon ? W : G} />
+      {uses.length > 0 && (
+        <div className="tnum" style={{ fontSize: 13, color: "var(--ink-500)", lineHeight: 1.6 }}>
+          <b style={{ color: "var(--ink-700)" }}>Últimos consumos en atenciones</b>
+          {uses.slice(0, 5).map((m) => <div key={m.id}>{m.at.slice(0, 10)} · {m.patient} · −{m.lines.find((l) => l.invId === rec.id)!.qty} {rec.u}</div>)}
+        </div>
+      )}
       <TextField label={`Cantidad del movimiento (${f.u})`} value={f.delta} num onChange={(v) => set({ delta: v })} />
       <TextField label={`Stock mínimo (${f.u})`} value={f.min} num onChange={(v) => set({ min: v })} />
       <ChipField label="Unidad de medida" value={f.u} options={UNITS} onChange={(u) => set({ u })} />

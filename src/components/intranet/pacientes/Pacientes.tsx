@@ -5,7 +5,7 @@ import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { CloseBtn, Modal, btnOutline, btnPrimary, chipStyle, fieldStyle, labelStyle } from "@/components/ui/kit";
 import { agendaStore } from "@/lib/agenda-store";
-import { finishAttention } from "@/lib/agenda-actions";
+import MaterialsDialog from "../agenda/MaterialsDialog";
 import { inProgress } from "@/lib/attention";
 import { type PlanItem, addItems, anamnesisStore, emptyAnam, itemBalance, payItem, planItems, plansStore, sessionPrice } from "@/lib/clinical";
 import { useMediaQuery } from "@/lib/media-query";
@@ -13,7 +13,7 @@ import { activeServices, initials, parsePrice, serviceSessions, useMedia } from 
 import { uid } from "@/lib/mod";
 import { type Patient, patientOf, patientsStore } from "@/lib/patients";
 import { PAY_METHODS, type PayMethod, addPayments, money } from "@/lib/payments";
-import { apptWhenShort } from "@/lib/agenda";
+import { type Appt, apptWhenShort } from "@/lib/agenda";
 import { apptCode, todaysApptOf } from "@/lib/receipts";
 import { toast } from "@/lib/toast";
 import { todayISO } from "@/lib/dates";
@@ -43,6 +43,7 @@ export default function Pacientes() {
   });
   const [view, setView] = useState<"list" | "detail">(params.get("id") ? "detail" : "list");
   const [tab, setTab] = useState<TabKey>("hist");
+  const [matsFor, setMatsFor] = useState<Appt | null>(null);
   const [modal, setModal] = useState<Modal>(params.get("nuevo") ? "new" : null);
   /** tratamientos sugeridos al crear el seguimiento clínico desde un plan de pago */
   const [seed, setSeed] = useState<PlanSeed[] | undefined>();
@@ -108,7 +109,7 @@ export default function Pacientes() {
                   <Link href={`/intranet/agenda?nueva=${encodeURIComponent(cur.name)}`} style={{ padding: "12px 16px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap" }}>Nueva cita</Link>
                 </div>
                 {running && (
-                  <AtencionBanner a={running} onAddTreatment={() => { setSeed(undefined); setModal("plan"); }} onBack={() => router.push("/intranet/agenda")} onFinish={() => { const min = finishAttention(running); toast(`Atención finalizada · ${min} min (programados ${running.dur * 15})`); }} />
+                  <AtencionBanner a={running} onAddTreatment={() => { setSeed(undefined); setModal("plan"); }} onBack={() => router.push("/intranet/agenda")} onFinish={() => setMatsFor(running)} />
                 )}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   {cur.alerts.map((a) => (
@@ -136,6 +137,7 @@ export default function Pacientes() {
         )}
       </div>
 
+      {matsFor && <MaterialsDialog a={matsFor} finish sheet={!wide} onClose={() => setMatsFor(null)} />}
       {modal === "new" && <NewPatientDialog sheet={!wide} onClose={() => setModal(null)} toastText="Paciente creado · completa la historia inicial" onCreated={(np) => { setSelId(np.id); setView("detail"); setTab("anam"); }} />}
       {modal === "plan" && cur && <PlanDialog p={cur} seed={seed} sheet={!wide} onClose={() => setModal(null)} onCreated={() => setTab("plan")} />}
       {modal === "pay" && cur && <PayDialog key={payFor ?? "libre"} p={cur} concept="" itemId={payFor} sheet={!wide} onClose={() => setModal(null)} onSaved={() => setTab(payFor ? "plan" : "pagos")} />}
