@@ -21,7 +21,7 @@ export function addNote(patientId: number, t: string, date: string) {
  * Un tratamiento del plan = un servicio con su propio plan de sesiones: sesiones previstas y hechas, precio total y lo pagado.
  * Se pueden agregar más tratamientos en cualquier momento (por ejemplo, tras la evaluación odontológica).
  */
-export interface PlanItem { id: string; name: string; /** sesiones previstas */ total: number; /** sesiones hechas */ done: number; price: number; /** monto pagado a este tratamiento */ paid?: number; /** fecha de alta (AAAA-MM-DD) */ at?: string }
+export interface PlanItem { id: string; name: string; /** sesiones previstas */ total: number; /** sesiones hechas */ done: number; price: number; /** monto pagado a este tratamiento */ paid?: number; /** fecha de alta (AAAA-MM-DD) */ at?: string; /** pago inicial pactado (parte del precio total que se cobra al empezar) */ initial?: number }
 /** Plan del paciente: la lista de sus tratamientos (`items`); `name`, `total`, `done` y `price` son los totales. */
 export interface TreatmentPlan { name: string; total: number; done: number; price: number; paidBase: number; items?: PlanItem[] }
 
@@ -45,8 +45,18 @@ export function withItems(_plan: TreatmentPlan | undefined, items: PlanItem[]): 
   };
 }
 
-/** Precio de una sesión de ese tratamiento (precio total entre sesiones previstas). */
-export const sessionPrice = (it: PlanItem) => (it.total > 0 ? round2(it.price / it.total) : it.price);
+/** Precio de una sesión de ese tratamiento: (precio total − pago inicial) entre las sesiones previstas. */
+export const sessionPrice = (it: PlanItem) => {
+  const rest = Math.max(0, it.price - (it.initial ?? 0));
+  return it.total > 0 ? round2(rest / it.total) : rest;
+};
+/** Pago inicial que aún falta cobrar (0 si no tiene o ya se cubrió). */
+export const initialDue = (it: PlanItem) => Math.max(0, round2((it.initial ?? 0) - (it.paid ?? 0)));
+/** Monto sugerido para el siguiente cobro: primero el pago inicial pendiente; luego una sesión (sin pasar del saldo). */
+export const suggestedPayment = (it: PlanItem) => {
+  const due = initialDue(it);
+  return due > 0 ? due : Math.min(sessionPrice(it), itemBalance(it));
+};
 /** Saldo por pagar de un tratamiento. */
 export const itemBalance = (it: PlanItem) => Math.max(0, round2(it.price - (it.paid ?? 0)));
 /** Total pagado en el plan. */

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useState } from "react";
-import { type PlanItem, addItems, applyLines, itemBalance, planItems, plansStore, removeItem, sessionPrice, payItem } from "@/lib/clinical";
+import { type PlanItem, addItems, applyLines, itemBalance, planItems, plansStore, removeItem, suggestedPayment, payItem } from "@/lib/clinical";
 import { todayISO } from "@/lib/dates";
 import { consumeCode } from "@/lib/discounts";
 import { type Plan, modStore, money0, payInstallment, saveMod, uid, useMod } from "@/lib/mod";
@@ -92,7 +92,7 @@ function NewPlan({ onDone }: { onDone: () => void }) {
     if (chosen.some((s) => !(priceOf(s.name) > 0))) return toast("Cada tratamiento necesita un precio mayor a 0");
     if (r.err) return toast(r.err);
     const k = base > 0 ? r.total / base : 1;
-    const items: PlanItem[] = chosen.map((s) => ({ id: uid(), name: s.name, total: nOf(s.name), done: 0, price: Math.round(priceOf(s.name) * k * 100) / 100, paid: 0, at: todayISO() }));
+    const items: PlanItem[] = chosen.map((s) => ({ id: uid(), name: s.name, total: nOf(s.name), done: 0, price: Math.round(priceOf(s.name) * k * 100) / 100, paid: 0, at: todayISO(), ...(s.initial && s.initial < priceOf(s.name) ? { initial: Math.round(s.initial * k * 100) / 100 } : {}) }));
     plansStore.update((all) => ({ ...all, [patient.id]: addItems(all[patient.id], items) }));
     if (r.t) { const prev = modStore.get(); saveMod({ ...prev, desc: consumeCode(prev.desc, r) }); }
     toast(`${items.length === 1 ? "Plan creado" : `${items.length} planes creados`} para ${patient.name}${r.t ? ` · descuento ${r.label}` : ""}`);
@@ -124,7 +124,7 @@ function NewPlan({ onDone }: { onDone: () => void }) {
 /** Detalle de un tratamiento: registrar la sesión realizada y/o su pago. */
 function ItemDetail({ pid, pac, item, onDone }: { pid: number; pac: string; item: PlanItem; onDone: () => void }) {
   const bal = itemBalance(item);
-  const [amount, setAmount] = useState(String(bal > 0 ? Math.min(sessionPrice(item), bal) : 0));
+  const [amount, setAmount] = useState(String(bal > 0 ? suggestedPayment(item) : 0));
   const [method, setMethod] = useState<PayMethod>("Efectivo");
   const amt = Number(amount) || 0;
   const finished = item.done >= item.total;

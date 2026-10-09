@@ -15,10 +15,10 @@ export interface Row { id: string; t: string; sub: string; badge: string; tone: 
 export interface Kpi { l: string; v: string; c?: string }
 
 /** Plantilla de módulo: encabezado, indicadores, filtros y lista; el detalle abre en panel lateral (escritorio) u hoja inferior (móvil). */
-export function ModuleLayout({ title, sub, kpis, chips, chip, onChip, query, onQuery, showSearch = true, cta, onCta, rows, onOpen, panel, panelTitle, onClose, emptyHint }: {
+export function ModuleLayout({ title, sub, kpis, chips, chip, onChip, query, onQuery, showSearch = true, cta, onCta, rows, onOpen, panel, panelTitle, onClose, emptyHint, extra }: {
   title: string; sub: string; kpis: Kpi[]; chips: string[]; chip: number; onChip: (i: number) => void;
   query: string; onQuery: (q: string) => void; showSearch?: boolean; cta: string; onCta: () => void;
-  rows: Row[]; onOpen: (id: string) => void; panel: React.ReactNode | null; panelTitle: string; onClose: () => void; emptyHint?: string;
+  rows: Row[]; onOpen: (id: string) => void; panel: React.ReactNode | null; panelTitle: string; onClose: () => void; emptyHint?: string; /** segunda acción junto al botón principal */ extra?: { label: string; icon?: IconName; onClick: () => void };
 }) {
   const wide = useMediaQuery("(min-width: 900px)");
   const panelBody = panel && (
@@ -43,6 +43,7 @@ export function ModuleLayout({ title, sub, kpis, chips, chip, onChip, query, onQ
             <input value={query} onChange={(e) => onQuery(e.target.value)} aria-label="Buscar" placeholder="Buscar" />
           </label>
         )}
+        {extra && <button type="button" className={s.cta} onClick={extra.onClick} style={{ background: "transparent", color: "var(--brand-text)", boxShadow: "inset 0 0 0 1.5px var(--brand-300, var(--line))" }}>{extra.icon && <Icon name={extra.icon} />}{extra.label}</button>}
         <button type="button" className={s.cta} onClick={onCta}><Icon name="plus" />{cta}</button>
       </header>
       <div className={s.body}>

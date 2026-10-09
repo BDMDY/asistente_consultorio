@@ -6,7 +6,7 @@ import { type BlockForm, CANCEL_REASONS, type NewApptForm, createBlocks, validat
 import { agendaStore } from "@/lib/agenda-store";
 import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { type Doctor, activeServices, parsePrice, serviceSessions, serviceSlots, sessionValue, useMedia } from "@/lib/media";
-import { type PlanItem, addItems, planItems, plansStore, sessionPrice } from "@/lib/clinical";
+import { type PlanItem, addItems, planItems, plansStore, suggestedPayment } from "@/lib/clinical";
 import { todayISO } from "@/lib/dates";
 import { uid } from "@/lib/mod";
 import { PAY_METHODS, type PayMethod, type Payment, money } from "@/lib/payments";
@@ -321,7 +321,7 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   const same = (x: string, y: string) => x.toLowerCase().includes(y.toLowerCase()) || y.toLowerCase().includes(x.toLowerCase());
 
   const [lines, setLines] = useState<PayLine[]>(() => {
-    const out: PayLine[] = pending.map((it) => ({ key: "p:" + it.id, concept: it.name, amount: String(sessionPrice(it)), on: same(a.s, it.name), planItem: it.id }));
+    const out: PayLine[] = pending.map((it) => ({ key: "p:" + it.id, concept: it.name, amount: String(suggestedPayment(it)), on: same(a.s, it.name), planItem: it.id }));
     if (!out.some((l) => l.on)) out.unshift({ key: "svc", concept: a.s, amount: String(priceFor(a)), on: true });
     return out;
   });
@@ -335,25 +335,27 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   const extra = activeServices(media).filter((sv) => !lines.some((l) => l.concept === sv.name));
   // Tratamiento nuevo indicado durante la sesión (por ejemplo, tras la evaluación): entra al plan del paciente y a este cobro.
   const [adding, setAdding] = useState(false);
-  const [nt, setNt] = useState({ name: "", n: "1", price: "", auto: false, custom: false });
+  const [nt, setNt] = useState({ name: "", n: "1", price: "", initial: "", auto: false, custom: false });
   const svOf = (name: string) => activeServices(media).find((x) => x.name === name);
   
   function pickNew(name: string) {
     if (name === "__otro") return setNt((x) => ({ ...x, name: "", custom: true, auto: false }));
     const sv = svOf(name);
     // El precio del servicio es el total del tratamiento y trae su número de sesiones; cada sesión vale precio ÷ sesiones.
-    setNt((x) => (sv && parsePrice(sv.price) > 0 ? { ...x, name, custom: false, price: String(parsePrice(sv.price)), n: String(serviceSessions(sv)), auto: true } : { ...x, name, custom: false, auto: false }));
+    setNt((x) => (sv && parsePrice(sv.price) > 0 ? { ...x, name, custom: false, price: String(parsePrice(sv.price)), n: String(serviceSessions(sv)), initial: sv.initial ? String(sv.initial) : "", auto: true } : { ...x, name, custom: false, auto: false }));
   }
   const setSessions = (n: string) => setNt((x) => ({ ...x, n }));
   function addNew() {
     if (!patient) return toast("Registra primero al paciente en Pacientes para crear su plan");
     const n = Math.max(1, parseInt(nt.n, 10) || 1), price = parseFloat(nt.price);
     if (nt.name.trim().length < 3 || !(price > 0)) return toast("Indica el tratamiento, sus sesiones y su precio total");
-    const it: PlanItem = { id: uid(), name: nt.name.trim(), total: n, done: 0, price, paid: 0, at: todayISO() };
+    const ini = parseFloat(nt.initial);
+    if (ini >= price) return toast("El pago inicial debe ser menor al precio total");
+    const it: PlanItem = { id: uid(), name: nt.name.trim(), total: n, done: 0, price, paid: 0, at: todayISO(), ...(ini > 0 ? { initial: ini } : {}) };
     plansStore.update((all) => ({ ...all, [patient.id]: addItems(all[patient.id], [it]) }));
-    setLines((ls) => [...ls, { key: "p:" + it.id, concept: it.name, amount: String(sessionPrice(it)), on: true, planItem: it.id }]);
+    setLines((ls) => [...ls, { key: "p:" + it.id, concept: it.name, amount: String(suggestedPayment(it)), on: true, planItem: it.id }]);
     setAdding(false);
-    setNt({ name: "", n: "1", price: "", auto: false, custom: false });
+    setNt({ name: "", n: "1", price: "", initial: "", auto: false, custom: false });
     toast(`${it.name} agregado al plan del paciente`);
   }
 
@@ -404,6 +406,9 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <input aria-label="Sesiones previstas" value={nt.n} inputMode="numeric" onChange={(e) => setSessions(e.target.value)} placeholder="Sesiones" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
                     <input aria-label="Precio total del tratamiento" value={nt.price} inputMode="decimal" onChange={(e) => setNt({ ...nt, price: e.target.value, auto: false })} placeholder="Precio total (S/)" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+                    <input aria-label="Pago inicial del tratamiento" value={nt.initial} inputMode="decimal" onChange={(e) => setNt({ ...nt, initial: e.target.value })} placeholder="Pago inicial (S/, opcional)" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button type="button" onClick={() => setAdding(false)} style={btnOutline}>Cancelar</button>

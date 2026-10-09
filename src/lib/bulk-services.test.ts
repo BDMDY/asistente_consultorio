@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest";
+import { applyBulk, parsePriceCell, parseServiceSheet } from "./bulk-services";
+import { nextServiceCode, withCodes, type Service } from "./media";
+
+const sv = (id: number, name: string, extra: Partial<Service> = {}): Service => ({ id, name, desc: "", price: "100", ...extra });
+
+describe("códigos de servicio", () => {
+  it("asigna TRT-001… a los que no tienen y no repite", () => {
+    const l = withCodes([sv(1, "A"), sv(2, "B", { code: "TRT-005" }), sv(3, "C")]);
+    expect(l.map((s) => s.code)).toEqual(["TRT-006", "TRT-005", "TRT-007"]);
+    expect(nextServiceCode(l)).toBe("TRT-008");
+    expect(nextServiceCode([])).toBe("TRT-001");
+  });
+});
+
+describe("carga masiva de tratamientos", () => {
+  it("lee precios en distintos formatos", () => {
+    expect(parsePriceCell(50)).toBe(50);
+    expect(parsePriceCell("S/ 350.00")).toBe(350);
+    expect(parsePriceCell("1,800")).toBe(1800);
+    expect(parsePriceCell("S/. 1200,50")).toBe(1200.5);
+    expect(parsePriceCell("Criterio de Odontologo")).toBeNull();
+    expect(parsePriceCell("")).toBeNull();
+  });
+  const sheet = [
+    ["PRECIOS DE TRATAMIENTOS"], [],
+    ["Tratamiento", "Precio actualizado\n(manuscrito)", "Sesiones"],
+    ["Consulta", 50, 1],
+    ["Clareamiento casero", "S/ 350.00", 1],
+    ["Tratamiento Ortodoncia menor de 1 año", 4000, 12],
+    ["Tratamiento Ortodoncia mayor de 1 año", "Criterio de Odontologo", "Criterio de Odontologo"],
+    ["consulta", 60, 1],
+    [null, 10, 1],
+  ];
+  it("encuentra los encabezados bajo un título, avisa y deja el último repetido", () => {
+    const r = parseServiceSheet(sheet, []);
+    expect(r.rows.map((x) => x.name)).toEqual(["consulta", "Clareamiento casero", "Tratamiento Ortodoncia menor de 1 año", "Tratamiento Ortodoncia mayor de 1 año"]);
+    expect(r.rows[0].price).toBe(60);
+    expect(r.rows[2]).toMatchObject({ price: 4000, sessions: 12 });
+    expect(r.rows[3].price).toBeNull();
+    expect(r.rows[3].notes.length).toBe(2);
+    expect(r.errors.some((e) => /repetido/.test(e))).toBe(true);
+  });
+  it("actualiza por nombre o código y crea los nuevos con código correlativo", () => {
+    const cur = [sv(1, "Consulta", { code: "TRT-001", price: "40" })];
+    const r = parseServiceSheet(sheet, cur);
+    expect(r.rows[0]).toMatchObject({ action: "actualizar", targetId: 1 });
+    const out = applyBulk(cur, r.rows);
+    expect(out).toMatchObject({ created: 3, updated: 1 });
+    expect(out.services.find((s) => s.id === 1)).toMatchObject({ price: "60", sessions: 1, code: "TRT-001" });
+    expect(out.services.map((s) => s.code)).toEqual(["TRT-001", "TRT-002", "TRT-003", "TRT-004"]);
+    expect(out.services[3]).toMatchObject({ price: "", sessions: 1, on: true });
+  });
+  it("sin columna de tratamiento avisa", () => {
+    expect(parseServiceSheet([["a", "b"], [1, 2]], []).errors[0]).toMatch(/Tratamiento/);
+  });
+});
+
+describe("tratamientos con pago inicial", () => {
+  it("lee la columna de pago inicial y la ignora si no es menor al precio", () => {
+    const r = parseServiceSheet([["Tratamiento", "Precio", "Pago inicial", "Sesiones"], ["Ortodoncia", 3440, 1400, 12], ["Raro", 100, 150, 2]], []);
+    expect(r.rows[0]).toMatchObject({ price: 3440, initial: 1400, sessions: 12 });
+    expect(r.rows[1].initial).toBeUndefined();
+    expect(r.rows[1].notes[0]).toMatch(/Pago inicial/);
+    expect(applyBulk([], r.rows).services[0]).toMatchObject({ initial: 1400 });
+  });
+});

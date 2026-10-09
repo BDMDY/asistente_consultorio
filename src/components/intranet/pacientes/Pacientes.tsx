@@ -7,7 +7,7 @@ import { CloseBtn, Modal, btnOutline, btnPrimary, chipStyle, fieldStyle, labelSt
 import { agendaStore } from "@/lib/agenda-store";
 import MaterialsDialog from "../agenda/MaterialsDialog";
 import { inProgress } from "@/lib/attention";
-import { type PlanItem, addItems, anamnesisStore, emptyAnam, itemBalance, payItem, planItems, plansStore, sessionPrice } from "@/lib/clinical";
+import { type PlanItem, addItems, initialDue, anamnesisStore, emptyAnam, itemBalance, payItem, planItems, plansStore, sessionPrice, suggestedPayment } from "@/lib/clinical";
 import { useMediaQuery } from "@/lib/media-query";
 import { activeServices, initials, parsePrice, serviceSessions, useMedia } from "@/lib/media";
 import { matUseOf } from "@/lib/materials";
@@ -164,7 +164,7 @@ function Frame({ title, onClose, sheet, children }: { title: string; onClose: ()
 }
 const border = (ok: boolean, tried: boolean) => (tried && !ok ? "2px solid var(--error-fg)" : "1px solid var(--line)");
 
-interface PlanRow { key: number; name: string; total: string; price: string; /** el precio se calculó solo (valor por sesión × sesiones) y no se editó a mano */ auto?: boolean }
+interface PlanRow { key: number; name: string; total: string; price: string; /** pago inicial pactado */ initial?: string; /** el precio se calculó solo (valor por sesión × sesiones) y no se editó a mano */ auto?: boolean }
 
 /** Crea el plan del paciente o le agrega tratamientos: cada uno con sus controles previstos y su precio total. */
 function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?: PlanSeed[]; sheet: boolean; onClose: () => void; onCreated: () => void }) {
@@ -172,18 +172,18 @@ function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?:
   const existing = plansStore.get()[p.id];
   const [rows, setRows] = useState<PlanRow[]>(() => (seed?.length ? seed.map((x, k) => ({ key: k + 1, name: x.name, total: String(x.total), price: String(x.price) })) : [{ key: 1, name: "", total: "12", price: "" }]));
   const [tried, setTried] = useState(false);
-  const valid = (r: PlanRow) => r.name.trim().length > 2 && parseInt(r.total, 10) > 0 && parseFloat(r.price) > 0;
+  const valid = (r: PlanRow) => r.name.trim().length > 2 && parseInt(r.total, 10) > 0 && parseFloat(r.price) > 0 && !(parseFloat(r.initial ?? "") >= parseFloat(r.price));
   const patch = (key: number, x: Partial<PlanRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...x } : r)));
   const svOf = (name: string) => activeServices(media).find((x) => x.name === name);
   function pick(key: number, name: string) {
     // El precio del servicio es el total del tratamiento y trae su número de sesiones (cada sesión vale precio ÷ sesiones).
     const sv = svOf(name);
-    patch(key, { name, ...(sv && parsePrice(sv.price) > 0 ? { price: String(parsePrice(sv.price)), total: String(serviceSessions(sv)), auto: true } : { auto: false }) });
+    patch(key, { name, ...(sv && parsePrice(sv.price) > 0 ? { price: String(parsePrice(sv.price)), total: String(serviceSessions(sv)), initial: sv.initial ? String(sv.initial) : "", auto: true } : { auto: false }) });
   }
   const setTotal = (key: number, total: string) => patch(key, { total });
   function save() {
     if (!rows.every(valid)) return setTried(true);
-    const items = rows.map((r): PlanItem => ({ id: uid(), name: r.name.trim(), total: parseInt(r.total, 10), done: 0, price: parseFloat(r.price), paid: 0, at: todayISO() }));
+    const items = rows.map((r): PlanItem => ({ id: uid(), name: r.name.trim(), total: parseInt(r.total, 10), done: 0, price: parseFloat(r.price), paid: 0, at: todayISO(), ...(parseFloat(r.initial ?? "") > 0 ? { initial: parseFloat(r.initial!) } : {}) }));
     plansStore.update((all) => ({ ...all, [p.id]: addItems(all[p.id], items) }));
     onCreated();
     onClose();
@@ -204,6 +204,7 @@ function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?:
           </label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>N.° de sesiones<input value={r.total} inputMode="numeric" onChange={(e) => setTotal(r.key, e.target.value)} style={input(parseInt(r.total, 10) > 0)} /></label>
+            <label style={labelStyle}>Pago inicial (S/)<input value={r.initial ?? ""} inputMode="decimal" placeholder="Opcional" onChange={(e) => patch(r.key, { initial: e.target.value })} style={input(!(parseFloat(r.initial ?? "") >= parseFloat(r.price)))} /></label>
             <label style={labelStyle}>Precio total (S/){parseFloat(r.price) > 0 && parseInt(r.total, 10) > 0 ? <span className="tnum" style={{ fontWeight: 400, color: "var(--ink-500)" }}> · {money(Math.round((parseFloat(r.price) / parseInt(r.total, 10)) * 100) / 100)} por sesión</span> : null}<input value={r.price} inputMode="decimal" onChange={(e) => patch(r.key, { price: e.target.value, auto: false })} style={input(parseFloat(r.price) > 0)} /></label>
           </div>
           {rows.length > 1 && <button type="button" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} style={{ alignSelf: "flex-start", cursor: "pointer", background: "transparent", border: 0, color: "var(--error-fg)", fontWeight: 700, fontSize: 13, minHeight: 32, fontFamily: "inherit" }}>Quitar este tratamiento</button>}
@@ -225,7 +226,7 @@ function PayDialog({ p, concept, itemId, sheet, onClose, onSaved }: { p: Patient
   const items = planItems(plansStore.get()[p.id]);
   const appts = agendaStore.get().appts.filter((a) => a.p === p.name && !["cancelada", "bloqueo", "no-show", "reprogramada"].includes(a.st)).sort((x, y) => y.date.localeCompare(x.date) || y.slot - x.slot).slice(0, 8);
   const [apptId, setApptId] = useState<string>(() => { const t = todaysApptOf(appts, p.name, todayISO()); return t ? String(t.id) : ""; });
-  const suggested = (x: PlanItem) => String(Math.min(sessionPrice(x), itemBalance(x)) || "");
+  const suggested = (x: PlanItem) => String(suggestedPayment(x) || "");
   const [lines, setLines] = useState<Record<string, PayLineState>>(() => {
     const o: Record<string, PayLineState> = {};
     for (const x of items) o[x.id] = { on: x.id === itemId, amount: suggested(x) };
@@ -279,7 +280,7 @@ function PayDialog({ p, concept, itemId, sheet, onClose, onSaved }: { p: Patient
       </label>
       <div style={{ ...labelStyle, display: "flex", flexDirection: "column", gap: 8 }}>
         Tratamientos que se pagan ahora
-        {items.map((x) => check(x.id, x.name, `saldo ${money(itemBalance(x))} · sesión ${money(sessionPrice(x))}`))}
+        {items.map((x) => check(x.id, x.name, `saldo ${money(itemBalance(x))} · ${initialDue(x) > 0 ? `pago inicial ${money(initialDue(x))} pendiente` : `sesión ${money(sessionPrice(x))}`}`))}
         {check("free", items.length ? "Otro concepto (sin tratamiento)" : "Pago libre")}
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

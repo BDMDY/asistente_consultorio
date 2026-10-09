@@ -4,7 +4,7 @@ import { STATUS_LABEL, hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
 import { useDoctors } from "@/lib/doctors";
 import { modStore, payInstallment } from "@/lib/mod";
-import { type ClinicalNote, type PatientFile, type PlanItem, type TreatmentPlan, addNote, advance, filesStore, itemBalance, notesStore, planItems, planPaid, plansStore, removeItem, sessionPrice } from "@/lib/clinical";
+import { type ClinicalNote, type PatientFile, type PlanItem, type TreatmentPlan, addNote, advance, filesStore, initialDue, itemBalance, notesStore, planItems, planPaid, plansStore, removeItem, sessionPrice } from "@/lib/clinical";
 import { newId } from "@/lib/ids";
 import { isISODate, labelDate, labelShort, todayISO } from "@/lib/dates";
 import { type Patient, patchPatient, samePatientName } from "@/lib/patients";
@@ -150,7 +150,7 @@ export function TabPlan({ p, plan, onCreate, onPay }: { p: Patient; plan: Treatm
                 {bar(v)}
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ink-500)" }}><span>Pagado</span><b className="tnum" style={{ color: "var(--ink-900)" }}>{money(it.paid ?? 0)} de {money(it.price)} · saldo {money(itemBalance(it))}</b></div>
                 {bar(pv, "pay")}
-                <div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{money(sessionPrice(it))} por sesión{it.at ? ` · agregado el ${labelShort(it.at)}` : ""}</div>
+                <div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{it.initial ? `pago inicial ${money(it.initial)}${initialDue(it) > 0 ? ` (pendiente ${money(initialDue(it))})` : " ✓"} + ` : ""}{money(sessionPrice(it))} por sesión{it.at ? ` · agregado el ${labelShort(it.at)}` : ""}</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button type="button" onClick={() => session(it)} disabled={complete} style={{ ...primaryBtn, opacity: complete ? 0.5 : 1 }}>Registrar sesión {Math.min(it.total, it.done + 1)}</button>
                   <button type="button" onClick={() => onPay(it.id)} style={outlineBtn}>Registrar pago</button>

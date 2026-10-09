@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anamProgress, applyTool, derivedAlerts, odontogramFindings, surfaceMap, toothName } from "./clinical";
+import { initialDue, suggestedPayment, anamProgress, applyTool, derivedAlerts, odontogramFindings, surfaceMap, toothName } from "./clinical";
 
 describe("odontograma", () => {
   it("marca y desmarca una superficie", () => {
@@ -95,5 +95,17 @@ describe("plan con varios tratamientos", () => {
     expect(grown.total).toBe(16);
     expect(planItems(removeItem(grown, "c")!)).toHaveLength(2);
     expect(removeItem(withItems(undefined, [{ id: "x", name: "Solo", total: 1, done: 0, price: 10 }]), "x")).toBeUndefined();
+  });
+});
+
+describe("pago inicial", () => {
+  const it0 = { id: "x", name: "Ortodoncia", total: 12, done: 0, price: 3440, initial: 1400, paid: 0 };
+  it("la sesión vale (precio − inicial) ÷ sesiones y el inicial se sugiere primero", () => {
+    expect(sessionPrice(it0)).toBe(170);
+    expect(suggestedPayment(it0)).toBe(1400);
+    expect(suggestedPayment({ ...it0, paid: 500 })).toBe(900);
+    expect(initialDue({ ...it0, paid: 1400 })).toBe(0);
+    expect(suggestedPayment({ ...it0, paid: 1400 })).toBe(170);
+    expect(suggestedPayment({ ...it0, paid: 3400 })).toBe(40);
   });
 });

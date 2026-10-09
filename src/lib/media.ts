@@ -11,7 +11,7 @@ export interface DoctorProfile { id: number; title?: string; spec: string; photo
 export interface Facility { id: number; cap: string; photo: string }
 export interface BeforeAfter { id: number; label: string; before: string; after: string }
 /** Catálogo único: lo editan el módulo Servicios y Medios de marca; lo usan landing, reserva y agenda. */
-export interface Service { id: number; name: string; desc: string; price: string; /** sesiones del tratamiento: el precio es el total y cada sesión vale precio ÷ sesiones (1 si falta) */ sessions?: number; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean }
+export interface Service { id: number; name: string; /** código para organizar el catálogo (ej. TRT-012) */ code?: string; desc: string; price: string; /** sesiones del tratamiento: el precio es el total y cada sesión vale precio ÷ sesiones (1 si falta) */ sessions?: number; /** pago inicial (S/), parte del precio total que se cobra al empezar; las sesiones valen (precio − inicial) ÷ sesiones */ initial?: number; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean }
 export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string }
 
 export interface Media {
@@ -62,8 +62,24 @@ export function resolveMedia(p: Partial<Media>): Media {
     docs: p.docs ?? DEFAULT_MEDIA.docs,
     facs: p.facs ?? DEFAULT_MEDIA.facs,
     cases: p.cases ?? DEFAULT_MEDIA.cases,
-    services: p.services ?? DEFAULT_MEDIA.services,
+    services: withCodes(p.services ?? DEFAULT_MEDIA.services),
   };
+}
+
+const CODE_RE = /^TRT-(\d+)$/;
+/** Siguiente código libre del catálogo: TRT-001, TRT-002… */
+export function nextServiceCode(list: Pick<Service, "code">[], taken: string[] = []): string {
+  const used = [...list.map((s) => s.code ?? ""), ...taken];
+  const max = used.reduce((n, c) => Math.max(n, Number(CODE_RE.exec(c)?.[1] ?? 0)), 0);
+  return "TRT-" + String(max + 1).padStart(3, "0");
+}
+
+/** Asigna código a los servicios que aún no lo tienen (en el orden del catálogo). */
+export function withCodes(list: Service[]): Service[] {
+  if (list.every((s) => s.code)) return list;
+  const out: Service[] = [];
+  for (const s of list) out.push(s.code ? s : { ...s, code: nextServiceCode([...list, ...out]) });
+  return out;
 }
 
 export function useMedia(): Media {
@@ -81,9 +97,9 @@ export const activeServices = (m: Media) => m.services.filter((x) => x.on !== fa
 export const serviceSessions = (s: Pick<Service, "sessions">) => Math.max(1, Math.round(s.sessions ?? 1) || 1);
 
 /** Valor de una sesión: precio total del tratamiento ÷ número de sesiones (NaN si no tiene precio). */
-export const sessionValue = (s: Pick<Service, "price" | "sessions">) => {
+export const sessionValue = (s: Pick<Service, "price" | "sessions" | "initial">) => {
   const t = parsePrice(s.price);
-  return t > 0 ? Math.round((t / serviceSessions(s)) * 100) / 100 : NaN;
+  return t > 0 ? Math.round((Math.max(0, t - (s.initial ?? 0)) / serviceSessions(s)) * 100) / 100 : NaN;
 };
 
 export function parsePrice(price: string): number {

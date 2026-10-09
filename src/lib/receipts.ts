@@ -85,7 +85,7 @@ ${voided}<p style="color:#888;font-size:12px">Comprobante de pago (demo). Códig
 /** Costo unitario de un cobro: valor de una sesión del tratamiento (precio ÷ sesiones) en el plan del paciente o en el catálogo; si no se conoce, lo cobrado. */
 export function unitCostOf(p: Payment, plans: Record<number, TreatmentPlan>, services: Service[]): number {
   const item = p.itemId !== undefined && p.patientId !== undefined ? planItems(plans[p.patientId]).find((x) => x.id === p.itemId) : undefined;
-  if (item) return sessionPrice(item);
+  if (item) return item.initial && p.amount === item.initial ? item.initial : sessionPrice(item);
   const sv = services.find((x) => x.name === p.concept);
   const v = sv ? sessionValue(sv) : NaN;
   return v > 0 ? v : p.amount;
