@@ -7,7 +7,7 @@ import Icon, { type IconName } from "@/components/ui/Icon";
 import { agendaStore, patchAppt } from "@/lib/agenda-store";
 import { actMine, useMine } from "@/lib/backend/public-api";
 import { isRemote } from "@/lib/backend/config";
-import { type Appt, apptWhenLong, freeStarts, hm, isClosedDay } from "@/lib/agenda";
+import { type Appt, DAY_START_MIN, apptWhenLong, freeStarts, hm, isClosedDay } from "@/lib/agenda";
 import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, diffDays, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
@@ -59,7 +59,7 @@ export default function MiCita({ id }: { id: string }) {
   const rsDoc = rs.doc ?? a?.doc ?? docs[0]?.id ?? 0;
   const nowMin = limaMinutesNow();
   const chips = a && today && rsDate
-    ? freeStarts(appts, rsDate, rsDoc, a.dur, { step: 2, ignoreId: a.id }).filter((s) => !(rsDate === today && 540 + s * 15 <= nowMin))
+    ? freeStarts(appts, rsDate, rsDoc, a.dur, { step: 2, ignoreId: a.id }).filter((s) => !(rsDate === today && DAY_START_MIN + s * 15 <= nowMin))
     : [];
   const days = today ? Array.from({ length: 12 }, (_, i) => addDays(today, i)).filter((d) => !isClosedDay(d)) : [];
 

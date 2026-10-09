@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/kit";
-import { type Appt, STATUS_LABEL, type ApptStatus, hm, hoursError } from "@/lib/agenda";
+import { type Appt, SLOTS, STATUS_LABEL, type ApptStatus, hm, hoursError } from "@/lib/agenda";
 import { inProgress } from "@/lib/attention";
 import { toast } from "@/lib/toast";
 import { labelShort } from "@/lib/dates";
@@ -12,7 +12,6 @@ import ApptDetail, { BlockDetail } from "./ApptDetail";
 
 const SLOT_H = 18;
 const HEAD_H = 44;
-const HOURS = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 const ORDER: ApptStatus[] = ["atendida", "pendiente", "confirmada", "en-sala", "cancelada", "no-show", "reprogramada", "bloqueo"];
 const HATCH = "repeating-linear-gradient(135deg,rgba(120,140,130,.22) 0 6px,rgba(120,140,130,.08) 6px 12px)";
 const BLOCKED_BG = "repeating-linear-gradient(135deg,var(--st-bloqueo-bg) 0 8px,transparent 8px 16px)";
@@ -37,7 +36,7 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
     const y0 = e.clientY;
     let dur = a.dur;
     const move = (ev: PointerEvent) => {
-      dur = Math.max(1, Math.min(32 - a.slot, a.dur + Math.round((ev.clientY - y0) / SLOT_H)));
+      dur = Math.max(1, Math.min(SLOTS - a.slot, a.dur + Math.round((ev.clientY - y0) / SLOT_H)));
       setResizing({ id: a.id, dur });
     };
     const up = () => {
@@ -94,25 +93,25 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: 16, alignItems: "start" }}>
         <div style={{ background: "var(--surface)", borderRadius: 16, boxShadow: "var(--shadow-md)", display: "grid", gridTemplateColumns: `56px repeat(${docs.length}, minmax(0,1fr))`, overflow: "hidden" }}>
           <div style={{ paddingTop: HEAD_H }}>
-            {HOURS.map((h) => <div key={h} className="tnum" style={{ height: SLOT_H * 4, fontSize: 12, color: "var(--ink-500)", textAlign: "right", paddingRight: 8, boxSizing: "border-box", marginTop: -6 }}>{h}</div>)}
+            {Array.from({ length: (ctx.view.to - ctx.view.from) / 4 }, (_, i) => hm(ctx.view.from + i * 4)).map((h) => <div key={h} className="tnum" style={{ height: SLOT_H * 4, fontSize: 12, color: "var(--ink-500)", textAlign: "right", paddingRight: 8, boxSizing: "border-box", marginTop: -6 }}>{h}</div>)}
           </div>
           {docs.map((d) => (
-            <div key={d.id} style={{ borderLeft: "1px solid var(--line)", position: "relative", height: HEAD_H + SLOT_H * 32 }}>
+            <div key={d.id} style={{ borderLeft: "1px solid var(--line)", position: "relative", height: HEAD_H + SLOT_H * (ctx.view.to - ctx.view.from) }}>
               <div style={{ height: HEAD_H, display: "flex", alignItems: "center", gap: 8, padding: "0 12px", fontWeight: 700, fontSize: 14, borderBottom: "1px solid var(--line)" }}>
                 <span style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--brand-100)", color: "var(--brand-800)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials(d.name)}</span>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
               </div>
               <div style={{ position: "absolute", top: HEAD_H, left: 0, right: 0, bottom: 0 }}>
-                {Array.from({ length: 32 }, (_, k) => (
+                {Array.from({ length: ctx.view.to - ctx.view.from }, (_, i) => ctx.view.from + i).map((k) => (
                   <div key={k} className="da-slot" role="button" tabIndex={-1} aria-label={`Agendar ${hm(k)} con ${d.name}`}
                     onClick={() => { const he = hoursError(date, k, 1); if (he) return toast(he); ctx.open({ kind: "new", mode: "single", doc: d.id, time: hm(k) }); }}
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => { e.preventDefault(); const a = appts.find((x) => x.id === dragId); if (a) ctx.move(a, { doc: d.id, slot: Math.min(k, 32 - a.dur) }); setDragId(null); }}
+                    onDrop={(e) => { e.preventDefault(); const a = appts.find((x) => x.id === dragId); if (a) ctx.move(a, { doc: d.id, slot: Math.min(k, SLOTS - a.dur) }); setDragId(null); }}
                     style={{ cursor: !ctx.win || k < ctx.win.from || k >= ctx.win.to ? "not-allowed" : "pointer", height: SLOT_H, boxSizing: "border-box", borderTop: k % 4 === 0 ? "1px solid var(--line)" : "1px dashed rgba(220,229,224,.5)" }} />
                 ))}
               </div>
-              {(!ctx.win ? [[0, 32]] : [[0, ctx.win.from], [ctx.win.to, 32]]).filter(([f, t]) => t > f).map(([f, t]) => (
-                <div key={f} aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: HEAD_H + f * SLOT_H, height: (t - f) * SLOT_H, background: HATCH, pointerEvents: "none" }} />
+              {(!ctx.win ? [[ctx.view.from, ctx.view.to]] : [[ctx.view.from, ctx.win.from], [ctx.win.to, ctx.view.to]]).map(([f, t]) => [Math.max(f, ctx.view.from), Math.min(t, ctx.view.to)]).filter(([f, t]) => t > f).map(([f, t]) => (
+                <div key={f} aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: HEAD_H + (f - ctx.view.from) * SLOT_H, height: (t - f) * SLOT_H, background: HATCH, pointerEvents: "none" }} />
               ))}
               {day.filter((a) => a.doc === d.id).map((a) => {
                 const dur = resizing?.id === a.id ? resizing.dur : a.dur;
@@ -124,7 +123,7 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
                   onDragEnd={() => setDragId(null)}
                   onKeyDown={(e) => onKey(e, a)}
                   onClick={(e) => { e.stopPropagation(); ctx.setSel(a.id); }}
-                  style={{ position: "absolute", left: 6, right: 6, top: HEAD_H + a.slot * SLOT_H, height: dur * SLOT_H - 2, borderRadius: 10, padding: "6px 10px", boxSizing: "border-box", background: `var(--st-${a.st}-bg)`, ...(a.st === "bloqueo" ? { backgroundImage: BLOCKED_BG, border: "1px dashed var(--ink-300)" } : {}), color: `var(--st-${a.st}-fg)`, fontSize: 13, overflow: "hidden", cursor: "grab", boxShadow: selId === a.id ? "0 0 0 2px var(--brand-500)" : "none", opacity: a.st === "cancelada" ? 0.6 : 1 }}>
+                  style={{ position: "absolute", left: 6, right: 6, top: HEAD_H + (a.slot - ctx.view.from) * SLOT_H, height: dur * SLOT_H - 2, borderRadius: 10, padding: "6px 10px", boxSizing: "border-box", background: `var(--st-${a.st}-bg)`, ...(a.st === "bloqueo" ? { backgroundImage: BLOCKED_BG, border: "1px dashed var(--ink-300)" } : {}), color: `var(--st-${a.st}-fg)`, fontSize: 13, overflow: "hidden", cursor: "grab", boxShadow: selId === a.id ? "0 0 0 2px var(--brand-500)" : "none", opacity: a.st === "cancelada" ? 0.6 : 1 }}>
                   <b>{a.p}</b>
                   <div className="tnum" style={{ opacity: 0.85, fontSize: 12 }}>{live ? "● En atención · " : ""}{hm(a.slot)}–{hm(a.slot + dur)}{a.st === "bloqueo" ? "" : ` · ${a.s}${a.web ? " · Web" : ""}`}</div>
                   <div role="separator" aria-orientation="horizontal" aria-label={`Cambiar duración de ${a.p}`} draggable={false} onPointerDown={(e) => startResize(e, a)} onClick={(e) => e.stopPropagation()} className="da-resize" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 8, cursor: "ns-resize", touchAction: "none" }} />

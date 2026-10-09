@@ -291,8 +291,8 @@ function DayForm({ day, onDone }: { day: number; onDone: () => void }) {
       <ChipField label="Estado" value={open} options={["Abierto", "Descanso"] as const} onChange={setOpen} />
       {open === "Abierto" && (
         <>
-          <Field label="Abre"><select aria-label="Abre" style={sel} value={from} onChange={(e) => setFrom(+e.target.value)}>{Array.from({ length: 32 }, (_, k) => <option key={k} value={k}>{hm(k)}</option>)}</select></Field>
-          <Field label="Cierra"><select aria-label="Cierra" style={sel} value={to} onChange={(e) => setTo(+e.target.value)}>{Array.from({ length: 32 }, (_, k) => <option key={k + 1} value={k + 1}>{hm(k + 1)}</option>)}</select></Field>
+          <Field label="Abre"><select aria-label="Abre" style={sel} value={from} onChange={(e) => setFrom(+e.target.value)}>{Array.from({ length: 96 }, (_, k) => <option key={k} value={k}>{hm(k)}</option>)}</select></Field>
+          <Field label="Cierra"><select aria-label="Cierra" style={sel} value={to} onChange={(e) => setTo(+e.target.value)}>{Array.from({ length: 96 }, (_, k) => <option key={k + 1} value={k + 1}>{hm(k + 1)}</option>)}</select></Field>
           {bad && <div role="alert" style={{ color: "var(--error-fg)", fontSize: 13, fontWeight: 600 }}>La hora de cierre debe ser posterior a la de apertura.</div>}
         </>
       )}

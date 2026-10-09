@@ -2,10 +2,12 @@ import { getSchedule } from "./brand";
 import { closedReason, dayWindow } from "./schedule";
 import { addDays, dayNumber, dayOfMonth, fromDayNumber, isISODate, labelLong, labelShort, nextOpenDay, todayISO, weekday } from "./dates";
 
-/** La agenda trabaja en tramos de 15 min entre 09:00 y 17:00 (32 tramos). Domingos cerrado. */
-export const SLOTS = 32;
+/** La agenda cubre las 24 h del día en tramos de 15 min (96 tramos; 0 = 00:00). El horario de atención de la clínica se configura aparte. */
+export const SLOTS = 96;
 export const SLOT_MIN = 15;
-export const DAY_START_MIN = 9 * 60;
+export const DAY_START_MIN = 0;
+/** Tramo de las 09:00, hora de apertura por defecto. */
+export const NINE = 36;
 
 /** `bloqueo` no es una cita: es un rango reservado en la agenda (almuerzo, reunión…) que impide agendar ahí. */
 export type ApptStatus = "pendiente" | "confirmada" | "en-sala" | "atendida" | "cancelada" | "no-show" | "reprogramada" | "bloqueo";
@@ -202,7 +204,7 @@ export type RescheduleCheck = { ok: true } | { ok: false; error: string; conflic
 
 export function checkReschedule(list: Appt[], a: Appt, target: { date: string; slot: number | null; doc: number }, today = todayISO()): RescheduleCheck {
   if (!isISODate(target.date) || target.date < today) return { ok: false, error: "Elige una fecha válida (desde hoy)" };
-  if (target.slot === null) return { ok: false, error: "Hora entre 09:00 y 16:45, en tramos de 15 min" };
+  if (target.slot === null) return { ok: false, error: "Hora en tramos de 15 min" };
   const he = hoursError(target.date, target.slot, a.dur);
   if (he) return { ok: false, error: he };
   const hit = clash(list, { date: target.date, doc: target.doc, slot: target.slot, dur: a.dur }, a.id);
@@ -216,7 +218,7 @@ export function checkReschedule(list: Appt[], a: Appt, target: { date: string; s
 export function seedAgenda(today = todayISO()): AgendaState {
   const d0 = nextOpenDay(today);
   const d19 = nextOpenDay(addDays(d0, 19));
-  const A = (id: number, date: string, doc: number, slot: number, dur: number, p: string, s: string, st: ApptStatus): Appt => ({ id, date, doc, slot, dur, p, s, st });
+  const A = (id: number, date: string, doc: number, slot: number, dur: number, p: string, s: string, st: ApptStatus): Appt => ({ id, date, doc, slot: slot + NINE, dur, p, s, st });
   return {
     nid: 100,
     appts: [

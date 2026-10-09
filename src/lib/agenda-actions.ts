@@ -88,7 +88,7 @@ export function validateNew(list: Appt[], f: NewApptForm, mode: "single" | "seri
   const slot = slotOf(f.time);
   if (f.patient.trim().length < 3) return "Indica el paciente";
   if (!isISODate(f.date) || f.date < today) return "Elige una fecha válida (desde hoy)";
-  if (slot === null) return "Hora entre 09:00 y 16:45, en tramos de 15 min";
+  if (slot === null) return "Hora en tramos de 15 min";
   const he = hoursError(f.date, slot, f.dur);
   if (he) return he;
   if (mode === "single") {
@@ -154,14 +154,14 @@ export interface BlockForm {
   until: string;
 }
 
-const endSlotOf = (t: string) => (t === "17:00" ? SLOTS : slotOf(t));
+const endSlotOf = (t: string) => (t === "00:00" ? SLOTS : slotOf(t));
 
 export function validateBlock(f: BlockForm, today: string): string {
   const a = slotOf(f.from), b = endSlotOf(f.to);
   if (!f.docs.length) return "Elige al menos un doctor";
   if (f.label.trim().length < 2) return "Indica el motivo (por ejemplo, Almuerzo)";
   if (!isISODate(f.date) || f.date < today) return "Elige una fecha válida (desde hoy)";
-  if (a === null || b === null) return "Hora entre 09:00 y 17:00, en tramos de 15 min";
+  if (a === null || b === null) return "Hora en tramos de 15 min";
   if (b <= a) return "La hora de fin debe ser posterior a la de inicio";
   if (f.repeat === "daily" && (!isISODate(f.until) || f.until < f.date)) return "Elige hasta qué día se repite";
   return "";

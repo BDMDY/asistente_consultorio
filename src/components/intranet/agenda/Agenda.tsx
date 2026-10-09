@@ -32,6 +32,8 @@ export interface AgendaCtx {
   /** horas de atención del día (null = día sin atención) y el motivo */
   win: Window | null;
   closedMsg: string;
+  /** franja de horas que muestra la malla (tramos, múltiplos de 4): el horario de atención más las citas del día */
+  view: Window;
   docs: ReturnType<typeof useDoctors>;
   appts: Appt[];
   selId: number | null;
@@ -69,7 +71,7 @@ export default function Agenda() {
   const sel = appts.find((a) => a.id === selId) ?? null;
   const ctx: AgendaCtx = {
     date, today, docs, appts, selId, setSel,
-    win: dayWindow(date, schedule), closedMsg: closedReason(date, schedule),
+    win: dayWindow(date, schedule), closedMsg: closedReason(date, schedule), view: gridRange(schedule, appts.filter((a) => a.date === date)),
     go: (delta) => {
       // Salta los días de descanso y los cierres especiales.
       let d = addDays(date, delta);
@@ -130,9 +132,20 @@ export default function Agenda() {
   );
 }
 
+/** Franja visible de la malla: desde la primera apertura hasta el último cierre de la semana (09:00–17:00 si no hay horario), ampliada para que quepan las citas del día. */
+function gridRange(s: ReturnType<typeof scheduleOf>, day: Appt[]): Window {
+  const open = s.days.filter((d) => d.open);
+  let from = open.length ? Math.min(...open.map((d) => d.from)) : 36;
+  let to = open.length ? Math.max(...open.map((d) => d.to)) : 68;
+  for (const a of day) { from = Math.min(from, a.slot); to = Math.max(to, a.slot + a.dur); }
+  from = Math.floor(from / 4) * 4;
+  to = Math.max(from + 4, Math.ceil(to / 4) * 4);
+  return { from, to };
+}
+
 function firstFreeTime(appts: Appt[], date: string, doc: number, win: Window | null): string {
-  for (let s = win?.from ?? 0; s + 3 <= (win?.to ?? 32); s++) {
+  for (let s = win?.from ?? 36; s + 3 <= (win?.to ?? 68); s++) {
     if (!appts.some((b) => b.date === date && b.doc === doc && b.st !== "cancelada" && s < b.slot + b.dur && b.slot < s + 3)) return hm(s);
   }
-  return hm(win?.from ?? 0);
+  return hm(win?.from ?? 36);
 }

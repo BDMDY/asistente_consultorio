@@ -11,10 +11,10 @@ describe("redimensionar", () => {
     expect(checkResize(list, list[0], 4)).toEqual({ ok: true });
     expect(checkResize(list, list[0], 1)).toEqual({ ok: true });
   });
-  it("no pisa a la cita siguiente ni pasa de las 17:00 ni baja de 15 min", () => {
-    const list = [A(1, 0, 2), A(2, 3, 2), A(3, 30, 2)];
+  it("no pisa a la cita siguiente ni pasa de las 24:00 ni baja de 15 min", () => {
+    const list = [A(1, 0, 2), A(2, 3, 2), A(3, 94, 2)];
     expect(checkResize(list, list[0], 4)).toMatchObject({ ok: false });
-    expect(checkResize(list, list[2], 3)).toMatchObject({ ok: false });
+    expect(checkResize(list, list[2], 3)).toMatchObject({ ok: false }); // pasaría de las 24:00
     expect(checkResize(list, list[0], 0)).toMatchObject({ ok: false });
   });
 });
@@ -37,9 +37,9 @@ describe("avisos de demora", () => {
     expect(delayAlerts([A(1, 0, 2), A(2, 2, 2)], T, 700)).toEqual([]);
     expect(delayAlerts([list[0], A(2, 12, 2)], T, endMin(list[0]) + 5)).toEqual([]);
   });
-  it("también cuenta al paciente en sala sin inicio marcado, y no avisa fuera del horario", () => {
+  it("también cuenta al paciente en sala sin inicio marcado, y no avisa sin hora válida", () => {
     expect(inProgress(A(1, 0, 2, { st: "en-sala" }))).toBe(true);
-    expect(delayAlerts(list, T, 20 * 60)).toEqual([]);
+    expect(delayAlerts(list, T, -1)).toEqual([]);
   });
   it("redacta el mensaje de demora", () => {
     const m = delayMessage({ name: "Mario Soto", clinic: "Clínica Sonríe", minutes: 15, when: "10:30" });

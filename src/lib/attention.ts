@@ -1,11 +1,10 @@
-import { type Appt, SLOTS, clash, hm } from "./agenda";
+import { type Appt, DAY_START_MIN, SLOTS, clash, hm } from "./agenda";
 import { limaMinutesNow } from "./dates";
 
 /** Atención en consulta: inicio/fin reales, extensión manual y avisos de demora al siguiente paciente. */
 
-export const DAY_START = 540;
-export const startMin = (a: Pick<Appt, "slot">) => DAY_START + a.slot * 15;
-export const endMin = (a: Pick<Appt, "slot" | "dur">) => DAY_START + (a.slot + a.dur) * 15;
+export const startMin = (a: Pick<Appt, "slot">) => DAY_START_MIN + a.slot * 15;
+export const endMin = (a: Pick<Appt, "slot" | "dur">) => DAY_START_MIN + (a.slot + a.dur) * 15;
 const CLOSED = new Set(["cancelada", "atendida", "no-show", "bloqueo"]);
 export const isClosed = (a: Pick<Appt, "st">) => CLOSED.has(a.st);
 
@@ -24,7 +23,7 @@ export type ResizeCheck = { ok: true } | { ok: false; error: string };
 /** Cambiar la duración (en tramos de 15 min) de forma manual: no puede pisar la cita siguiente ni pasar de las 17:00. */
 export function checkResize(list: Appt[], a: Appt, dur: number): ResizeCheck {
   if (!Number.isInteger(dur) || dur < 1) return { ok: false, error: "La cita debe durar al menos 15 min" };
-  if (a.slot + dur > SLOTS) return { ok: false, error: "No se puede pasar de las 17:00" };
+  if (a.slot + dur > SLOTS) return { ok: false, error: "No se puede pasar de las 24:00" };
   const hit = clash(list, { date: a.date, doc: a.doc, slot: a.slot, dur }, a.id);
   if (hit) return { ok: false, error: `Choca con ${hit.p} (${hm(hit.slot)}). Avísale o reprográmalo primero.` };
   return { ok: true };
@@ -41,7 +40,7 @@ export interface DelayAlert {
 
 /** Citas en curso que ya pasaron su hora de fin sin marcarlo, con un paciente cercano esperando (hoy, en horario de atención). */
 export function delayAlerts(appts: Appt[], today: string, nowMin: number, horizon = 30): DelayAlert[] {
-  if (nowMin < DAY_START || nowMin > 18 * 60) return [];
+  if (nowMin < 0) return [];
   const day = appts.filter((a) => a.date === today);
   const out: DelayAlert[] = [];
   for (const current of day) {

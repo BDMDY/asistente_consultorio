@@ -63,7 +63,7 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
 
   let avail: { tone: "success" | "warning" | "error"; icon: "circle-check" | "triangle-alert" | "circle-x" | "clock"; msg: string };
   if (isClosedDay(f.date)) avail = { tone: "warning", icon: "triangle-alert", msg: closedReason(f.date, getSchedule()) + "." };
-  else if (slot === null) avail = { tone: "warning", icon: "clock", msg: "Elige una hora entre 09:00 y 16:45 en tramos de 15 min." };
+  else if (slot === null) avail = { tone: "warning", icon: "clock", msg: "Elige una hora en tramos de 15 min." };
   else if (hoursError(f.date, slot, f.dur)) avail = { tone: "warning", icon: "clock", msg: hoursError(f.date, slot, f.dur) + "." };
   else if (hit) avail = { tone: "error", icon: "circle-x", msg: `Choca con ${hit.p} (${hm(hit.slot)}–${hm(hit.slot + hit.dur)}). Elige otro horario.` };
   else avail = { tone: "success", icon: "circle-check", msg: `Horario libre · ${docName} · ${hm(slot)}–${hm(slot + f.dur)}` };
@@ -114,7 +114,7 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
           <input type="date" value={f.date} min={today} onChange={(e) => patch({ date: e.target.value })} style={fieldStyle} />
         </label>
         <label style={labelStyle}>Hora
-          <input type="time" step={900} min="09:00" max="16:45" value={f.time} onChange={(e) => patch({ time: e.target.value })} style={fieldStyle} />
+          <input type="time" step={900} value={f.time} onChange={(e) => patch({ time: e.target.value })} style={fieldStyle} />
         </label>
       </div>
 
@@ -249,7 +249,7 @@ export function RescheduleDialog({ a, today, docs, sheet, onClose, onDone }: { a
         </div>
         <div style={{ display: "grid", gridTemplateColumns: sheet ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
           <label style={labelStyle}>Nueva fecha<input type="date" min={today} value={r.date} onChange={(e) => setR({ ...r, date: e.target.value })} style={fieldStyle} /></label>
-          <label style={labelStyle}>Nueva hora<input type="time" step={900} min="09:00" max="16:45" value={r.time} onChange={(e) => setR({ ...r, time: e.target.value })} style={fieldStyle} /></label>
+          <label style={labelStyle}>Nueva hora<input type="time" step={900} value={r.time} onChange={(e) => setR({ ...r, time: e.target.value })} style={fieldStyle} /></label>
           <label style={labelStyle}>Doctor<select value={r.doc} onChange={(e) => setR({ ...r, doc: +e.target.value })} style={fieldStyle}>{docs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
         </div>
         {check.ok
@@ -456,8 +456,8 @@ export function BlockDialog({ today, date, docs, initial, sheet, onClose, onCrea
         </label>
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: 10 }}>
           <label style={labelStyle}>Fecha<input type="date" min={today} value={f.date} onChange={(e) => set({ date: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
-          <label style={labelStyle}>Desde<input type="time" step={900} min="09:00" max="16:45" value={f.from} onChange={(e) => set({ from: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
-          <label style={labelStyle}>Hasta<input type="time" step={900} min="09:15" max="17:00" value={f.to} onChange={(e) => set({ to: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
+          <label style={labelStyle}>Desde<input type="time" step={900} value={f.from} onChange={(e) => set({ from: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
+          <label style={labelStyle}>Hasta<input type="time" step={900} value={f.to} onChange={(e) => set({ to: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
         </div>
         <Segmented value={f.repeat} onChange={(repeat) => set({ repeat })} options={[["once", "Solo este día"], ["daily", "Todos los días de atención"]]} />
         {f.repeat === "daily" && <label style={labelStyle}>Repetir hasta<input type="date" min={f.date} value={f.until} onChange={(e) => set({ until: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>}

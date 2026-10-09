@@ -2,19 +2,21 @@ import { WEEKDAYS_LONG, labelLong, weekday } from "./dates";
 
 /**
  * Horario de atención de la clínica: horas por día de la semana y cierres especiales (feriados, vacaciones).
- * Las horas son tramos de la grilla (0 = 09:00, tramos de 15 min; `to` es exclusivo: 32 = 17:00).
+ * Las horas son tramos de la grilla de 24 h (0 = 00:00, tramos de 15 min; `to` es exclusivo: 68 = 17:00, 96 = 24:00).
  */
-export const GRID_SLOTS = 32;
+export const GRID_SLOTS = 96;
 export interface DayHours { open: boolean; from: number; to: number }
 export interface Closure { id: string; date: string; label: string }
 export interface Schedule {
+  /** versión del formato (2 = grilla de 24 h); un horario guardado en el formato anterior se descarta */
+  v?: number;
   /** 0 = domingo … 6 = sábado */
   days: DayHours[];
   closures: Closure[];
 }
 
 export const DEFAULT_SCHEDULE: Schedule = {
-  days: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ open: d !== 0, from: 0, to: GRID_SLOTS })),
+  days: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ open: d !== 0, from: 36, to: 68 })),
   closures: [],
 };
 
@@ -22,14 +24,15 @@ const clamp = (n: unknown, lo: number, hi: number, fallback: number) => (Number.
 
 /** Completa y sanea el horario guardado (por si falta o viene incompleto). */
 export function scheduleOf(raw?: Partial<Schedule> | null): Schedule {
+  const current = raw?.v === 2;
   const days = DEFAULT_SCHEDULE.days.map((d, i) => {
-    const r = raw?.days?.[i];
+    const r = current ? raw?.days?.[i] : undefined;
     if (!r) return d;
     const from = clamp(r.from, 0, GRID_SLOTS - 1, d.from);
     const to = clamp(r.to, from + 1, GRID_SLOTS, d.to);
     return { open: !!r.open, from, to };
   });
-  return { days, closures: (raw?.closures ?? []).filter((c) => c && /^\d{4}-\d{2}-\d{2}$/.test(c.date)) };
+  return { v: 2, days, closures: (raw?.closures ?? []).filter((c) => c && /^\d{4}-\d{2}-\d{2}$/.test(c.date)) };
 }
 
 export type Window = { from: number; to: number };
@@ -60,7 +63,7 @@ export function nextOpen(iso: string, s: Schedule): string {
 const addDaysIso = (iso: string, n: number) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
 
 const hhmm = (slot: number) => {
-  const m = 540 + slot * 15;
+  const m = slot * 15;
   return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 };
 const DAY_ABBR = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];

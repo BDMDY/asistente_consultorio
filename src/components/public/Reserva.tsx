@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon, { type IconName } from "@/components/ui/Icon";
-import { hm, isClosedDay, isSlotTaken } from "@/lib/agenda";
+import { DAY_START_MIN, hm, isClosedDay, isSlotTaken } from "@/lib/agenda";
 import { dayWindow, scheduleOf } from "@/lib/schedule";
 import { isEmail } from "@/lib/session";
 import { bookPublic, useBusy } from "@/lib/backend/public-api";
@@ -65,7 +65,7 @@ export default function Reserva() {
     const w = dayWindow(d.date, scheduleOf(brand.schedule));
     if (!w) return [];
     return Array.from({ length: Math.max(0, Math.ceil((w.to - w.from) / 2)) }, (_, i) => w.from + i * 2).filter((sl) => {
-      if (d.date === today && 540 + sl * 15 <= nowMin) return false;
+      if (d.date === today && DAY_START_MIN + sl * 15 <= nowMin) return false;
       return !isSlotTaken(appts, doctorIds, d.date!, d.doc === "any" ? null : d.doc, sl, dur);
     });
   })();

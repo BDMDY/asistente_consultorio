@@ -1,4 +1,6 @@
-import { type Appt, SLOTS, hm } from "./agenda";
+import { type Appt, hm } from "./agenda";
+import { getSchedule } from "./brand";
+import { dayWindow } from "./schedule";
 import { MONTHS_SHORT, WEEKDAYS_SHORT, addDays, dayNumber, dayOfMonth, fromDayNumber, isISODate, todayISO, weekday } from "./dates";
 import type { Doctor } from "./media";
 import { type Patient, samePatientName } from "./patients";
@@ -33,6 +35,17 @@ export const limaDateOf = (iso: string) => todayISO(new Date(iso));
 /** Los identificadores nuevos son microsegundos desde 1970: de ahí sale cuándo se registró un paciente (los de ejemplo, no). */
 export function createdDateOfId(id: number): string | null {
   return id > 1e15 && id < 1e16 ? todayISO(new Date(id / 1000)) : null;
+}
+
+/** Tramos de atención disponibles en el rango, según el horario configurado. */
+export function capacitySlots(r: Range): number {
+  const s = getSchedule();
+  let n = 0;
+  for (let d = dayNumber(r.from); d <= dayNumber(r.to); d++) {
+    const w = dayWindow(fromDayNumber(d), s);
+    if (w) n += w.to - w.from;
+  }
+  return n;
 }
 
 export function openDays(r: Range): number {
@@ -84,7 +97,7 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
   const apptRow = (a: Appt): Cell[] => [a.date, hm(a.slot), a.p, a.s, docName(a.doc), STATUS[a.st], a.dur * 15];
 
   // Ocupación por doctor
-  const capacity = openDays(range) * SLOTS;
+  const capacity = capacitySlots(range);
   const ocuRows = i.doctors.map((d): Cell[] => {
     const mine = appts.filter((a) => a.doc === d.id && ACTIVE.has(a.st));
     const used = mine.reduce((n, a) => n + a.dur, 0);
@@ -206,7 +219,7 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
     summary: { attended, noShowPct: attended + noShow ? Math.round((noShow / (attended + noShow)) * 100) : null, income, total: appts.filter((a) => a.st !== "cancelada").length },
     reports: [
       {
-        id: "ocu", title: "Ocupación por doctor", sub: "Tramos de 15 min agendados sobre la capacidad (lunes a sábado, 09:00–17:00)",
+        id: "ocu", title: "Ocupación por doctor", sub: "Tramos de 15 min agendados sobre la capacidad según el horario de atención",
         summary: { columns: ["Doctor", "Citas", "Tramos agendados", "Capacidad (tramos)", "Ocupación %"], rows: ocuRows, pct: [4] },
         detail: { title: "Citas del periodo", table: { columns: ["Fecha", "Hora", "Paciente", "Servicio", "Doctor", "Estado", "Duración (min)"], rows: appts.slice().sort((x, y) => x.date.localeCompare(y.date) || x.slot - y.slot).map(apptRow) } },
       },

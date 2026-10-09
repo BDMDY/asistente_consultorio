@@ -1,8 +1,10 @@
 "use client";
+import { useBrand } from "@/lib/brand";
 import Link from "next/link";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { agendaStore } from "@/lib/agenda-store";
-import { SLOTS, STATUS_LABEL, hm, type ApptStatus } from "@/lib/agenda";
+import { STATUS_LABEL, hm, type ApptStatus } from "@/lib/agenda";
+import { dayWindow, scheduleOf } from "@/lib/schedule";
 import { labelLong } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
 import { useDoctors } from "@/lib/doctors";
@@ -28,11 +30,14 @@ export default function Inicio() {
   const [sede] = sedeStore.useStore();
   const user = currentUser(session, mod);
   const docs = useDoctors();
+  const brand = useBrand();
   const sedeActiva = resolveSede(sede, mod.sedes.map((z) => z.n));
 
   const todays = appts.filter((a) => a.date === today && a.st !== "cancelada" && a.st !== "bloqueo").sort((a, b) => a.slot - b.slot);
   const unconfirmed = todays.filter((a) => a.st === "pendiente").length;
-  const occ = docs.map((d) => ({ name: d.name, pct: Math.round((todays.filter((a) => a.doc === d.id).reduce((n, a) => n + a.dur, 0) / SLOTS) * 100) }));
+  const win = dayWindow(today || "2000-01-03", scheduleOf(brand.schedule));
+  const dayCap = win ? win.to - win.from : 32;
+  const occ = docs.map((d) => ({ name: d.name, pct: Math.min(100, Math.round((todays.filter((a) => a.doc === d.id).reduce((n, a) => n + a.dur, 0) / dayCap) * 100)) }));
   const occAvg = occ.length ? Math.round(occ.reduce((n, o) => n + o.pct, 0) / occ.length) : 0;
   const paid = mod.fin.filter((f) => f.st === "pagado").reduce((n, f) => n + f.a, 0);
   const pendTotal = pending.reduce((n, f) => n + f.a, 0);
