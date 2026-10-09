@@ -17,23 +17,26 @@ export function addNote(patientId: number, t: string, date: string) {
 }
 
 // ───────────── Plan de tratamiento (por paciente) ─────────────
-/** Un tratamiento del plan, con su propio avance (controles hechos de los previstos) y su precio total. */
-export interface PlanItem { id: string; name: string; total: number; done: number; price: number }
-/** Plan del paciente. Con `items` hay varios tratamientos, cada uno con su avance; `name`, `total`, `done` y `price` son los totales del plan. */
+/**
+ * Un tratamiento del plan = un servicio con su propio plan de sesiones: sesiones previstas y hechas, precio total y lo pagado.
+ * Se pueden agregar más tratamientos en cualquier momento (por ejemplo, tras la evaluación odontológica).
+ */
+export interface PlanItem { id: string; name: string; /** sesiones previstas */ total: number; /** sesiones hechas */ done: number; price: number; /** monto pagado a este tratamiento */ paid?: number; /** fecha de alta (AAAA-MM-DD) */ at?: string }
+/** Plan del paciente: la lista de sus tratamientos (`items`); `name`, `total`, `done` y `price` son los totales. */
 export interface TreatmentPlan { name: string; total: number; done: number; price: number; paidBase: number; items?: PlanItem[] }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Tratamientos del plan (un plan antiguo, sin lista, equivale a un único tratamiento). */
+/** Tratamientos del plan (un plan antiguo, sin lista, equivale a un único tratamiento con lo pagado en `paidBase`). */
 export function planItems(plan?: TreatmentPlan): PlanItem[] {
   if (!plan) return [];
-  return plan.items ?? [{ id: "main", name: plan.name, total: plan.total, done: plan.done, price: plan.price }];
+  return plan.items ?? [{ id: "main", name: plan.name, total: plan.total, done: plan.done, price: plan.price, paid: plan.paidBase }];
 }
 
 /** Plan con la lista de tratamientos dada y los totales recalculados. */
-export function withItems(plan: TreatmentPlan | undefined, items: PlanItem[]): TreatmentPlan {
+export function withItems(_plan: TreatmentPlan | undefined, items: PlanItem[]): TreatmentPlan {
   return {
-    paidBase: plan?.paidBase ?? 0,
+    paidBase: 0,
     items,
     name: items.map((i) => i.name).join(" + "),
     total: items.reduce((n, i) => n + i.total, 0),
@@ -42,10 +45,36 @@ export function withItems(plan: TreatmentPlan | undefined, items: PlanItem[]): T
   };
 }
 
-/** Precio de una sesión de ese tratamiento (precio total entre controles previstos). */
+/** Precio de una sesión de ese tratamiento (precio total entre sesiones previstas). */
 export const sessionPrice = (it: PlanItem) => (it.total > 0 ? round2(it.price / it.total) : it.price);
+/** Saldo por pagar de un tratamiento. */
+export const itemBalance = (it: PlanItem) => Math.max(0, round2(it.price - (it.paid ?? 0)));
+/** Total pagado en el plan. */
+export const planPaid = (plan?: TreatmentPlan) => round2(planItems(plan).reduce((n, i) => n + (i.paid ?? 0), 0));
 
-/** Suma un control hecho a cada tratamiento indicado (sin pasar del total previsto). */
+/** Agrega tratamientos al plan (lo crea si no existe). */
+export const addItems = (plan: TreatmentPlan | undefined, items: PlanItem[]) => withItems(plan, [...planItems(plan), ...items]);
+
+/** Quita un tratamiento del plan; devuelve undefined si no queda ninguno. */
+export function removeItem(plan: TreatmentPlan, id: string): TreatmentPlan | undefined {
+  const rest = planItems(plan).filter((i) => i.id !== id);
+  return rest.length ? withItems(plan, rest) : undefined;
+}
+
+/** Una sesión de tratamiento: suma una sesión hecha (sin pasar de las previstas) y el monto cobrado, por cada línea. */
+export function applyLines(plan: TreatmentPlan, lines: { planItem: string; amount: number }[]): TreatmentPlan {
+  return withItems(plan, planItems(plan).map((it) => {
+    const mine = lines.filter((l) => l.planItem === it.id);
+    return mine.length ? { ...it, done: Math.min(it.total, it.done + 1), paid: round2((it.paid ?? 0) + mine.reduce((n, l) => n + l.amount, 0)) } : it;
+  }));
+}
+
+/** Registra un pago a un tratamiento sin contar una sesión. */
+export function payItem(plan: TreatmentPlan, id: string, amount: number): TreatmentPlan {
+  return withItems(plan, planItems(plan).map((it) => (it.id === id ? { ...it, paid: round2((it.paid ?? 0) + amount) } : it)));
+}
+
+/** Suma una sesión hecha a cada tratamiento indicado (sin pasar de las previstas). */
 export function advance(plan: TreatmentPlan, ids: string[]): TreatmentPlan {
   return withItems(plan, planItems(plan).map((i) => (ids.includes(i.id) ? { ...i, done: Math.min(i.total, i.done + 1) } : i)));
 }

@@ -50,7 +50,7 @@ describe("historia inicial", () => {
   });
 });
 
-import { advance, planItems, sessionPrice, withItems, type TreatmentPlan } from "./clinical";
+import { addItems, advance, applyLines, itemBalance, payItem, planItems, planPaid, removeItem, sessionPrice, withItems, type TreatmentPlan } from "./clinical";
 
 describe("plan con varios tratamientos", () => {
   const plan = withItems(undefined, [
@@ -62,7 +62,7 @@ describe("plan con varios tratamientos", () => {
   });
   it("un plan antiguo equivale a un solo tratamiento", () => {
     const old: TreatmentPlan = { name: "Ortodoncia con brackets", total: 18, done: 9, price: 4800, paidBase: 2400 };
-    expect(planItems(old)).toEqual([{ id: "main", name: "Ortodoncia con brackets", total: 18, done: 9, price: 4800 }]);
+    expect(planItems(old)).toEqual([{ id: "main", name: "Ortodoncia con brackets", total: 18, done: 9, price: 4800, paid: 2400 }]);
   });
   it("precio por sesión", () => {
     expect(sessionPrice(planItems(plan)[0])).toBe(200);
@@ -74,5 +74,26 @@ describe("plan con varios tratamientos", () => {
     expect(p1.done).toBe(4);
     const full = advance(advance(plan, ["b"]), ["b", "b"]);
     expect(planItems(full)[1].done).toBe(2);
+  });
+  it("cada sesión suma una sesión hecha y lo cobrado a su tratamiento", () => {
+    const p = applyLines(plan, [{ planItem: "a", amount: 200 }, { planItem: "b", amount: 250 }]);
+    expect(planItems(p).map((i) => [i.done, i.paid])).toEqual([[4, 200], [1, 250]]);
+    expect(planPaid(p)).toBe(450);
+    expect(itemBalance(planItems(p)[0])).toBe(2200);
+  });
+  it("un pago no cuenta sesión; un plan antiguo conserva lo pagado", () => {
+    const p = payItem(plan, "a", 500);
+    expect(planItems(p)[0]).toMatchObject({ done: 3, paid: 500 });
+    const old: TreatmentPlan = { name: "Ortodoncia", total: 18, done: 9, price: 4800, paidBase: 2400 };
+    expect(planPaid(old)).toBe(2400);
+    const grown = addItems(old, [{ id: "n", name: "Limpieza", total: 1, done: 0, price: 90 }]);
+    expect(planItems(grown)[0].paid).toBe(2400);
+    expect(grown.paidBase).toBe(0);
+  });
+  it("se agregan tratamientos después y se pueden quitar", () => {
+    const grown = addItems(plan, [{ id: "c", name: "Endodoncia", total: 2, done: 0, price: 600 }]);
+    expect(grown.total).toBe(16);
+    expect(planItems(removeItem(grown, "c")!)).toHaveLength(2);
+    expect(removeItem(withItems(undefined, [{ id: "x", name: "Solo", total: 1, done: 0, price: 10 }]), "x")).toBeUndefined();
   });
 });

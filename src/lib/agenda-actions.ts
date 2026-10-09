@@ -6,7 +6,7 @@ import { addDays, isISODate } from "./dates";
 import { newId } from "./ids";
 import { mediaStore, parsePrice, resolveMedia } from "./media";
 import { enqueue } from "./outbox";
-import { advance, plansStore } from "./clinical";
+import { applyLines, plansStore } from "./clinical";
 import { type PayMethod, type Payment, addPayment, addPayments, paymentsStore } from "./payments";
 import { patientsStore } from "./patients";
 
@@ -64,9 +64,9 @@ export interface SessionLine { concept: string; amount: number; planItem?: strin
  */
 export function chargeSession(a: Appt, lines: SessionLine[], method: PayMethod, patientId?: number): Payment[] {
   const pays = addPayments(lines.map((l) => ({ concept: l.concept, amount: l.amount })), { apptId: a.id, patient: a.p, method, date: apptWhenShort(a) });
-  const ids = lines.map((l) => l.planItem).filter((x): x is string => !!x);
-  if (patientId !== undefined && ids.length) {
-    plansStore.update((all) => (all[patientId] ? { ...all, [patientId]: advance(all[patientId], ids) } : all));
+  const linked = lines.filter((l): l is SessionLine & { planItem: string } => !!l.planItem).map((l) => ({ planItem: l.planItem, amount: l.amount }));
+  if (patientId !== undefined && linked.length) {
+    plansStore.update((all) => (all[patientId] ? { ...all, [patientId]: applyLines(all[patientId], linked) } : all));
   }
   patchAppt(a.id, { st: "atendida" });
   return pays;

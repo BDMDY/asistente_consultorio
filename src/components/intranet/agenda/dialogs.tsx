@@ -6,7 +6,9 @@ import { type BlockForm, CANCEL_REASONS, type NewApptForm, createBlocks, validat
 import { agendaStore } from "@/lib/agenda-store";
 import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { type Doctor, activeServices, parsePrice, serviceSlots, useMedia } from "@/lib/media";
-import { planItems, plansStore, sessionPrice } from "@/lib/clinical";
+import { type PlanItem, addItems, planItems, plansStore, sessionPrice } from "@/lib/clinical";
+import { todayISO } from "@/lib/dates";
+import { uid } from "@/lib/mod";
 import { PAY_METHODS, type PayMethod, type Payment, money } from "@/lib/payments";
 import { delayMessage, rescheduleMessage } from "@/lib/attention";
 import { enqueue } from "@/lib/outbox";
@@ -331,10 +333,29 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   const ok = on.length > 0 && on.every((l) => num(l) > 0);
   const patch = (key: string, p: Partial<PayLine>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...p } : l)));
   const extra = activeServices(media).filter((sv) => !lines.some((l) => l.concept === sv.name));
+  // Tratamiento nuevo indicado durante la sesión (por ejemplo, tras la evaluación): entra al plan del paciente y a este cobro.
+  const [adding, setAdding] = useState(false);
+  const [nt, setNt] = useState({ name: "", n: "1", price: "" });
+  function pickNew(name: string) {
+    const sv = activeServices(media).find((x) => x.name === name);
+    const unit = sv ? parsePrice(sv.price) : NaN;
+    setNt((x) => ({ ...x, name, ...(unit > 0 && !x.price ? { price: String(unit * (parseInt(x.n, 10) || 1)) } : {}) }));
+  }
+  function addNew() {
+    if (!patient) return toast("Registra primero al paciente en Pacientes para crear su plan");
+    const n = Math.max(1, parseInt(nt.n, 10) || 1), price = parseFloat(nt.price);
+    if (nt.name.trim().length < 3 || !(price > 0)) return toast("Indica el tratamiento, sus sesiones y su precio total");
+    const it: PlanItem = { id: uid(), name: nt.name.trim(), total: n, done: 0, price, paid: 0, at: todayISO() };
+    plansStore.update((all) => ({ ...all, [patient.id]: addItems(all[patient.id], [it]) }));
+    setLines((ls) => [...ls, { key: "p:" + it.id, concept: it.name, amount: String(sessionPrice(it)), on: true, planItem: it.id }]);
+    setAdding(false);
+    setNt({ name: "", n: "1", price: "" });
+    toast(`${it.name} agregado al plan del paciente`);
+  }
 
   function charge() {
     if (!ok) return;
-    const progress = on.filter((l) => l.planItem).map((l) => { const it = pending.find((x) => x.id === l.planItem)!; return `${it.name}: ${it.done + 1} de ${it.total} controles`; });
+    const progress = on.filter((l) => l.planItem).map((l) => { const it = pending.find((x) => x.id === l.planItem)!; return `${it.name}: ${it.done + 1} de ${it.total} sesiones`; });
     const pays = chargeSession(a, on.map((l) => ({ concept: l.concept, amount: num(l), planItem: l.planItem })), method, patient?.id);
     setReceipt({ pays, progress });
   }
@@ -361,15 +382,32 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
                     <input type="checkbox" aria-label={`Incluir ${l.concept}`} checked={l.on} onChange={(e) => patch(l.key, { on: e.target.checked })} style={{ width: 20, height: 20, accentColor: "var(--brand-600)" }} />
                     <span style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
                       <b>{l.concept}</b>
-                      <span style={{ display: "block", fontSize: 12, color: "var(--ink-500)" }}>{it ? `Plan: ${it.done} de ${it.total} controles${l.on ? ` → ${it.done + 1}` : ""}` : "Fuera del plan (solo cobro)"}</span>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--ink-500)" }}>{it ? `Plan: ${it.done} de ${it.total} sesiones${l.on ? ` → ${it.done + 1}` : ""}` : "Fuera del plan (solo cobro)"}</span>
                     </span>
                     <input aria-label={`Monto de ${l.concept}`} value={l.amount} disabled={!l.on} onChange={(e) => patch(l.key, { amount: e.target.value })} inputMode="decimal" className="tnum" style={{ ...fieldStyle, width: 96, height: 42, fontSize: 15, fontWeight: 700, textAlign: "right", border: l.on && !(num(l) > 0) ? "2px solid var(--error-fg)" : "1px solid var(--line)" }} />
                   </div>
                 );
               })}
+              {adding ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)" }}>
+                  <b style={{ fontSize: 14 }}>Nuevo tratamiento del plan</b>
+                  <datalist id="da-new-treat">{activeServices(media).map((x) => <option key={x.id} value={x.name} />)}</datalist>
+                  <input list="da-new-treat" aria-label="Nuevo tratamiento" value={nt.name} onChange={(e) => pickNew(e.target.value)} placeholder="Tratamiento (ej. Endodoncia)" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <input aria-label="Sesiones previstas" value={nt.n} inputMode="numeric" onChange={(e) => setNt({ ...nt, n: e.target.value })} placeholder="Sesiones" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
+                    <input aria-label="Precio total del tratamiento" value={nt.price} inputMode="decimal" onChange={(e) => setNt({ ...nt, price: e.target.value })} placeholder="Precio total (S/)" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button type="button" onClick={() => setAdding(false)} style={btnOutline}>Cancelar</button>
+                    <button type="button" onClick={addNew} style={btnPrimary()}>Agregar al plan y a esta sesión</button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setAdding(true)} style={{ ...btnOutline, alignSelf: "flex-start" }}>+ Nuevo tratamiento (indicado en esta sesión)</button>
+              )}
               {extra.length > 0 && (
                 <select aria-label="Agregar otro tratamiento" value="" onChange={(e) => { const sv = extra.find((x) => x.name === e.target.value); if (sv) setLines((ls) => [...ls, { key: "s:" + sv.name, concept: sv.name, amount: String(parsePrice(sv.price) || 0), on: true }]); }} style={{ ...fieldStyle, height: 44, fontSize: 14 }}>
-                  <option value="">+ Agregar otro tratamiento de esta sesión…</option>
+                  <option value="">+ Cobrar otro servicio (sin plan)…</option>
                   {extra.map((sv) => <option key={sv.id} value={sv.name}>{sv.name}</option>)}
                 </select>
               )}
