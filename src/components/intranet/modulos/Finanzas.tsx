@@ -10,6 +10,10 @@ import { useToday } from "@/lib/hooks";
 import { type FinItem, modStore, money0, saveMod, uid, useMod } from "@/lib/mod";
 import { enqueue } from "@/lib/outbox";
 import { patientOf, patientsStore } from "@/lib/patients";
+import { openSessionReceipt } from "@/lib/receipts-open";
+import { apptCode, sessionGroup } from "@/lib/receipts";
+import { agendaStore } from "@/lib/agenda-store";
+import { useDoctors } from "@/lib/doctors";
 import { PAY_METHODS, type PayMethod, type Payment, addPayment, paymentsStore } from "@/lib/payments";
 import { limaDateOf, periodRange } from "@/lib/reports";
 import { toast } from "@/lib/toast";
@@ -39,10 +43,10 @@ export function Finanzas() {
   const match = (t: string) => !q.trim() || t.toLowerCase().includes(q.trim().toLowerCase());
 
   const payRows: Row[] = inPeriod
-    .filter((p) => match(`${p.patient} ${p.concept} ${p.no} ${p.method}`))
+    .filter((p) => match(`${p.patient} ${p.concept} ${p.no} ${p.method} ${p.apptId ? apptCode(p.apptId) : ""}`))
     .map((p) => ({
       id: `p:${p.id}`, t: `${p.patient} · ${p.concept}`, badge: p.voided ? "Anulado" : money0(p.amount), tone: p.voided ? N : G,
-      sub: `${labelShort(limaDateOf(p.at))} · ${limaHM(p.at)} · ${p.no} · ${p.method}${p.voided ? ` · ${money0(p.amount)}` : ""}`,
+      sub: `${labelShort(limaDateOf(p.at))} · ${limaHM(p.at)} · ${p.no}${p.apptId ? ` · ${apptCode(p.apptId)}` : ""} · ${p.method}${p.voided ? ` · ${money0(p.amount)}` : ""}`,
     }));
   const finRows: Row[] = (chip === 4 ? d.fin.filter((f) => f.st !== "pagado" || !f.payId) : legacy)
     .filter((f) => (chip === 4 ? f.st !== "pagado" : true))
@@ -77,6 +81,10 @@ function PaymentDetail({ p, onDone }: { p: Payment; onDone: () => void }) {
   const patient = patientOf(patients, { p: p.patient });
   const when = `${labelLong(limaDateOf(p.at)).replace(/^./, (c) => c.toUpperCase())} · ${limaHM(p.at)}`;
   const same = paymentsStore.get().filter((x) => x.no === p.no && !x.voided);
+  const [{ appts }] = agendaStore.useStore();
+  const doctors = useDoctors();
+  const group = p.apptId ? sessionGroup(p.apptId, paymentsStore.get(), appts) : null;
+  const doc = group?.appt ? doctors.find((d) => d.id === group.appt!.doc)?.full : undefined;
   function receipt() {
     const w = window.open("", "_blank");
     if (!w) return toast("Permite ventanas emergentes para ver el comprobante");
@@ -92,10 +100,12 @@ function PaymentDetail({ p, onDone }: { p: Payment; onDone: () => void }) {
         <span><b>Comprobante:</b> {p.no}{same.length > 1 ? ` (${same.length} tratamientos)` : ""}</span>
         <span><b>Paciente:</b> {p.patient}</span>
         <span><b>Concepto:</b> {p.concept}</span>
+        {p.apptId && <span><b>Código de cita:</b> {apptCode(p.apptId)}</span>}
         {p.date && <span><b>Referencia:</b> {p.date}</span>}
       </div>
       <Actions items={[
         { t: "Ver comprobante", kind: "p", icon: "file-text", run: receipt },
+        ...(group && group.lines.length >= 1 ? [{ t: `Comprobante de la sesión ${group.code} · ${money0(group.total)}`, icon: "file-text" as const, run: () => { if (!openSessionReceipt(group, { clinic: brand.name, doctor: doc })) toast("Permite ventanas emergentes para ver el comprobante"); } }] : []),
         { t: "Enviar por WhatsApp", icon: "send", run: () => { enqueue({ kind: "comprobante", channel: "whatsapp", patient: p.patient, text: `Comprobante ${p.no}: ${p.concept} · ${money0(p.amount)}` }); onDone(); toast("Comprobante en cola · se enviará por WhatsApp al conectar la integración"); } },
         p.voided
           ? { t: "Restablecer cobro", icon: "rotate-ccw", run: () => { setVoided(p, false); toast("Cobro restablecido"); onDone(); } }

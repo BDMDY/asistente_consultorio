@@ -9,7 +9,10 @@ import { inProgress, isClosed, limaHM, minutesBetween } from "@/lib/attention";
 import { labelShort } from "@/lib/dates";
 import { modStore } from "@/lib/mod";
 import { patientOf, patientsStore } from "@/lib/patients";
-import { money } from "@/lib/payments";
+import { money, paymentsStore } from "@/lib/payments";
+import { useBrand } from "@/lib/brand";
+import { openSessionReceipt } from "@/lib/receipts-open";
+import { apptCode, sessionGroup } from "@/lib/receipts";
 import { currentUser, sessionStore } from "@/lib/session";
 import { toast } from "@/lib/toast";
 
@@ -24,7 +27,10 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResche
   const [mod] = modStore.useStore();
   const [sure, setSure] = useState(false);
   const router = useRouter();
+  const brand = useBrand();
+  const [payments] = paymentsStore.useStore();
   const [patients] = patientsStore.useStore();
+  const group = sessionGroup(a.id, payments, [a]);
   const patient = patientOf(patients, a);
   const openPatient = (inAttention = true) => router.push(`/intranet/pacientes?id=${patient!.id}${inAttention ? `&atencion=${a.id}` : ""}`);
   const isAdmin = currentUser(session, mod)?.rol === "Administrador";
@@ -69,6 +75,7 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResche
       <div className="tnum" style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-700)" }}>
         {compact && <>{apptWhenShort(a)}–{hm(a.slot + a.dur)}<br /></>}
         {a.s}{a.web ? " · Reserva web" : ""}<br />{doctor}<br />
+        <span style={{ color: "var(--ink-500)" }}>Código de cita <b className="tnum" style={{ color: "var(--ink-900)" }}>{apptCode(a.id)}</b></span><br />
         Saldo: <b>{money(balanceFor(a, paid))}</b>
         {a.notes && <><br /><span style={{ color: "var(--ink-500)" }}>{a.notes}</span></>}
       </div>
@@ -91,6 +98,9 @@ export default function ApptDetail({ a, doctor, alerts, paid, onResize, onResche
           if (patient) { toast("Atención iniciada · ficha del paciente"); openPatient(); }
           else toast("Atención iniciada. Este paciente aún no tiene ficha: regístralo en Pacientes.");
         }} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--info-bg)", color: "var(--info-fg)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Iniciar atención</button>
+      )}
+      {group.lines.length > 0 && (
+        <button type="button" onClick={() => { if (!openSessionReceipt(group, { clinic: brand.name, doctor })) toast("Permite ventanas emergentes para ver el comprobante"); }} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: "var(--success-bg)", color: "var(--success-fg)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Comprobante de la sesión · {money(group.total)} ({group.lines.length} {group.lines.length === 1 ? "cobro" : "cobros"})</button>
       )}
       {patient && (
         <button type="button" onClick={() => openPatient(running)} style={{ cursor: "pointer", border: 0, padding: 13, minHeight: 48, borderRadius: 12, background: running ? "var(--info-bg)" : "transparent", boxShadow: running ? "none" : "inset 0 0 0 1px var(--line)", color: running ? "var(--info-fg)" : "var(--brand-text)", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>Abrir ficha del paciente</button>

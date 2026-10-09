@@ -5,6 +5,7 @@ import { MONTHS_SHORT, WEEKDAYS_SHORT, addDays, dayNumber, dayOfMonth, fromDayNu
 import type { Doctor } from "./media";
 import { type Patient, samePatientName } from "./patients";
 import { PAY_METHODS, type Payment } from "./payments";
+import { apptCode } from "./receipts";
 
 /** Reportes en tablas, calculados con las citas, cobros y pacientes reales de la clínica. */
 export type Period = 0 | 1 | 2 | 3;
@@ -55,7 +56,7 @@ export function openDays(r: Range): number {
 }
 
 /** Orden en que se listan los reportes. */
-const ORDER = ["ing", "ingd", "serv", "sdia", "cli", "ocu", "nue", "can"];
+const ORDER = ["ing", "ingd", "ses", "serv", "sdia", "cli", "ocu", "nue", "can"];
 const ACTIVE = new Set(["pendiente", "confirmada", "en-sala", "atendida", "reprogramada"]);
 const STATUS = { pendiente: "Pendiente", confirmada: "Confirmada", "en-sala": "En sala", atendida: "Atendida", cancelada: "Cancelada", "no-show": "No-show", reprogramada: "Reprogramada", bloqueo: "Bloqueado" } as const;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -188,6 +189,15 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
   const idTotal: Cell[] = ["Total", pays.length, ...methodCols.map((m) => round2(pays.filter((p) => p.method === m).reduce((n, p) => n + p.amount, 0))), income];
   const apptOf = (id?: number) => i.appts.find((a) => a.id === id);
 
+  // Pagos por sesión: una fila por cita (o por comprobante, si el pago no fue de una cita)
+  const groups = new Map<string, Payment[]>();
+  for (const p of pays) groups.set(p.apptId ? `a${p.apptId}` : `n${p.no}`, [...(groups.get(p.apptId ? `a${p.apptId}` : `n${p.no}`) ?? []), p]);
+  const sesRows: Cell[][] = [...groups.values()].map((list): Cell[] => {
+    const first = list[0], ap = apptOf(first.apptId);
+    const uniq = (xs: string[]) => [...new Set(xs)].join(" + ");
+    return [first.apptId ? apptCode(first.apptId) : "—", ap ? ap.date : limaDateOf(first.at), ap ? hm(ap.slot) : horaDe(first.at), ap?.p ?? first.patient, ap ? docName(ap.doc) : "—", uniq(list.map((p) => p.concept)), uniq(list.map((p) => p.no)), uniq(list.map((p) => p.method)), round2(list.reduce((n, p) => n + p.amount, 0))];
+  }).sort((x, y) => String(x[1]).localeCompare(String(y[1])) || String(x[2]).localeCompare(String(y[2])));
+
   // Clientes detallado: pacientes con movimiento en el periodo (citas, cobros o registro)
   const todayISO0 = i.today;
   const cliRows: Cell[][] = [];
@@ -226,7 +236,7 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
       {
         id: "ing", title: "Ingresos por servicio", sub: "Soles cobrados en el periodo",
         summary: { columns: ["Servicio", "Cobros", "Monto (S/)", "% del total"], rows: ingRows, total: ["Total", pays.length, income, ingRows.length ? 100 : 0], money: [2], pct: [3] },
-        detail: { title: "Cobros del periodo", table: { columns: ["Fecha", "Comprobante", "Paciente", "Servicio", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => x.at.localeCompare(y.at)).map((p): Cell[] => [limaDateOf(p.at), p.no, p.patient, p.concept, p.method, p.amount]), total: ["Total", "", "", "", "", income], money: [5] } },
+        detail: { title: "Cobros del periodo", table: { columns: ["Fecha", "Código de cita", "Comprobante", "Paciente", "Servicio", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => x.at.localeCompare(y.at)).map((p): Cell[] => [limaDateOf(p.at), p.apptId ? apptCode(p.apptId) : "—", p.no, p.patient, p.concept, p.method, p.amount]), total: ["Total", "", "", "", "", "", income], money: [6] } },
       },
       {
         id: "nue", title: "Pacientes nuevos", sub: "Pacientes registrados en el periodo (los creados antes de usar el sistema no tienen fecha)",
@@ -241,7 +251,12 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
       {
         id: "ingd", title: "Ingresos detallados", sub: "Cobros por día y método de pago, con el detalle de cada comprobante",
         summary: { columns: ["Fecha", "Cobros", ...methodCols.map((m) => m + " (S/)"), "Total (S/)"], rows: idRows, total: idTotal, money: [...methodCols.map((_, k) => k + 2), methodCols.length + 2] },
-        detail: { title: "Comprobantes", table: { columns: ["Fecha", "Hora", "Comprobante", "Paciente", "Servicio", "Doctor", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => x.at.localeCompare(y.at)).map((p): Cell[] => [limaDateOf(p.at), horaDe(p.at), p.no, p.patient, p.concept, apptOf(p.apptId) ? docName(apptOf(p.apptId)!.doc) : "—", p.method, p.amount]), total: ["Total", "", "", "", "", "", "", income], money: [7] } },
+        detail: { title: "Comprobantes", table: { columns: ["Fecha", "Hora", "Código de cita", "Comprobante", "Paciente", "Servicio", "Doctor", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => x.at.localeCompare(y.at)).map((p): Cell[] => [limaDateOf(p.at), horaDe(p.at), p.apptId ? apptCode(p.apptId) : "—", p.no, p.patient, p.concept, apptOf(p.apptId) ? docName(apptOf(p.apptId)!.doc) : "—", p.method, p.amount]), total: ["Total", "", "", "", "", "", "", "", income], money: [8] } },
+      },
+      {
+        id: "ses", title: "Pagos por sesión", sub: "Cobros agrupados por cita (código CIT-…): tratamientos, comprobantes, métodos y total de cada sesión",
+        summary: { columns: ["Código de cita", "Fecha", "Hora", "Paciente", "Doctor", "Tratamientos cobrados", "Comprobantes", "Métodos", "Monto (S/)"], rows: sesRows, total: ["Total", "", "", "", "", "", "", "", income], money: [8] },
+        detail: { title: "Cobros de cada sesión", table: { columns: ["Código de cita", "Fecha", "Hora", "Comprobante", "Paciente", "Tratamiento", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => (x.apptId ?? 0) - (y.apptId ?? 0) || x.at.localeCompare(y.at)).map((p): Cell[] => [p.apptId ? apptCode(p.apptId) : "—", limaDateOf(p.at), horaDe(p.at), p.no, p.patient, p.concept, p.method, p.amount]), total: ["Total", "", "", "", "", "", "", income], money: [7] } },
       },
       {
         id: "serv", title: "Servicios", sub: "Citas, atención y cobros por servicio en el periodo (elige un rango personalizado para comparar fechas)",
