@@ -49,3 +49,30 @@ describe("historia inicial", () => {
     expect(al).toEqual(["Alergia: penicilina", "Diabetes"]);
   });
 });
+
+import { advance, planItems, sessionPrice, withItems, type TreatmentPlan } from "./clinical";
+
+describe("plan con varios tratamientos", () => {
+  const plan = withItems(undefined, [
+    { id: "a", name: "Ortodoncia", total: 12, done: 3, price: 2400 },
+    { id: "b", name: "Blanqueamiento", total: 2, done: 0, price: 500 },
+  ]);
+  it("recalcula los totales del plan", () => {
+    expect(plan).toMatchObject({ name: "Ortodoncia + Blanqueamiento", total: 14, done: 3, price: 2900 });
+  });
+  it("un plan antiguo equivale a un solo tratamiento", () => {
+    const old: TreatmentPlan = { name: "Ortodoncia con brackets", total: 18, done: 9, price: 4800, paidBase: 2400 };
+    expect(planItems(old)).toEqual([{ id: "main", name: "Ortodoncia con brackets", total: 18, done: 9, price: 4800 }]);
+  });
+  it("precio por sesión", () => {
+    expect(sessionPrice(planItems(plan)[0])).toBe(200);
+    expect(sessionPrice(planItems(plan)[1])).toBe(250);
+  });
+  it("cada tratamiento avanza por su cuenta y no pasa del total", () => {
+    const p1 = advance(plan, ["a"]);
+    expect(planItems(p1).map((i) => i.done)).toEqual([4, 0]);
+    expect(p1.done).toBe(4);
+    const full = advance(advance(plan, ["b"]), ["b", "b"]);
+    expect(planItems(full)[1].done).toBe(2);
+  });
+});

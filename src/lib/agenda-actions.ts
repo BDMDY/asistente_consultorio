@@ -6,7 +6,8 @@ import { addDays, isISODate } from "./dates";
 import { newId } from "./ids";
 import { mediaStore, parsePrice, resolveMedia } from "./media";
 import { enqueue } from "./outbox";
-import { type PayMethod, addPayment, paymentsStore } from "./payments";
+import { advance, plansStore } from "./clinical";
+import { type PayMethod, type Payment, addPayment, addPayments, paymentsStore } from "./payments";
 import { patientsStore } from "./patients";
 
 export const DEFAULT_PRICE = 150;
@@ -52,6 +53,23 @@ export function chargeAppt(a: Appt, amount: number, method: PayMethod) {
   const p = addPayment({ apptId: a.id, patient: a.p, concept: a.s, amount, method, date: apptWhenShort(a) });
   patchAppt(a.id, { st: "atendida" });
   return p;
+}
+
+/** Un tratamiento hecho en la sesión; si pertenece al plan del paciente, `planItem` es su identificador y la sesión cuenta como un avance. */
+export interface SessionLine { concept: string; amount: number; planItem?: string }
+
+/**
+ * Cobra una sesión con varios tratamientos: un comprobante con una línea por tratamiento,
+ * suma un control a cada tratamiento del plan que se realizó y deja la cita como atendida.
+ */
+export function chargeSession(a: Appt, lines: SessionLine[], method: PayMethod, patientId?: number): Payment[] {
+  const pays = addPayments(lines.map((l) => ({ concept: l.concept, amount: l.amount })), { apptId: a.id, patient: a.p, method, date: apptWhenShort(a) });
+  const ids = lines.map((l) => l.planItem).filter((x): x is string => !!x);
+  if (patientId !== undefined && ids.length) {
+    plansStore.update((all) => (all[patientId] ? { ...all, [patientId]: advance(all[patientId], ids) } : all));
+  }
+  patchAppt(a.id, { st: "atendida" });
+  return pays;
 }
 
 export const paidFor = (apptId: number) => paymentsStore.get().filter((p) => p.apptId === apptId).reduce((n, p) => n + p.amount, 0);

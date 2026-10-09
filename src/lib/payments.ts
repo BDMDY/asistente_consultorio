@@ -33,3 +33,15 @@ export function addPayment(p: Omit<Payment, "id" | "no" | "at">): Payment {
   });
   return created;
 }
+
+/** Cobro de varios tratamientos en una misma sesión: un comprobante con una línea por tratamiento. */
+export function addPayments(lines: { concept: string; amount: number }[], common: Omit<Payment, "id" | "no" | "at" | "concept" | "amount">): Payment[] {
+  const out: Payment[] = [];
+  paymentsStore.update((list) => {
+    const no = "B001-" + String(list.length + 124).padStart(6, "0");
+    const at = new Date().toISOString();
+    for (const l of lines) out.push({ ...common, id: newId(), no, concept: l.concept, amount: l.amount, at });
+    return [...list, ...out];
+  });
+  return out;
+}

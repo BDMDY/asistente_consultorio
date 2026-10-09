@@ -7,9 +7,10 @@ import { CloseBtn, Modal, btnOutline, btnPrimary, chipStyle, fieldStyle, labelSt
 import { agendaStore } from "@/lib/agenda-store";
 import { finishAttention } from "@/lib/agenda-actions";
 import { inProgress } from "@/lib/attention";
-import { anamnesisStore, emptyAnam, plansStore } from "@/lib/clinical";
+import { type PlanItem, anamnesisStore, emptyAnam, planItems, plansStore, withItems } from "@/lib/clinical";
 import { useMediaQuery } from "@/lib/media-query";
-import { initials } from "@/lib/media";
+import { activeServices, initials, parsePrice, useMedia } from "@/lib/media";
+import { uid } from "@/lib/mod";
 import { type Patient, patientOf, patientsStore } from "@/lib/patients";
 import { PAY_METHODS, type PayMethod, addPayment, money } from "@/lib/payments";
 import { toast } from "@/lib/toast";
@@ -151,28 +152,49 @@ function Frame({ title, onClose, sheet, children }: { title: string; onClose: ()
 }
 const border = (ok: boolean, tried: boolean) => (tried && !ok ? "2px solid var(--error-fg)" : "1px solid var(--line)");
 
+interface PlanRow { key: number; name: string; total: string; price: string }
+
+/** Crea el plan del paciente o le agrega tratamientos: cada uno con sus controles previstos y su precio total. */
 function PlanDialog({ p, sheet, onClose, onCreated }: { p: Patient; sheet: boolean; onClose: () => void; onCreated: () => void }) {
-  const [f, setF] = useState({ name: "", total: "12", price: "" });
+  const media = useMedia();
+  const existing = plansStore.get()[p.id];
+  const [rows, setRows] = useState<PlanRow[]>([{ key: 1, name: "", total: "12", price: "" }]);
   const [tried, setTried] = useState(false);
-  const v = { name: f.name.trim().length > 2, total: parseInt(f.total, 10) > 0, price: parseFloat(f.price) > 0 };
+  const valid = (r: PlanRow) => r.name.trim().length > 2 && parseInt(r.total, 10) > 0 && parseFloat(r.price) > 0;
+  const patch = (key: number, x: Partial<PlanRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...x } : r)));
+  function pick(key: number, name: string) {
+    // Al elegir un servicio del catálogo se sugiere el precio: valor de una sesión por el número de controles.
+    const sv = activeServices(media).find((x) => x.name === name);
+    const row = rows.find((r) => r.key === key)!;
+    const unit = sv ? parsePrice(sv.price) : NaN;
+    patch(key, { name, ...(unit > 0 && !row.price ? { price: String(unit * (parseInt(row.total, 10) || 1)) } : {}) });
+  }
   function save() {
-    if (!(v.name && v.total && v.price)) return setTried(true);
-    plansStore.update((all) => ({ ...all, [p.id]: { name: f.name.trim(), total: parseInt(f.total, 10), done: 0, price: parseFloat(f.price), paidBase: 0 } }));
+    if (!rows.every(valid)) return setTried(true);
+    const items = rows.map((r): PlanItem => ({ id: uid(), name: r.name.trim(), total: parseInt(r.total, 10), done: 0, price: parseFloat(r.price) }));
+    plansStore.update((all) => ({ ...all, [p.id]: withItems(all[p.id], [...planItems(all[p.id]), ...items]) }));
     onCreated();
     onClose();
-    toast("Plan creado");
+    toast(existing ? `${items.length} tratamiento(s) agregado(s) al plan` : "Plan creado");
   }
   const input = (ok: boolean): React.CSSProperties => ({ ...fieldStyle, height: 46, fontSize: 15, border: border(ok, tried) });
   return (
-    <Frame title="Crear plan de tratamiento" onClose={onClose} sheet={sheet}>
-      <label style={labelStyle}>Tratamiento<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} style={input(v.name)} /></label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <label style={labelStyle}>N.° de controles<input value={f.total} inputMode="numeric" onChange={(e) => setF({ ...f, total: e.target.value })} style={input(v.total)} /></label>
-        <label style={labelStyle}>Precio total (S/)<input value={f.price} inputMode="decimal" onChange={(e) => setF({ ...f, price: e.target.value })} style={input(v.price)} /></label>
-      </div>
+    <Frame title={existing ? "Agregar tratamientos al plan" : "Crear plan de tratamiento"} onClose={onClose} sheet={sheet}>
+      <datalist id="da-plan-services">{activeServices(media).map((x) => <option key={x.id} value={x.name} />)}</datalist>
+      {rows.map((r, k) => (
+        <div key={r.key} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
+          <label style={labelStyle}>Tratamiento {rows.length > 1 ? k + 1 : ""}<input list="da-plan-services" value={r.name} onChange={(e) => pick(r.key, e.target.value)} placeholder="Ej. Ortodoncia" style={input(r.name.trim().length > 2)} /></label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <label style={labelStyle}>N.° de controles<input value={r.total} inputMode="numeric" onChange={(e) => patch(r.key, { total: e.target.value })} style={input(parseInt(r.total, 10) > 0)} /></label>
+            <label style={labelStyle}>Precio total (S/)<input value={r.price} inputMode="decimal" onChange={(e) => patch(r.key, { price: e.target.value })} style={input(parseFloat(r.price) > 0)} /></label>
+          </div>
+          {rows.length > 1 && <button type="button" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} style={{ alignSelf: "flex-start", cursor: "pointer", background: "transparent", border: 0, color: "var(--error-fg)", fontWeight: 700, fontSize: 13, minHeight: 32, fontFamily: "inherit" }}>Quitar este tratamiento</button>}
+        </div>
+      ))}
+      <button type="button" onClick={() => setRows((rs) => [...rs, { key: Math.max(...rs.map((x) => x.key)) + 1, name: "", total: "1", price: "" }])} style={{ ...btnOutline, alignSelf: "flex-start" }}>+ Otro tratamiento</button>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
         <button type="button" onClick={onClose} style={btnOutline}>Cancelar</button>
-        <button type="button" onClick={save} style={btnPrimary()}>Crear plan</button>
+        <button type="button" onClick={save} style={btnPrimary()}>{existing ? "Agregar al plan" : "Crear plan"}</button>
       </div>
     </Frame>
   );

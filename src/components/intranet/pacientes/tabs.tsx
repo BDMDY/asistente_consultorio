@@ -3,7 +3,7 @@ import Icon, { type IconName } from "@/components/ui/Icon";
 import { STATUS_LABEL, hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
 import { useDoctors } from "@/lib/doctors";
-import { type ClinicalNote, type PatientFile, type TreatmentPlan, addNote, filesStore, notesStore, plansStore } from "@/lib/clinical";
+import { type ClinicalNote, type PatientFile, type PlanItem, type TreatmentPlan, addNote, advance, filesStore, notesStore, planItems, plansStore, sessionPrice } from "@/lib/clinical";
 import { newId } from "@/lib/ids";
 import { isISODate, labelDate, labelShort, todayISO } from "@/lib/dates";
 import { type Patient, patchPatient, samePatientName } from "@/lib/patients";
@@ -101,26 +101,48 @@ export function TabPlan({ p, plan, onCreate, onPay }: { p: Patient; plan: Treatm
     return (
       <div style={{ padding: 24, borderRadius: 16, border: "1.5px dashed var(--brand-200)", textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
         <b>Sin plan de tratamiento</b>
-        <span style={{ fontSize: 14, color: "var(--ink-500)" }}>Crea un plan para seguir el avance y los pagos.</span>
+        <span style={{ fontSize: 14, color: "var(--ink-500)" }}>Crea un plan (uno o varios tratamientos) para seguir el avance y los pagos.</span>
         <button type="button" onClick={onCreate} style={primaryBtn}>Crear plan</button>
       </div>
     );
   }
+  const items = planItems(plan);
   const paid = plan.paidBase + payments.filter((x) => samePatientName(x.patient, p.name)).reduce((t, x) => t + x.amount, 0);
-  const pct = Math.min(100, Math.round((plan.done / plan.total) * 100));
-  function addControl() {
-    if (plan!.done >= plan!.total) return toast("El plan ya está completo");
-    plansStore.update((all) => ({ ...all, [p.id]: { ...plan!, done: plan!.done + 1 } }));
-    toast("Control registrado");
+  const pct = Math.min(100, Math.round((plan.done / Math.max(1, plan.total)) * 100));
+  function addControl(it: PlanItem) {
+    if (it.done >= it.total) return toast(`${it.name} ya está completo`);
+    plansStore.update((all) => ({ ...all, [p.id]: advance(all[p.id], [it.id]) }));
+    toast(`Control registrado · ${it.name} ${it.done + 1} de ${it.total}`);
   }
+  const bar = (v: number) => (
+    <div role="progressbar" aria-valuenow={v} aria-valuemin={0} aria-valuemax={100} style={{ height: 10, borderRadius: 5, background: "var(--brand-100)" }}><div style={{ width: `${v}%`, height: "100%", borderRadius: 5, background: "var(--grad-btn)" }} /></div>
+  );
   return (
     <div style={{ borderRadius: 16, boxShadow: "inset 0 0 0 1px var(--line)", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-      <b style={{ fontSize: 18 }}>{plan.name}</b>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ink-500)" }}><span>Avance</span><b className="tnum" style={{ color: "var(--ink-900)" }}>{plan.done} de {plan.total} controles · {pct}%</b></div>
-      <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} style={{ height: 10, borderRadius: 5, background: "var(--brand-100)" }}><div style={{ width: `${pct}%`, height: "100%", borderRadius: 5, background: "var(--grad-accent)" }} /></div>
+      <b style={{ fontSize: 18 }}>{items.length > 1 ? `Plan de tratamiento · ${items.length} tratamientos` : plan.name}</b>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ink-500)" }}><span>Avance total</span><b className="tnum" style={{ color: "var(--ink-900)" }}>{plan.done} de {plan.total} controles · {pct}%</b></div>
+      {bar(pct)}
       <div className="tnum" style={{ fontSize: 14, color: "var(--ink-500)" }}>Pagado {money(paid)} de {money(plan.price)}</div>
+      {items.length > 1 || plan.items ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {items.map((it) => {
+            const v = Math.min(100, Math.round((it.done / Math.max(1, it.total)) * 100));
+            return (
+              <div key={it.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: 12, background: "var(--brand-50)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <b style={{ fontSize: 14 }}>{it.name}</b>
+                  <span className="tnum" style={{ fontSize: 13, color: "var(--ink-500)" }}>{it.done} de {it.total} controles · {money(it.price)} ({money(sessionPrice(it))} por sesión)</span>
+                </div>
+                {bar(v)}
+                <button type="button" onClick={() => addControl(it)} disabled={it.done >= it.total} style={{ ...outlineBtn, alignSelf: "flex-start", minHeight: 36, padding: "0 12px", fontSize: 13, opacity: it.done >= it.total ? 0.5 : 1 }}>{it.done >= it.total ? "Completo" : `Registrar control de ${it.name}`}</button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" onClick={addControl} style={primaryBtn}>Registrar control</button>
+        {!plan.items && <button type="button" onClick={() => addControl(items[0])} style={primaryBtn}>Registrar control</button>}
+        <button type="button" onClick={onCreate} style={outlineBtn}>+ Agregar tratamiento</button>
         <button type="button" onClick={onPay} style={outlineBtn}>Registrar pago</button>
         <Link href={`/intranet/agenda?nueva=${encodeURIComponent(p.name)}&serie=1`} style={{ ...outlineBtn, display: "flex", alignItems: "center" }}>Agendar controles en serie</Link>
       </div>

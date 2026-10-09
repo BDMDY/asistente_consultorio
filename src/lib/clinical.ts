@@ -17,7 +17,38 @@ export function addNote(patientId: number, t: string, date: string) {
 }
 
 // ───────────── Plan de tratamiento (por paciente) ─────────────
-export interface TreatmentPlan { name: string; total: number; done: number; price: number; paidBase: number }
+/** Un tratamiento del plan, con su propio avance (controles hechos de los previstos) y su precio total. */
+export interface PlanItem { id: string; name: string; total: number; done: number; price: number }
+/** Plan del paciente. Con `items` hay varios tratamientos, cada uno con su avance; `name`, `total`, `done` y `price` son los totales del plan. */
+export interface TreatmentPlan { name: string; total: number; done: number; price: number; paidBase: number; items?: PlanItem[] }
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Tratamientos del plan (un plan antiguo, sin lista, equivale a un único tratamiento). */
+export function planItems(plan?: TreatmentPlan): PlanItem[] {
+  if (!plan) return [];
+  return plan.items ?? [{ id: "main", name: plan.name, total: plan.total, done: plan.done, price: plan.price }];
+}
+
+/** Plan con la lista de tratamientos dada y los totales recalculados. */
+export function withItems(plan: TreatmentPlan | undefined, items: PlanItem[]): TreatmentPlan {
+  return {
+    paidBase: plan?.paidBase ?? 0,
+    items,
+    name: items.map((i) => i.name).join(" + "),
+    total: items.reduce((n, i) => n + i.total, 0),
+    done: items.reduce((n, i) => n + i.done, 0),
+    price: round2(items.reduce((n, i) => n + i.price, 0)),
+  };
+}
+
+/** Precio de una sesión de ese tratamiento (precio total entre controles previstos). */
+export const sessionPrice = (it: PlanItem) => (it.total > 0 ? round2(it.price / it.total) : it.price);
+
+/** Suma un control hecho a cada tratamiento indicado (sin pasar del total previsto). */
+export function advance(plan: TreatmentPlan, ids: string[]): TreatmentPlan {
+  return withItems(plan, planItems(plan).map((i) => (ids.includes(i.id) ? { ...i, done: Math.min(i.total, i.done + 1) } : i)));
+}
 export const plansStore = defineStore<Record<number, TreatmentPlan>>("da-plans-v1", () => ({
   1: { name: "Ortodoncia con brackets", total: 18, done: 9, price: 4800, paidBase: 2400 },
 }), { remote: { name: "plans", empty: () => ({}) } });

@@ -2,14 +2,15 @@
 import { useState } from "react";
 import { CloseBtn, Modal, Notice, Segmented, btnOutline, btnPrimary, chipStyle, fieldStyle, labelStyle } from "@/components/ui/kit";
 import { type Appt, type SeriesRule, checkReschedule, clash, freeStarts, generateSeries, hm, hoursError, isClosedDay, slotOf } from "@/lib/agenda";
-import { type BlockForm, CANCEL_REASONS, type NewApptForm, createBlocks, validateBlock, cancelAppt, chargeAppt, createAppts, priceFor, rescheduleAppt, validateNew } from "@/lib/agenda-actions";
+import { type BlockForm, CANCEL_REASONS, type NewApptForm, createBlocks, validateBlock, cancelAppt, chargeSession, createAppts, priceFor, rescheduleAppt, validateNew } from "@/lib/agenda-actions";
 import { agendaStore } from "@/lib/agenda-store";
 import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
-import { type Doctor, activeServices, serviceSlots, useMedia } from "@/lib/media";
+import { type Doctor, activeServices, parsePrice, serviceSlots, useMedia } from "@/lib/media";
+import { planItems, plansStore, sessionPrice } from "@/lib/clinical";
 import { PAY_METHODS, type PayMethod, type Payment, money } from "@/lib/payments";
 import { delayMessage, rescheduleMessage } from "@/lib/attention";
 import { enqueue } from "@/lib/outbox";
-import { patientsStore, samePatientName } from "@/lib/patients";
+import { patientOf, patientsStore, samePatientName } from "@/lib/patients";
 import NewPatientDialog from "../pacientes/NewPatientDialog";
 import { toast } from "@/lib/toast";
 import { getSchedule, useBrand } from "@/lib/brand";
@@ -304,19 +305,45 @@ export function CancelDialog({ a, sheet, onClose }: { a: Appt; sheet: boolean; o
 
 // ───────────────────────── Cobrar ─────────────────────────
 
+interface PayLine { key: string; concept: string; amount: string; on: boolean; planItem?: string }
+
+/** Cobro de la sesión: uno o varios tratamientos, cada uno con su monto y, si es del plan del paciente, su avance. */
 export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: string[]; sheet: boolean; onClose: () => void }) {
   const brand = useBrand();
-  const [amount, setAmount] = useState(String(priceFor(a)));
+  const media = useMedia();
+  const [patients] = patientsStore.useStore();
+  const [plans] = plansStore.useStore();
+  const patient = patientOf(patients, a);
+  const plan = patient ? plans[patient.id] : undefined;
+  const pending = planItems(plan).filter((it) => it.done < it.total);
+  const same = (x: string, y: string) => x.toLowerCase().includes(y.toLowerCase()) || y.toLowerCase().includes(x.toLowerCase());
+
+  const [lines, setLines] = useState<PayLine[]>(() => {
+    const out: PayLine[] = pending.map((it) => ({ key: "p:" + it.id, concept: it.name, amount: String(sessionPrice(it)), on: same(a.s, it.name), planItem: it.id }));
+    if (!out.some((l) => l.on)) out.unshift({ key: "svc", concept: a.s, amount: String(priceFor(a)), on: true });
+    return out;
+  });
   const [method, setMethod] = useState<PayMethod>("Efectivo");
-  const [receipt, setReceipt] = useState<Payment | null>(null);
-  const amt = parseFloat(amount.replace(",", "."));
-  const ok = amt > 0;
+  const [receipt, setReceipt] = useState<{ pays: Payment[]; progress: string[] } | null>(null);
+  const on = lines.filter((l) => l.on);
+  const num = (l: PayLine) => parseFloat(l.amount.replace(",", "."));
+  const total = on.reduce((n, l) => n + (num(l) > 0 ? num(l) : 0), 0);
+  const ok = on.length > 0 && on.every((l) => num(l) > 0);
+  const patch = (key: string, p: Partial<PayLine>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...p } : l)));
+  const extra = activeServices(media).filter((sv) => !lines.some((l) => l.concept === sv.name));
+
+  function charge() {
+    if (!ok) return;
+    const progress = on.filter((l) => l.planItem).map((l) => { const it = pending.find((x) => x.id === l.planItem)!; return `${it.name}: ${it.done + 1} de ${it.total} controles`; });
+    const pays = chargeSession(a, on.map((l) => ({ concept: l.concept, amount: num(l), planItem: l.planItem })), method, patient?.id);
+    setReceipt({ pays, progress });
+  }
 
   return (
-    <Modal onClose={onClose} width={480} label={receipt ? "Cobro registrado" : "Cobrar cita"} sheet={sheet} z={120}>
+    <Modal onClose={onClose} width={520} label={receipt ? "Cobro registrado" : "Cobrar sesión"} sheet={sheet} z={120}>
       <div style={{ padding: 26, display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <b style={{ fontSize: 22 }}>{receipt ? "Cobro registrado" : "Cobrar cita"}</b>
+          <b style={{ fontSize: 22 }}>{receipt ? "Cobro registrado" : "Cobrar sesión"}</b>
           <CloseBtn onClick={onClose} />
         </div>
         {!receipt ? (
@@ -325,26 +352,52 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
               {a.p} · {a.s}
               {alerts.length > 0 && <span style={{ display: "block", marginTop: 4, fontSize: 12, color: "var(--error-fg)" }}>⚠ {alerts.join(" · ")}</span>}
             </div>
-            <label style={labelStyle}>Monto (S/)
-              <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className="tnum" style={{ ...fieldStyle, height: 50, fontSize: 20, fontWeight: 700, border: ok ? "1px solid var(--line)" : "2px solid var(--error-fg)" }} />
-            </label>
+            <div style={{ fontSize: 13, color: "var(--ink-500)", lineHeight: 1.5 }}>Marca los tratamientos que se hicieron en esta sesión. Cada uno se cobra por separado en un mismo comprobante y, si es parte del plan del paciente, suma un control a su avance.</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }} role="group" aria-label="Tratamientos de la sesión">
+              {lines.map((l) => {
+                const it = l.planItem ? pending.find((x) => x.id === l.planItem) : undefined;
+                return (
+                  <div key={l.key} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: 12, boxShadow: `inset 0 0 0 ${l.on ? 2 : 1}px ${l.on ? "var(--brand-500)" : "var(--line)"}`, background: l.on ? "var(--brand-50)" : "transparent" }}>
+                    <input type="checkbox" aria-label={`Incluir ${l.concept}`} checked={l.on} onChange={(e) => patch(l.key, { on: e.target.checked })} style={{ width: 20, height: 20, accentColor: "var(--brand-600)" }} />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
+                      <b>{l.concept}</b>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--ink-500)" }}>{it ? `Plan: ${it.done} de ${it.total} controles${l.on ? ` → ${it.done + 1}` : ""}` : "Fuera del plan (solo cobro)"}</span>
+                    </span>
+                    <input aria-label={`Monto de ${l.concept}`} value={l.amount} disabled={!l.on} onChange={(e) => patch(l.key, { amount: e.target.value })} inputMode="decimal" className="tnum" style={{ ...fieldStyle, width: 96, height: 42, fontSize: 15, fontWeight: 700, textAlign: "right", border: l.on && !(num(l) > 0) ? "2px solid var(--error-fg)" : "1px solid var(--line)" }} />
+                  </div>
+                );
+              })}
+              {extra.length > 0 && (
+                <select aria-label="Agregar otro tratamiento" value="" onChange={(e) => { const sv = extra.find((x) => x.name === e.target.value); if (sv) setLines((ls) => [...ls, { key: "s:" + sv.name, concept: sv.name, amount: String(parsePrice(sv.price) || 0), on: true }]); }} style={{ ...fieldStyle, height: 44, fontSize: 14 }}>
+                  <option value="">+ Agregar otro tratamiento de esta sesión…</option>
+                  {extra.map((sv) => <option key={sv.id} value={sv.name}>{sv.name}</option>)}
+                </select>
+              )}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 14 }}><span>Total a cobrar ({on.length} {on.length === 1 ? "tratamiento" : "tratamientos"})</span><b className="tnum" style={{ fontSize: 22 }}>{money(total)}</b></div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Método de pago</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {PAY_METHODS.map((m) => <button key={m} type="button" aria-pressed={m === method} onClick={() => setMethod(m)} style={chipStyle(m === method, { padding: "11px 14px" })}>{m}</button>)}
               </div>
             </div>
-            <button type="button" disabled={!ok} onClick={() => ok && setReceipt(chargeAppt(a, amt, method))} style={{ ...btnPrimary(ok), minHeight: 50 }}>Registrar cobro</button>
+            <button type="button" disabled={!ok} onClick={charge} style={{ ...btnPrimary(ok), minHeight: 50 }}>Registrar cobro</button>
           </>
         ) : (
           <>
             <div style={{ borderRadius: 14, boxShadow: "inset 0 0 0 1px var(--line)", padding: 18, display: "flex", flexDirection: "column", gap: 6, fontSize: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><b>{brand.name}</b><span className="tnum" style={{ color: "var(--ink-500)" }}>{receipt.no}</span></div>
-              <span style={{ color: "var(--ink-500)" }}>Comprobante de pago (demo) · {receipt.date}</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><b>{brand.name}</b><span className="tnum" style={{ color: "var(--ink-500)" }}>{receipt.pays[0].no}</span></div>
+              <span style={{ color: "var(--ink-500)" }}>Comprobante de pago (demo) · {receipt.pays[0].date} · {receipt.pays[0].patient}</span>
               <div style={{ borderTop: "1px dashed var(--line)", margin: "8px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><span>{receipt.concept} · {receipt.patient}</span><b className="tnum">{money(receipt.amount)}</b></div>
-              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--ink-500)" }}><span>Pagado con {receipt.method}</span><span>Total <b className="tnum" style={{ color: "var(--ink-900)" }}>{money(receipt.amount)}</b></span></div>
+              {receipt.pays.map((p) => <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><span>{p.concept}</span><b className="tnum">{money(p.amount)}</b></div>)}
+              <div style={{ borderTop: "1px dashed var(--line)", margin: "8px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--ink-500)" }}><span>Pagado con {receipt.pays[0].method}</span><span>Total <b className="tnum" style={{ color: "var(--ink-900)" }}>{money(receipt.pays.reduce((n, p) => n + p.amount, 0))}</b></span></div>
             </div>
+            {receipt.progress.length > 0 && (
+              <div role="status" style={{ padding: "10px 12px", borderRadius: 12, background: "var(--success-bg)", color: "var(--success-fg)", fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>
+                Avance registrado en el plan:{receipt.progress.map((t) => <span key={t} style={{ display: "block" }}>· {t}</span>)}
+              </div>
+            )}
             <button type="button" onClick={onClose} style={{ ...btnPrimary(), minHeight: 50 }}>Listo</button>
           </>
         )}
