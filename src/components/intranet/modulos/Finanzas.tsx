@@ -42,12 +42,18 @@ export function Finanzas() {
   const legacy = chip === 3 ? d.fin.filter((f) => f.st === "pagado" && !f.payId) : [];
   const match = (t: string) => !q.trim() || t.toLowerCase().includes(q.trim().toLowerCase());
 
-  const payRows: Row[] = inPeriod
-    .filter((p) => match(`${p.patient} ${p.concept} ${p.no} ${p.method} ${p.apptId ? apptCode(p.apptId) : ""}`))
-    .map((p) => ({
-      id: `p:${p.id}`, t: `${p.patient} · ${p.concept}`, badge: p.voided ? "Anulado" : money0(p.amount), tone: p.voided ? N : G,
-      sub: `${labelShort(limaDateOf(p.at))} · ${limaHM(p.at)} · ${p.no}${p.apptId ? ` · ${apptCode(p.apptId)}` : ""} · ${p.method}${p.voided ? ` · ${money0(p.amount)}` : ""}`,
-    }));
+  // Un solo registro por comprobante (cita o sesión): sus tratamientos se agrupan en la misma fila.
+  const byNo = new Map<string, Payment[]>();
+  for (const p of inPeriod) byNo.set(p.no, [...(byNo.get(p.no) ?? []), p]);
+  const receipts = [...byNo.values()].filter((l) => match(l.map((p) => `${p.patient} ${p.concept} ${p.no} ${p.method} ${p.apptId ? apptCode(p.apptId) : ""}`).join(" ")));
+  const payRows: Row[] = receipts.map((l) => {
+    const f = l[0], live = l.filter((p) => !p.voided), allVoid = live.length === 0, total = sumLive(l);
+    const concepts = [...new Set(l.map((p) => p.concept))];
+    return {
+      id: `p:${f.id}`, t: `${f.patient} · ${concepts.length > 2 ? `${concepts.slice(0, 2).join(", ")} +${concepts.length - 2}` : concepts.join(", ")}`, badge: allVoid ? "Anulado" : money0(total), tone: allVoid ? N : G,
+      sub: `${labelShort(limaDateOf(f.at))} · ${limaHM(f.at)} · ${f.no}${f.apptId ? ` · ${apptCode(f.apptId)}` : ""} · ${[...new Set(l.map((p) => p.method))].join(" + ")}${l.length > 1 ? ` · ${l.length} tratamientos` : ""}${allVoid ? ` · ${money0(l.reduce((n, p) => n + p.amount, 0))}` : ""}`,
+    };
+  });
   const finRows: Row[] = (chip === 4 ? d.fin.filter((f) => f.st !== "pagado" || !f.payId) : legacy)
     .filter((f) => (chip === 4 ? f.st !== "pagado" : true))
     .filter((f) => match(f.c))
@@ -65,51 +71,60 @@ export function Finanzas() {
   const curFin = sel && "id" in sel && sel.id.startsWith("f:") ? d.fin.find((f) => `f:${f.id}` === sel.id) : undefined;
 
   return (
-    <ModuleLayout title="Finanzas" sub={`${label}${chip === 4 ? "" : ` · ${inPeriod.filter((p) => !p.voided).length} cobros${methods.length ? ` · ${methods.map(([m, v]) => `${m} ${money0(v)}`).join(" · ")}` : ""}`}${disc ? ` · descuentos ${money0(disc)}` : ""}`}
+    <ModuleLayout title="Finanzas" sub={`${label}${chip === 4 ? "" : ` · ${new Set(inPeriod.filter((p) => !p.voided).map((p) => p.no)).size} comprobantes${methods.length ? ` · ${methods.map(([m, v]) => `${m} ${money0(v)}`).join(" · ")}` : ""}`}${disc ? ` · descuentos ${money0(disc)}` : ""}`}
       kpis={[{ l: chip === 4 ? "Cobrado este mes" : "Cobrado en el periodo", v: money0(chip === 4 && today ? sumLive(paymentsInRange(payments, periodRange(today, 1))) : collected) }, { l: "Por cobrar", v: money0(pending.reduce((a, f) => a + f.a, 0)), c: "var(--warning-fg)" }]}
       chips={FILTERS} chip={chip} onChip={setChip} query={q} onQuery={setQ} cta="Registrar cobro" onCta={() => setSel({ mode: "new" })} rows={rows}
       emptyHint={chip === 4 ? "No hay cuentas por cobrar." : "Aún no hay cobros en este periodo. Los cobros de la agenda, las fichas y los planes aparecen aquí con su fecha."}
-      onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={sel && "mode" in sel ? "Registrar cobro" : curPay ? `${curPay.patient} · ${curPay.concept}` : (curFin?.c ?? "")}
-      panel={sel && "mode" in sel ? <NewCharge onDone={() => setSel(null)} /> : curPay ? <PaymentDetail key={curPay.id + String(curPay.voided)} p={curPay} onDone={() => setSel(null)} /> : curFin ? <Charge key={curFin.id + curFin.st} rec={curFin} onDone={() => setSel(null)} /> : null} />
+      onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={sel && "mode" in sel ? "Registrar cobro" : curPay ? `${curPay.patient} · Comprobante ${curPay.no}` : (curFin?.c ?? "")}
+      panel={sel && "mode" in sel ? <NewCharge onDone={() => setSel(null)} /> : curPay ? <PaymentDetail key={curPay.no + payments.filter((x) => x.no === curPay.no).map((x) => x.voided ? 1 : 0).join("")} p={curPay} onDone={() => setSel(null)} /> : curFin ? <Charge key={curFin.id + curFin.st} rec={curFin} onDone={() => setSel(null)} /> : null} />
   );
 }
 
-/** Detalle de un cobro: fecha y hora, comprobante, paciente, concepto y método; ver comprobante, enviarlo o anularlo. */
+/** Detalle de un comprobante (una cita o sesión): todos sus tratamientos con fecha, método y total; verlo, enviarlo o anularlo. */
 function PaymentDetail({ p, onDone }: { p: Payment; onDone: () => void }) {
   const brand = useBrand();
   const [patients] = patientsStore.useStore();
   const patient = patientOf(patients, { p: p.patient });
   const when = `${labelLong(limaDateOf(p.at)).replace(/^./, (c) => c.toUpperCase())} · ${limaHM(p.at)}`;
-  const same = paymentsStore.get().filter((x) => x.no === p.no && !x.voided);
+  const [all] = paymentsStore.useStore();
+  const lines = all.filter((x) => x.no === p.no);
+  const live = lines.filter((x) => !x.voided);
+  const total = sumLive(lines);
+  const methods = [...new Set(live.map((x) => x.method))].join(" + ");
   const [{ appts }] = agendaStore.useStore();
   const doctors = useDoctors();
-  const group = p.apptId ? sessionGroup(p.apptId, paymentsStore.get(), appts) : null;
+  const group = p.apptId ? sessionGroup(p.apptId, all, appts) : null;
   const doc = group?.appt ? doctors.find((d) => d.id === group.appt!.doc)?.full : undefined;
   function receipt() {
     const w = window.open("", "_blank");
     if (!w) return toast("Permite ventanas emergentes para ver el comprobante");
-    const total = same.reduce((n, x) => n + x.amount, 0);
-    w.document.write(`<title>Comprobante ${esc(p.no)}</title><body style="font-family:sans-serif;padding:24px"><h2>${esc(brand.name)}</h2><p>Comprobante ${esc(p.no)} · ${esc(when)}</p><p>${esc(p.patient)}</p>${same.map((x) => `<p>${esc(x.concept)} · <b>${money0(x.amount)}</b></p>`).join("")}<p>Pagado con ${esc(p.method)} · Total <b>${money0(total)}</b></p><p style="color:#777;font-size:12px">Comprobante de pago (demo)</p></body>`);
+    w.document.write(`<title>Comprobante ${esc(p.no)}</title><body style="font-family:sans-serif;padding:24px"><h2>${esc(brand.name)}</h2><p>Comprobante ${esc(p.no)} · ${esc(when)}${p.apptId ? ` · ${apptCode(p.apptId)}` : ""}</p><p>${esc(p.patient)}</p>${live.map((x) => `<p>${esc(x.concept)} · <b>${money0(x.amount)}</b> · ${esc(x.method)}</p>`).join("")}<p>Total <b>${money0(total)}</b>${methods ? ` · Pagado con ${esc(methods)}` : ""}</p><p style="color:#777;font-size:12px">Comprobante de pago (demo)</p></body>`);
     w.document.close();
   }
+  const voidAll = (v: boolean) => (v ? live : lines.filter((x) => x.voided)).forEach((x) => setVoided(x, v));
   return (
     <>
-      <SheetSub sub={`${money0(p.amount)} · ${p.method}`} badge={p.voided ? "Anulado" : "Cobrado"} tone={p.voided ? N : G} />
+      <SheetSub sub={`${money0(total)}${methods ? ` · ${methods}` : ""}`} badge={live.length === 0 ? "Anulado" : "Cobrado"} tone={live.length === 0 ? N : G} />
       <div className="tnum" style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 14, lineHeight: 1.5 }}>
         <span><b>Fecha y hora:</b> {when}</span>
-        <span><b>Comprobante:</b> {p.no}{same.length > 1 ? ` (${same.length} tratamientos)` : ""}</span>
+        <span><b>Comprobante:</b> {p.no}</span>
         <span><b>Paciente:</b> {p.patient}</span>
-        <span><b>Concepto:</b> {p.concept}</span>
         {p.apptId && <span><b>Código de cita:</b> {apptCode(p.apptId)}</span>}
         {p.date && <span><b>Referencia:</b> {p.date}</span>}
+        <span><b>{lines.length > 1 ? "Tratamientos" : "Concepto"}:</b></span>
+        {lines.map((x) => (
+          <span key={x.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, opacity: x.voided ? 0.55 : 1, textDecoration: x.voided ? "line-through" : undefined }}>
+            <span>{x.concept}{x.voided ? " (anulado)" : ""}</span><b>{money0(x.amount)}</b>
+          </span>
+        ))}
       </div>
       <Actions items={[
         { t: "Ver comprobante", kind: "p", icon: "file-text", run: receipt },
-        ...(group && group.lines.length >= 1 ? [{ t: `Comprobante de la sesión ${group.code} · ${money0(group.total)}`, icon: "file-text" as const, run: () => { if (!openSessionReceipt(group, { clinic: brand.name, doctor: doc })) toast("Permite ventanas emergentes para ver el comprobante"); } }] : []),
-        { t: "Enviar por WhatsApp", icon: "send", run: () => { enqueue({ kind: "comprobante", channel: "whatsapp", patient: p.patient, text: `Comprobante ${p.no}: ${p.concept} · ${money0(p.amount)}` }); onDone(); toast("Comprobante en cola · se enviará por WhatsApp al conectar la integración"); } },
-        p.voided
-          ? { t: "Restablecer cobro", icon: "rotate-ccw", run: () => { setVoided(p, false); toast("Cobro restablecido"); onDone(); } }
-          : { t: "Anular cobro", kind: "x", icon: "ban", run: () => { setVoided(p, true); toast("Cobro anulado · ya no cuenta en finanzas ni en reportes", () => setVoided(p, false)); onDone(); } },
+        ...(group && group.lines.length > live.length ? [{ t: `Comprobante de la sesión ${group.code} · ${money0(group.total)}`, icon: "file-text" as const, run: () => { if (!openSessionReceipt(group, { clinic: brand.name, doctor: doc })) toast("Permite ventanas emergentes para ver el comprobante"); } }] : []),
+        { t: "Enviar por WhatsApp", icon: "send", run: () => { enqueue({ kind: "comprobante", channel: "whatsapp", patient: p.patient, text: `Comprobante ${p.no}: ${live.map((x) => x.concept).join(", ")} · ${money0(total)}` }); onDone(); toast("Comprobante en cola · se enviará por WhatsApp al conectar la integración"); } },
+        live.length === 0
+          ? { t: "Restablecer comprobante", icon: "rotate-ccw", run: () => { voidAll(false); toast("Comprobante restablecido"); onDone(); } }
+          : { t: lines.length > 1 ? "Anular comprobante" : "Anular cobro", kind: "x", icon: "ban", run: () => { voidAll(true); toast("Comprobante anulado · ya no cuenta en finanzas ni en reportes", () => lines.forEach((x) => setVoided(x, false))); onDone(); } },
       ]} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {patient && <Link href={`/intranet/pacientes?id=${patient.id}`} style={{ minHeight: 46, display: "flex", alignItems: "center", padding: "0 16px", borderRadius: 12, fontWeight: 700, boxShadow: "inset 0 0 0 1px var(--line)", color: "var(--ink-900)" }}>Ver ficha del paciente</Link>}

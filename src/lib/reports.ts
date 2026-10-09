@@ -192,6 +192,13 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
   // Pagos por sesión: una fila por cita (o por comprobante, si el pago no fue de una cita)
   const groups = new Map<string, Payment[]>();
   for (const p of pays) groups.set(p.apptId ? `a${p.apptId}` : `n${p.no}`, [...(groups.get(p.apptId ? `a${p.apptId}` : `n${p.no}`) ?? []), p]);
+  // Un comprobante por cita: sus tratamientos se agrupan en una sola fila.
+  const byNo = new Map<string, typeof pays>();
+  for (const p of pays.slice().sort((x, y) => x.at.localeCompare(y.at))) byNo.set(p.no, [...(byNo.get(p.no) ?? []), p]);
+  const receiptRows: Cell[][] = [...byNo.values()].map((l): Cell[] => {
+    const f = l[0];
+    return [limaDateOf(f.at), horaDe(f.at), f.apptId ? apptCode(f.apptId) : "—", f.no, f.patient, [...new Set(l.map((x) => x.concept))].join(" + "), apptOf(f.apptId) ? docName(apptOf(f.apptId)!.doc) : "—", [...new Set(l.map((x) => x.method))].join(" + "), round2(l.reduce((n, x) => n + x.amount, 0))];
+  });
   const sesRows: Cell[][] = [...groups.values()].map((list): Cell[] => {
     const first = list[0], ap = apptOf(first.apptId);
     const uniq = (xs: string[]) => [...new Set(xs)].join(" + ");
@@ -251,7 +258,7 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
       {
         id: "ingd", title: "Ingresos detallados", sub: "Cobros por día y método de pago, con el detalle de cada comprobante",
         summary: { columns: ["Fecha", "Cobros", ...methodCols.map((m) => m + " (S/)"), "Total (S/)"], rows: idRows, total: idTotal, money: [...methodCols.map((_, k) => k + 2), methodCols.length + 2] },
-        detail: { title: "Comprobantes", table: { columns: ["Fecha", "Hora", "Código de cita", "Comprobante", "Paciente", "Servicio", "Doctor", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => x.at.localeCompare(y.at)).map((p): Cell[] => [limaDateOf(p.at), horaDe(p.at), p.apptId ? apptCode(p.apptId) : "—", p.no, p.patient, p.concept, apptOf(p.apptId) ? docName(apptOf(p.apptId)!.doc) : "—", p.method, p.amount]), total: ["Total", "", "", "", "", "", "", "", income], money: [8] } },
+        detail: { title: "Comprobantes (uno por cita o sesión)", table: { columns: ["Fecha", "Hora", "Código de cita", "Comprobante", "Paciente", "Tratamientos", "Doctor", "Método", "Monto (S/)"], rows: receiptRows, total: ["Total", "", "", "", "", "", "", "", income], money: [8] } },
       },
       {
         id: "ses", title: "Pagos por sesión", sub: "Cobros agrupados por cita (código CIT-…): tratamientos, comprobantes, métodos y total de cada sesión",
