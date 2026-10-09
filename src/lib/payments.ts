@@ -39,11 +39,16 @@ export function addPayment(p: Omit<Payment, "id" | "no" | "at">): Payment {
   return created;
 }
 
-/** Cobro de varios tratamientos en una misma sesión: un comprobante con una línea por tratamiento. */
+/** Número de comprobante para un nuevo cobro: el de la cita si ya tiene uno; si no, el siguiente de la serie. */
+export const receiptNoFor = (list: Payment[], apptId?: number) =>
+  (apptId !== undefined ? list.find((x) => x.apptId === apptId)?.no : undefined) ?? "B001-" + String(list.length + 124).padStart(6, "0");
+
+/** Cobro de varios tratamientos en una misma sesión: un comprobante por cita, con una línea por tratamiento (también los cobros posteriores de esa cita). */
 export function addPayments(lines: { concept: string; amount: number; itemId?: string }[], common: Omit<Payment, "id" | "no" | "at" | "concept" | "amount" | "itemId">): Payment[] {
   const out: Payment[] = [];
   paymentsStore.update((list) => {
-    const no = "B001-" + String(list.length + 124).padStart(6, "0");
+    // Un solo comprobante por cita: si la sesión ya tiene uno, los cobros siguientes lo comparten.
+    const no = receiptNoFor(list, common.apptId);
     const at = new Date().toISOString();
     for (const l of lines) out.push({ ...common, id: newId(), no, concept: l.concept, amount: l.amount, at, ...(l.itemId ? { itemId: l.itemId } : {}) });
     return [...list, ...out];

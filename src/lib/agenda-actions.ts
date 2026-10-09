@@ -4,7 +4,7 @@ import { addAppts, agendaStore, patchAppt, removeAppts } from "./agenda-store";
 import { checkResize, minutesBetween } from "./attention";
 import { addDays, isISODate } from "./dates";
 import { newId } from "./ids";
-import { mediaStore, parsePrice, resolveMedia } from "./media";
+import { mediaStore, resolveMedia, sessionValue } from "./media";
 import { enqueue } from "./outbox";
 import { applyLines, plansStore } from "./clinical";
 import { type PayMethod, type Payment, addPayment, addPayments, paymentsStore } from "./payments";
@@ -15,7 +15,7 @@ export const DEFAULT_PRICE = 150;
 /** Precio de una cita: el del servicio con ese nombre, o 150 por defecto (igual que el prototipo). */
 export function priceFor(a: Pick<Appt, "s">): number {
   const sv = resolveMedia(mediaStore.get()).services.find((s) => s.name === a.s);
-  const n = sv ? parsePrice(sv.price) : NaN;
+  const n = sv ? sessionValue(sv) : NaN;
   return n > 0 ? n : DEFAULT_PRICE;
 }
 

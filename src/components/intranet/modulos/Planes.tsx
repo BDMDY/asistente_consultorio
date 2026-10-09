@@ -6,7 +6,7 @@ import { type PlanItem, addItems, applyLines, itemBalance, planItems, plansStore
 import { todayISO } from "@/lib/dates";
 import { consumeCode } from "@/lib/discounts";
 import { type Plan, modStore, money0, payInstallment, saveMod, uid, useMod } from "@/lib/mod";
-import { parsePrice, useMedia, activeServices } from "@/lib/media";
+import { parsePrice, serviceSessions, useMedia, activeServices } from "@/lib/media";
 import { patientsStore } from "@/lib/patients";
 import { PAY_METHODS, type PayMethod, addPayment } from "@/lib/payments";
 import { toast } from "@/lib/toast";
@@ -73,17 +73,17 @@ function NewPlan({ onDone }: { onDone: () => void }) {
   const [svs, setSvs] = useState<string[]>([]);
   const [cfg, setCfg] = useState<Record<string, { n: string; p: string | null }>>({});
   const chosen = services.filter((s) => svs.includes(s.name));
-  const nOf = (name: string) => Math.max(1, Math.round(Number(cfg[name]?.n ?? "1")) || 1);
+  const nOf = (name: string) => Math.max(1, Math.round(Number(cfg[name]?.n ?? String(serviceSessions(chosen.find((x) => x.name === name) ?? {})))) || 1);
   const priceOf = (name: string) => {
     const manual = cfg[name]?.p;
     if (manual !== null && manual !== undefined) return Number(manual) || 0;
     const sv = chosen.find((x) => x.name === name);
-    return (sv ? parsePrice(sv.price) || 0 : 0) * nOf(name);
+    return sv ? parsePrice(sv.price) || 0 : 0;
   };
   const base = chosen.reduce((a, s) => a + priceOf(s.name), 0);
   const dc = useDiscount(base, d.desc);
   const r = dc.result;
-  const setCfgOf = (name: string, p: Partial<{ n: string; p: string | null }>) => setCfg((c) => ({ ...c, [name]: { n: c[name]?.n ?? "1", p: c[name]?.p ?? null, ...p } }));
+  const setCfgOf = (name: string, p: Partial<{ n: string; p: string | null }>) => setCfg((c) => ({ ...c, [name]: { n: c[name]?.n ?? String(serviceSessions(services.find((x) => x.name === name) ?? {})), p: c[name]?.p ?? null, ...p } }));
 
   function create() {
     const patient = patients.find((x) => x.name === pac[0]);
@@ -105,11 +105,11 @@ function NewPlan({ onDone }: { onDone: () => void }) {
       <ListField label="Paciente (busca por DNI o nombre)" value={pac} onChange={setPac} minChars={3} maxShown={6} hint="Escribe al menos 3 dígitos del DNI o parte del nombre"
         items={patients.map((p) => ({ v: p.name, t: p.name, r: `DNI ${p.dni}` }))} />
       <ListField label="Servicios o tratamientos" multi value={svs} onChange={setSvs} info={`${chosen.length} seleccionado(s)`}
-        items={services.map((s) => ({ v: s.name, t: s.name, r: parsePrice(s.price) > 0 ? `${money0(parsePrice(s.price))} / sesión` : "Gratis" }))} />
+        items={services.map((s) => ({ v: s.name, t: s.name, r: parsePrice(s.price) > 0 ? `${money0(parsePrice(s.price))} · ${serviceSessions(s)} ses.` : "Gratis" }))} />
       {chosen.map((s) => (
         <div key={s.id} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
           <b style={{ fontSize: 14 }}>{s.name}</b>
-          <TextField label="Número de sesiones" value={cfg[s.name]?.n ?? "1"} num onChange={(n) => setCfgOf(s.name, { n })} />
+          <TextField label="Número de sesiones" value={cfg[s.name]?.n ?? String(serviceSessions(s))} num onChange={(n) => setCfgOf(s.name, { n })} />
           <TextField label="Precio total del tratamiento (S/) · puedes modificarlo" value={cfg[s.name]?.p ?? String(priceOf(s.name))} num onChange={(p) => setCfgOf(s.name, { p })} />
           <SheetSub sub={`${money0(Math.round((priceOf(s.name) / nOf(s.name)) * 100) / 100)} por sesión`} />
         </div>

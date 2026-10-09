@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { apptByCode, apptCode, sessionGroup, sessionReceiptHtml } from "./receipts";
 import type { Appt } from "./agenda";
-import type { Payment } from "./payments";
+import { type Payment, receiptNoFor } from "./payments";
 
 const pay = (id: number, no: string, amount: number, method: Payment["method"], extra: Partial<Payment> = {}): Payment => ({ id, no, patient: "Ana", concept: "Limpieza", amount, method, date: "", at: `2026-10-12T15:0${id}:00Z`, apptId: 7, ...extra });
 
@@ -26,5 +26,14 @@ describe("comprobante por sesión", () => {
     expect(html).toContain("CIT-00007");
     expect(html).toContain("S/ 180.50");
     expect(html).toContain("Clínica &lt;X&gt;");
+  });
+});
+
+describe("un comprobante por cita", () => {
+  it("los cobros posteriores de una cita reutilizan su comprobante; otra cita usa el siguiente", () => {
+    const list = [pay(1, "B001-000124", 10, "Yape", { apptId: 501 }), pay(2, "B001-000125", 5, "Yape", { apptId: 502 })];
+    expect(receiptNoFor(list, 501)).toBe("B001-000124");
+    expect(receiptNoFor(list, 503)).toBe("B001-000126");
+    expect(receiptNoFor(list)).toBe("B001-000126");
   });
 });

@@ -9,7 +9,7 @@ import { finishAttention } from "@/lib/agenda-actions";
 import { inProgress } from "@/lib/attention";
 import { type PlanItem, addItems, anamnesisStore, emptyAnam, itemBalance, payItem, planItems, plansStore, sessionPrice } from "@/lib/clinical";
 import { useMediaQuery } from "@/lib/media-query";
-import { activeServices, initials, parsePrice, useMedia } from "@/lib/media";
+import { activeServices, initials, parsePrice, serviceSessions, useMedia } from "@/lib/media";
 import { uid } from "@/lib/mod";
 import { type Patient, patientOf, patientsStore } from "@/lib/patients";
 import { PAY_METHODS, type PayMethod, addPayment, money } from "@/lib/payments";
@@ -165,20 +165,13 @@ function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?:
   const [tried, setTried] = useState(false);
   const valid = (r: PlanRow) => r.name.trim().length > 2 && parseInt(r.total, 10) > 0 && parseFloat(r.price) > 0;
   const patch = (key: number, x: Partial<PlanRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...x } : r)));
-  const unitOf = (name: string) => {
-    const sv = activeServices(media).find((x) => x.name === name);
-    return sv ? parsePrice(sv.price) : NaN;
-  };
-  const auto = (name: string, total: string) => String(Math.round(unitOf(name) * (parseInt(total, 10) || 1) * 100) / 100);
+  const svOf = (name: string) => activeServices(media).find((x) => x.name === name);
   function pick(key: number, name: string) {
-    // Al elegir un servicio del catálogo se calcula el precio: valor de una sesión por el número de sesiones.
-    const row = rows.find((r) => r.key === key)!;
-    patch(key, { name, ...(unitOf(name) > 0 ? { price: auto(name, row.total), auto: true } : { auto: false }) });
+    // El precio del servicio es el total del tratamiento y trae su número de sesiones (cada sesión vale precio ÷ sesiones).
+    const sv = svOf(name);
+    patch(key, { name, ...(sv && parsePrice(sv.price) > 0 ? { price: String(parsePrice(sv.price)), total: String(serviceSessions(sv)), auto: true } : { auto: false }) });
   }
-  function setTotal(key: number, total: string) {
-    const row = rows.find((r) => r.key === key)!;
-    patch(key, { total, ...(row.auto && unitOf(row.name) > 0 ? { price: auto(row.name, total) } : {}) });
-  }
+  const setTotal = (key: number, total: string) => patch(key, { total });
   function save() {
     if (!rows.every(valid)) return setTried(true);
     const items = rows.map((r): PlanItem => ({ id: uid(), name: r.name.trim(), total: parseInt(r.total, 10), done: 0, price: parseFloat(r.price), paid: 0, at: todayISO() }));
@@ -195,14 +188,14 @@ function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?:
           <label style={labelStyle}>Tratamiento {rows.length > 1 ? k + 1 : ""}
             <select value={activeServices(media).some((x) => x.name === r.name) ? r.name : r.name ? "__otro" : ""} onChange={(e) => (e.target.value !== "__otro" ? pick(r.key, e.target.value) : patch(r.key, { name: " ", auto: false }))} style={input(r.name.trim().length > 2)}>
               <option value="" disabled>Elige un servicio…</option>
-              {activeServices(media).map((x) => <option key={x.id} value={x.name}>{x.name} · {money(parsePrice(x.price) || 0)} por sesión</option>)}
+              {activeServices(media).map((x) => <option key={x.id} value={x.name}>{x.name} · {money(parsePrice(x.price) || 0)} · {serviceSessions(x)} {serviceSessions(x) === 1 ? "sesión" : "sesiones"}</option>)}
               <option value="__otro">Otro tratamiento (escribir)</option>
             </select>
             {r.name !== "" && !activeServices(media).some((x) => x.name === r.name) && <input aria-label="Nombre del tratamiento" value={r.name.trim() === "" ? "" : r.name} onChange={(e) => patch(r.key, { name: e.target.value, auto: false })} placeholder="Nombre del tratamiento" style={{ ...input(r.name.trim().length > 2), marginTop: 6 }} />}
           </label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={labelStyle}>N.° de sesiones<input value={r.total} inputMode="numeric" onChange={(e) => setTotal(r.key, e.target.value)} style={input(parseInt(r.total, 10) > 0)} /></label>
-            <label style={labelStyle}>Precio total (S/)<input value={r.price} inputMode="decimal" onChange={(e) => patch(r.key, { price: e.target.value, auto: false })} style={input(parseFloat(r.price) > 0)} /></label>
+            <label style={labelStyle}>Precio total (S/){parseFloat(r.price) > 0 && parseInt(r.total, 10) > 0 ? <span className="tnum" style={{ fontWeight: 400, color: "var(--ink-500)" }}> · {money(Math.round((parseFloat(r.price) / parseInt(r.total, 10)) * 100) / 100)} por sesión</span> : null}<input value={r.price} inputMode="decimal" onChange={(e) => patch(r.key, { price: e.target.value, auto: false })} style={input(parseFloat(r.price) > 0)} /></label>
           </div>
           {rows.length > 1 && <button type="button" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} style={{ alignSelf: "flex-start", cursor: "pointer", background: "transparent", border: 0, color: "var(--error-fg)", fontWeight: 700, fontSize: 13, minHeight: 32, fontFamily: "inherit" }}>Quitar este tratamiento</button>}
         </div>

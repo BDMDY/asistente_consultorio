@@ -5,7 +5,7 @@ import { type Appt, type SeriesRule, checkReschedule, clash, freeStarts, generat
 import { type BlockForm, CANCEL_REASONS, type NewApptForm, createBlocks, validateBlock, cancelAppt, chargeSession, createAppts, priceFor, rescheduleAppt, validateNew } from "@/lib/agenda-actions";
 import { agendaStore } from "@/lib/agenda-store";
 import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
-import { type Doctor, activeServices, parsePrice, serviceSlots, useMedia } from "@/lib/media";
+import { type Doctor, activeServices, parsePrice, serviceSessions, serviceSlots, sessionValue, useMedia } from "@/lib/media";
 import { type PlanItem, addItems, planItems, plansStore, sessionPrice } from "@/lib/clinical";
 import { todayISO } from "@/lib/dates";
 import { uid } from "@/lib/mod";
@@ -336,13 +336,15 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   // Tratamiento nuevo indicado durante la sesión (por ejemplo, tras la evaluación): entra al plan del paciente y a este cobro.
   const [adding, setAdding] = useState(false);
   const [nt, setNt] = useState({ name: "", n: "1", price: "", auto: false, custom: false });
-  const unitOf = (name: string) => parsePrice(activeServices(media).find((x) => x.name === name)?.price ?? "");
-  const autoPrice = (name: string, n: string) => String(Math.round(unitOf(name) * (parseInt(n, 10) || 1) * 100) / 100);
+  const svOf = (name: string) => activeServices(media).find((x) => x.name === name);
+  
   function pickNew(name: string) {
     if (name === "__otro") return setNt((x) => ({ ...x, name: "", custom: true, auto: false }));
-    setNt((x) => (unitOf(name) > 0 ? { ...x, name, custom: false, price: autoPrice(name, x.n), auto: true } : { ...x, name, auto: false }));
+    const sv = svOf(name);
+    // El precio del servicio es el total del tratamiento y trae su número de sesiones; cada sesión vale precio ÷ sesiones.
+    setNt((x) => (sv && parsePrice(sv.price) > 0 ? { ...x, name, custom: false, price: String(parsePrice(sv.price)), n: String(serviceSessions(sv)), auto: true } : { ...x, name, custom: false, auto: false }));
   }
-  const setSessions = (n: string) => setNt((x) => ({ ...x, n, ...(x.auto && unitOf(x.name) > 0 ? { price: autoPrice(x.name, n) } : {}) }));
+  const setSessions = (n: string) => setNt((x) => ({ ...x, n }));
   function addNew() {
     if (!patient) return toast("Registra primero al paciente en Pacientes para crear su plan");
     const n = Math.max(1, parseInt(nt.n, 10) || 1), price = parseFloat(nt.price);
@@ -395,7 +397,7 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
                   <b style={{ fontSize: 14 }}>Nuevo tratamiento del plan</b>
                   <select aria-label="Nuevo tratamiento" value={nt.custom ? "__otro" : nt.name} onChange={(e) => pickNew(e.target.value)} style={{ ...fieldStyle, height: 44, fontSize: 14 }}>
                     <option value="" disabled>Elige un servicio…</option>
-                    {activeServices(media).map((x) => <option key={x.id} value={x.name}>{x.name} · {money(parsePrice(x.price) || 0)} por sesión</option>)}
+                    {activeServices(media).map((x) => <option key={x.id} value={x.name}>{x.name} · {money(parsePrice(x.price) || 0)} · {serviceSessions(x)} {serviceSessions(x) === 1 ? "sesión" : "sesiones"}</option>)}
                     <option value="__otro">Otro tratamiento (escribir)</option>
                   </select>
                   {nt.custom && <input aria-label="Nombre del tratamiento" value={nt.name} onChange={(e) => setNt({ ...nt, name: e.target.value })} placeholder="Nombre del tratamiento" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />}
@@ -412,7 +414,7 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
                 <button type="button" onClick={() => setAdding(true)} style={{ ...btnOutline, alignSelf: "flex-start" }}>+ Nuevo tratamiento (indicado en esta sesión)</button>
               )}
               {extra.length > 0 && (
-                <select aria-label="Agregar otro tratamiento" value="" onChange={(e) => { const sv = extra.find((x) => x.name === e.target.value); if (sv) setLines((ls) => [...ls, { key: "s:" + sv.name, concept: sv.name, amount: String(parsePrice(sv.price) || 0), on: true }]); }} style={{ ...fieldStyle, height: 44, fontSize: 14 }}>
+                <select aria-label="Agregar otro tratamiento" value="" onChange={(e) => { const sv = extra.find((x) => x.name === e.target.value); if (sv) setLines((ls) => [...ls, { key: "s:" + sv.name, concept: sv.name, amount: String(sessionValue(sv) || 0), on: true }]); }} style={{ ...fieldStyle, height: 44, fontSize: 14 }}>
                   <option value="">+ Cobrar otro servicio (sin plan)…</option>
                   {extra.map((sv) => <option key={sv.id} value={sv.name}>{sv.name}</option>)}
                 </select>

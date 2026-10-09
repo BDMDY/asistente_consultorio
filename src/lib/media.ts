@@ -11,7 +11,7 @@ export interface DoctorProfile { id: number; title?: string; spec: string; photo
 export interface Facility { id: number; cap: string; photo: string }
 export interface BeforeAfter { id: number; label: string; before: string; after: string }
 /** Catálogo único: lo editan el módulo Servicios y Medios de marca; lo usan landing, reserva y agenda. */
-export interface Service { id: number; name: string; desc: string; price: string; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean }
+export interface Service { id: number; name: string; desc: string; price: string; /** sesiones del tratamiento: el precio es el total y cada sesión vale precio ÷ sesiones (1 si falta) */ sessions?: number; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean }
 export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string }
 
 export interface Media {
@@ -45,10 +45,10 @@ export const DEFAULT_MEDIA: Media = {
   facs: [{ id: 1, cap: "Recepción", photo: "" }],
   cases: [{ id: 1, label: "Ortodoncia · 14 meses", before: "", after: "" }],
   services: [
-    { id: 1, name: "Ortodoncia", desc: "Brackets y alineadores a tu medida.", price: "150", dur: 45 },
-    { id: 2, name: "Limpieza dental", desc: "Profilaxis y control preventivo.", price: "90", dur: 30 },
-    { id: 3, name: "Blanqueamiento", desc: "Resultados visibles en una sesión.", price: "350", dur: 60 },
-    { id: 4, name: "Implantes", desc: "Recupera función y estética.", price: "1,800", dur: 90 },
+    { id: 1, name: "Ortodoncia", desc: "Brackets y alineadores a tu medida.", price: "1,800", sessions: 12, dur: 45 },
+    { id: 2, name: "Limpieza dental", desc: "Profilaxis y control preventivo.", price: "90", sessions: 1, dur: 30 },
+    { id: 3, name: "Blanqueamiento", desc: "Resultados visibles en una sesión.", price: "350", sessions: 1, dur: 60 },
+    { id: 4, name: "Implantes", desc: "Recupera función y estética.", price: "1,800", sessions: 3, dur: 90 },
   ],
 };
 
@@ -76,6 +76,15 @@ export const serviceSlots = (svc: Pick<Service, "dur"> | undefined, index = 0) =
 
 /** Servicios que se ofrecen (activos). */
 export const activeServices = (m: Media) => m.services.filter((x) => x.on !== false);
+
+/** Número de sesiones asignado al tratamiento (mínimo 1). */
+export const serviceSessions = (s: Pick<Service, "sessions">) => Math.max(1, Math.round(s.sessions ?? 1) || 1);
+
+/** Valor de una sesión: precio total del tratamiento ÷ número de sesiones (NaN si no tiene precio). */
+export const sessionValue = (s: Pick<Service, "price" | "sessions">) => {
+  const t = parsePrice(s.price);
+  return t > 0 ? Math.round((t / serviceSessions(s)) * 100) / 100 : NaN;
+};
 
 export function parsePrice(price: string): number {
   const n = parseFloat(String(price).replace(/,/g, ""));

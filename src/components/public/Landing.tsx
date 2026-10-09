@@ -88,7 +88,7 @@ export default function Landing() {
                 <span className={s.svcIcon}><Icon name={SERVICE_ICONS[i % 5]} size={24} /></span>
                 <b style={{ fontSize: 18 }}>{sv.name}</b>
                 <span style={{ fontSize: 14, lineHeight: 1.5, color: "var(--ink-500)" }}>{sv.desc}</span>
-                {sv.price && <span className="tnum" style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-text)" }}>Desde S/ {sv.price}</span>}
+                {sv.price && <span className="tnum" style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-text)" }}>Desde S/ {sv.price}{(sv.sessions ?? 1) > 1 ? ` · ${sv.sessions} sesiones` : ""}</span>}
               </div>
             ))}
           </div>

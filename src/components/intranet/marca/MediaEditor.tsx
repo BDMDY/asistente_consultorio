@@ -88,6 +88,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
                 <input aria-label="Descripción breve" value={d.desc} onChange={(e) => setItem("services", d.id, { desc: e.target.value })} placeholder="Descripción breve" style={{ ...inp, height: 28, fontSize: 12 }} />
               </div>
               <input aria-label="Desde S/ (opcional)" value={d.price} onChange={(e) => setItem("services", d.id, { price: e.target.value })} placeholder="Desde S/" style={{ ...inp, width: 82, height: 34, fontSize: 12 }} />
+              <input aria-label="Sesiones del tratamiento" title="Sesiones del tratamiento" value={d.sessions ?? 1} inputMode="numeric" onChange={(e) => setItem("services", d.id, { sessions: Math.max(1, Math.round(Number(e.target.value)) || 1) })} style={{ ...inp, width: 44, height: 34, fontSize: 12 }} />
               {trash(() => delItem("services", d.id), "Quitar servicio")}
             </div>
           ))}
