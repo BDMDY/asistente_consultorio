@@ -24,24 +24,33 @@ export default function BrandProvider() {
   const pathname = usePathname();
   useEffect(() => {
     const href = img.favicon;
-    const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')];
-    if (!links.length && href) {
-      const l = document.createElement("link");
-      l.rel = "icon";
-      document.head.appendChild(l);
-      links.push(l);
-    }
-    for (const l of links) {
-      if (l.dataset.origHref === undefined) { l.dataset.origHref = l.getAttribute("href") ?? ""; l.dataset.origType = l.type; }
-      if (href) {
-        l.type = /^data:([^;,]+)/.exec(href)?.[1] ?? "";
-        l.setAttribute("sizes", "any");
-        if (l.getAttribute("href") !== href) l.href = href;
-      } else if (l.dataset.origHref) {
-        l.type = l.dataset.origType ?? "";
-        l.setAttribute("href", l.dataset.origHref);
+    const apply = () => {
+      const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')];
+      for (const l of links) {
+        if (l.dataset.origHref === undefined) { l.dataset.origHref = l.getAttribute("href") ?? ""; l.dataset.origType = l.type; }
+        if (href) {
+          l.type = /^data:([^;,]+)/.exec(href)?.[1] ?? "";
+          l.setAttribute("sizes", "any");
+          if (l.getAttribute("href") !== href) l.href = href;
+        } else if (l.dataset.origHref) {
+          l.type = l.dataset.origType ?? "";
+          l.setAttribute("href", l.dataset.origHref);
+        }
       }
-    }
+      return links.length;
+    };
+    // Next agrega su ícono después de que carga la página: se reintenta unos instantes (solo cambia atributos, nunca quita nodos).
+    const timers = [0, 300, 1000, 2500].map((ms) => setTimeout(apply, ms));
+    // Si no hay ningún ícono (no debería pasar), se crea uno.
+    const last = setTimeout(() => {
+      if (href && !document.querySelector('link[rel~="icon"]')) {
+        const l = document.createElement("link");
+        l.rel = "icon";
+        document.head.appendChild(l);
+        apply();
+      }
+    }, 3000);
+    return () => { timers.forEach(clearTimeout); clearTimeout(last); };
   }, [img.favicon, pathname]);
 
   const keepInDark = ["--brand-50", "--brand-100", "--brand-800"];
