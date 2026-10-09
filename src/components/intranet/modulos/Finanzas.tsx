@@ -96,6 +96,7 @@ function PaymentDetail({ p, onDone }: { p: Payment; onDone: () => void }) {
   const group = p.apptId ? sessionGroup(p.apptId, all, appts) : null;
   const doc = group?.appt ? doctors.find((d) => d.id === group.appt!.doc)?.full : undefined;
   function receipt() {
+    if (group && group.lines.length) { if (!openSessionReceipt(group, { clinic: brand.name, doctor: doc })) toast("Permite ventanas emergentes para ver el comprobante"); return; }
     const w = window.open("", "_blank");
     if (!w) return toast("Permite ventanas emergentes para ver el comprobante");
     w.document.write(`<title>Comprobante ${esc(p.no)}</title><body style="font-family:sans-serif;padding:24px"><h2>${esc(brand.name)}</h2><p>Comprobante ${esc(p.no)} · ${esc(when)}${p.apptId ? ` · ${apptCode(p.apptId)}` : ""}</p><p>${esc(p.patient)}</p>${live.map((x) => `<p>${esc(x.concept)} · <b>${money0(x.amount)}</b> · ${esc(x.method)}</p>`).join("")}<p>Total <b>${money0(total)}</b>${methods ? ` · Pagado con ${esc(methods)}` : ""}</p><p style="color:#777;font-size:12px">Comprobante de pago (demo)</p></body>`);
@@ -119,8 +120,7 @@ function PaymentDetail({ p, onDone }: { p: Payment; onDone: () => void }) {
         ))}
       </div>
       <Actions items={[
-        { t: "Ver comprobante", kind: "p", icon: "file-text", run: receipt },
-        ...(group && group.lines.length > live.length ? [{ t: `Comprobante de la sesión ${group.code} · ${money0(group.total)}`, icon: "file-text" as const, run: () => { if (!openSessionReceipt(group, { clinic: brand.name, doctor: doc })) toast("Permite ventanas emergentes para ver el comprobante"); } }] : []),
+        { t: group ? `Ver comprobante de la cita · ${money0(group.total)}` : "Ver comprobante", kind: "p", icon: "file-text", run: receipt },
         { t: "Enviar por WhatsApp", icon: "send", run: () => { enqueue({ kind: "comprobante", channel: "whatsapp", patient: p.patient, text: `Comprobante ${p.no}: ${live.map((x) => x.concept).join(", ")} · ${money0(total)}` }); onDone(); toast("Comprobante en cola · se enviará por WhatsApp al conectar la integración"); } },
         live.length === 0
           ? { t: "Restablecer comprobante", icon: "rotate-ccw", run: () => { voidAll(false); toast("Comprobante restablecido"); onDone(); } }

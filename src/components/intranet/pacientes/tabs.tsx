@@ -8,7 +8,10 @@ import { type ClinicalNote, type PatientFile, type PlanItem, type TreatmentPlan,
 import { newId } from "@/lib/ids";
 import { isISODate, labelDate, labelShort, todayISO } from "@/lib/dates";
 import { type Patient, patchPatient, samePatientName } from "@/lib/patients";
-import { money, paymentsStore } from "@/lib/payments";
+import { type Payment, money, paymentsStore } from "@/lib/payments";
+import { useBrand } from "@/lib/brand";
+import { apptCode, receiptGroup, sessionGroup } from "@/lib/receipts";
+import { openSessionReceipt } from "@/lib/receipts-open";
 import { toast } from "@/lib/toast";
 import { useState } from "react";
 import Link from "next/link";
@@ -223,20 +226,43 @@ export function TabArchivos({ p }: { p: Patient }) {
 // ───────────── Pagos ─────────────
 export function TabPagos({ p, onPay }: { p: Patient; onPay: () => void }) {
   const [payments] = paymentsStore.useStore();
-  const pays = payments.filter((x) => samePatientName(x.patient, p.name)).slice().reverse();
+  const [{ appts }] = agendaStore.useStore();
+  const brand = useBrand();
+  const doctors = useDoctors();
+  const pays = payments.filter((x) => samePatientName(x.patient, p.name));
+  // Un comprobante por cita: los tratamientos pagados en la misma cita van juntos, con su total.
+  const byNo = new Map<string, Payment[]>();
+  for (const x of pays.slice().reverse()) byNo.set(x.no, [...(byNo.get(x.no) ?? []), x]);
+  const open = (l: Payment[]) => {
+    const f = l[0];
+    const g = f.apptId ? sessionGroup(f.apptId, payments, appts) : receiptGroup(f.no, payments);
+    const doc = g.appt ? doctors.find((d) => d.id === g.appt!.doc)?.full : undefined;
+    if (!openSessionReceipt(g, { clinic: brand.name, doctor: doc })) toast("Permite ventanas emergentes para ver el comprobante");
+  };
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <b className="tnum" style={{ fontSize: 18 }}>Total pagado {money(pays.filter((x) => !x.voided).reduce((t, x) => t + x.amount, 0))}</b>
         <button type="button" onClick={onPay} style={primaryBtn}>Registrar pago</button>
       </div>
-      {pays.map((x) => (
-        <div key={x.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 14px", borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
-          <Icon name="banknote" style={{ color: "var(--brand-600)" }} />
-          <div style={{ flex: 1, fontSize: 14 }}><b>{x.concept}</b><div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{x.no} · {payLabel(x.date)} · {x.method}</div></div>
-          <b className="tnum" style={x.voided ? { textDecoration: "line-through", color: "var(--ink-500)" } : undefined}>{x.voided ? "Anulado · " : ""}{money(x.amount)}</b>
-        </div>
-      ))}
+      {[...byNo.values()].map((l) => {
+        const f = l[0], live = l.filter((x) => !x.voided), total = live.reduce((n, x) => n + x.amount, 0);
+        return (
+          <div key={f.no} style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 14px", borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <Icon name="banknote" style={{ color: "var(--brand-600)" }} />
+              <div style={{ flex: 1, fontSize: 14 }}><b>Comprobante {f.no}</b><div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{f.apptId ? `${apptCode(f.apptId)} · ` : ""}{payLabel(f.date)} · {[...new Set(l.map((x) => x.method))].join(" + ")}</div></div>
+              <b className="tnum" style={live.length === 0 ? { textDecoration: "line-through", color: "var(--ink-500)" } : undefined}>{live.length === 0 ? "Anulado · " : ""}{money(live.length ? total : l.reduce((n, x) => n + x.amount, 0))}</b>
+            </div>
+            {l.map((x) => (
+              <div key={x.id} className="tnum" style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13, color: "var(--ink-500)", paddingLeft: 36, textDecoration: x.voided ? "line-through" : undefined }}>
+                <span>{x.concept}</span><span>{money(x.amount)}</span>
+              </div>
+            ))}
+            {live.length > 0 && <button type="button" onClick={() => open(l)} style={{ alignSelf: "flex-start", marginLeft: 36, cursor: "pointer", background: "transparent", border: 0, color: "var(--brand-text)", fontWeight: 700, fontSize: 13, minHeight: 32, fontFamily: "inherit" }}>Ver comprobante de la cita</button>}
+          </div>
+        );
+      })}
       {pays.length === 0 && <div style={{ color: "var(--ink-500)", fontSize: 14 }}>Sin pagos registrados.</div>}
     </>
   );

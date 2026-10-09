@@ -33,7 +33,7 @@ export const money = (n: number) =>
 export function addPayment(p: Omit<Payment, "id" | "no" | "at">): Payment {
   let created!: Payment;
   paymentsStore.update((list) => {
-    created = { ...p, id: newId(), no: "B001-" + String(list.length + 124).padStart(6, "0"), at: new Date().toISOString() };
+    created = { ...p, id: newId(), no: receiptNoFor(list, p.apptId), at: new Date().toISOString() };
     return [...list, created];
   });
   return created;

@@ -12,7 +12,9 @@ import { useMediaQuery } from "@/lib/media-query";
 import { activeServices, initials, parsePrice, serviceSessions, useMedia } from "@/lib/media";
 import { uid } from "@/lib/mod";
 import { type Patient, patientOf, patientsStore } from "@/lib/patients";
-import { PAY_METHODS, type PayMethod, addPayment, money } from "@/lib/payments";
+import { PAY_METHODS, type PayMethod, addPayments, money } from "@/lib/payments";
+import { apptWhenShort } from "@/lib/agenda";
+import { apptCode, todaysApptOf } from "@/lib/receipts";
 import { toast } from "@/lib/toast";
 import { todayISO } from "@/lib/dates";
 import { Anamnesis } from "./Anamnesis";
@@ -209,37 +211,74 @@ function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?:
   );
 }
 
+interface PayLineState { on: boolean; amount: string }
+
+/** Registrar pago desde la ficha: uno o varios tratamientos en un mismo cobro, asociados a una cita (un solo comprobante por cita). */
 function PayDialog({ p, concept, itemId, sheet, onClose, onSaved }: { p: Patient; concept: string; itemId?: string; sheet: boolean; onClose: () => void; onSaved: () => void }) {
   const items = planItems(plansStore.get()[p.id]);
-  const [target, setTarget] = useState(itemId ?? "");
-  const item = items.find((x) => x.id === target);
-  const [f, setF] = useState(() => ({ concept, amount: itemId ? String(Math.min(sessionPrice(items.find((x) => x.id === itemId)!), itemBalance(items.find((x) => x.id === itemId)!)) || "") : "" }));
+  const appts = agendaStore.get().appts.filter((a) => a.p === p.name && !["cancelada", "bloqueo", "no-show", "reprogramada"].includes(a.st)).sort((x, y) => y.date.localeCompare(x.date) || y.slot - x.slot).slice(0, 8);
+  const [apptId, setApptId] = useState<string>(() => { const t = todaysApptOf(appts, p.name, todayISO()); return t ? String(t.id) : ""; });
+  const suggested = (x: PlanItem) => String(Math.min(sessionPrice(x), itemBalance(x)) || "");
+  const [lines, setLines] = useState<Record<string, PayLineState>>(() => {
+    const o: Record<string, PayLineState> = {};
+    for (const x of items) o[x.id] = { on: x.id === itemId, amount: suggested(x) };
+    o.free = { on: items.length === 0 || (!itemId && concept !== ""), amount: "" };
+    return o;
+  });
+  const [free, setFree] = useState(concept);
   const [method, setMethod] = useState<PayMethod>("Efectivo");
   const [tried, setTried] = useState(false);
-  const amt = parseFloat(f.amount.replace(",", "."));
+  const num = (v: string) => parseFloat(v.replace(",", "."));
+  const patchLine = (k: string, x: Partial<PayLineState>) => setLines((l) => ({ ...l, [k]: { ...l[k], ...x } }));
+  const chosen = [...items.map((x) => ({ key: x.id, item: x as PlanItem | undefined })), { key: "free", item: undefined as PlanItem | undefined }].filter((c) => lines[c.key]?.on);
+  const total = chosen.reduce((n, c) => n + (num(lines[c.key].amount) > 0 ? num(lines[c.key].amount) : 0), 0);
+  const valid = chosen.length > 0 && chosen.every((c) => num(lines[c.key].amount) > 0);
   function save() {
-    if (!(amt > 0)) return setTried(true);
-    addPayment({ patient: p.name, concept: item ? item.name : f.concept.trim() || "Pago", amount: amt, method, date: todayISO(), ...(item ? { itemId: item.id, patientId: p.id } : { patientId: p.id }) });
-    if (item) plansStore.update((all) => (all[p.id] ? { ...all, [p.id]: payItem(all[p.id], item.id, amt) } : all));
+    if (!valid) return setTried(true);
+    const appt = appts.find((a) => String(a.id) === apptId);
+    const payLines = chosen.map((c) => ({ concept: c.item ? c.item.name : free.trim() || "Pago", amount: num(lines[c.key].amount), ...(c.item ? { itemId: c.item.id } : {}) }));
+    addPayments(payLines, { patient: p.name, method, date: appt ? apptWhenShort(appt) : todayISO(), patientId: p.id, ...(appt ? { apptId: appt.id } : {}) });
+    plansStore.update((all) => {
+      let plan = all[p.id];
+      if (!plan) return all;
+      for (const l of payLines) if (l.itemId) plan = payItem(plan, l.itemId, l.amount);
+      return { ...all, [p.id]: plan };
+    });
     onSaved();
     onClose();
-    toast(`Pago registrado · ${money(amt)}${item ? ` · ${item.name}` : ""}`);
+    toast(`Pago registrado · ${money(total)}${payLines.length > 1 ? ` · ${payLines.length} tratamientos en un comprobante` : ` · ${payLines[0].concept}`}${appt ? ` · ${apptCode(appt.id)}` : ""}`);
   }
+  const check = (k: string, label: React.ReactNode, hint?: string) => (
+    <div key={k} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 10, borderRadius: 12, boxShadow: `inset 0 0 0 ${lines[k].on ? 1.5 : 1}px ${lines[k].on ? "var(--brand-200)" : "var(--line)"}` }}>
+      <label style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
+        <input type="checkbox" checked={lines[k].on} onChange={(e) => patchLine(k, { on: e.target.checked })} style={{ width: 20, height: 20 }} />
+        <span style={{ flex: 1 }}>{label}{hint && <span style={{ display: "block", fontWeight: 400, fontSize: 12, color: "var(--ink-500)" }}>{hint}</span>}</span>
+      </label>
+      {lines[k].on && (
+        <>
+          {k === "free" && <input aria-label="Concepto" value={free} onChange={(e) => setFree(e.target.value)} placeholder="Concepto (ej. Consulta)" style={{ ...fieldStyle, height: 42, fontSize: 14 }} />}
+          <input aria-label={`Monto de ${k === "free" ? "otro concepto" : items.find((x) => x.id === k)?.name}`} value={lines[k].amount} inputMode="decimal" className="tnum" onChange={(e) => patchLine(k, { amount: e.target.value })} placeholder="Monto (S/)" style={{ ...fieldStyle, height: 44, fontSize: 16, fontWeight: 700, border: border(num(lines[k].amount) > 0, tried) }} />
+        </>
+      )}
+    </div>
+  );
   return (
     <Frame title="Registrar pago" onClose={onClose} sheet={sheet}>
-      {items.length > 0 && (
-        <label style={labelStyle}>Aplicar a
-          <select value={target} onChange={(e) => setTarget(e.target.value)} style={{ ...fieldStyle, height: 46, fontSize: 15 }}>
-            <option value="">Pago libre (sin tratamiento)</option>
-            {items.map((x) => <option key={x.id} value={x.id}>{x.name} · saldo {money(itemBalance(x))}</option>)}
-          </select>
-        </label>
-      )}
-      {!item && <label style={labelStyle}>Concepto<input value={f.concept} onChange={(e) => setF({ ...f, concept: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>}
-      <label style={labelStyle}>Monto (S/)<input value={f.amount} inputMode="decimal" className="tnum" onChange={(e) => setF({ ...f, amount: e.target.value })} style={{ ...fieldStyle, height: 50, fontSize: 20, fontWeight: 700, border: border(amt > 0, tried) }} /></label>
+      <label style={labelStyle}>Cita (un comprobante por cita)
+        <select value={apptId} onChange={(e) => setApptId(e.target.value)} style={{ ...fieldStyle, height: 46, fontSize: 15 }}>
+          <option value="">Sin cita (comprobante propio)</option>
+          {appts.map((a) => <option key={a.id} value={a.id}>{apptCode(a.id)} · {apptWhenShort(a)} · {a.s}</option>)}
+        </select>
+      </label>
+      <div style={{ ...labelStyle, display: "flex", flexDirection: "column", gap: 8 }}>
+        Tratamientos que se pagan ahora
+        {items.map((x) => check(x.id, x.name, `saldo ${money(itemBalance(x))} · sesión ${money(sessionPrice(x))}`))}
+        {check("free", items.length ? "Otro concepto (sin tratamiento)" : "Pago libre")}
+      </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {PAY_METHODS.map((m) => <button key={m} type="button" aria-pressed={m === method} onClick={() => setMethod(m)} style={chipStyle(m === method, { padding: "11px 14px" })}>{m}</button>)}
       </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 15 }}><span>Total a cobrar</span><b className="tnum" style={{ fontSize: 20 }}>{money(total)}</b></div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
         <button type="button" onClick={onClose} style={btnOutline}>Cancelar</button>
         <button type="button" onClick={save} style={btnPrimary()}>Registrar pago</button>
@@ -247,4 +286,3 @@ function PayDialog({ p, concept, itemId, sheet, onClose, onSaved }: { p: Patient
     </Frame>
   );
 }
-
