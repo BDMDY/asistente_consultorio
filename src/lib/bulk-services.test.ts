@@ -91,3 +91,13 @@ describe("hero", () => {
     expect(heroSlides({ ...DEFAULT_MEDIA, img: { hero: "data:x" }, hero: [a] })).toEqual([a]);
   });
 });
+
+describe("subida de video", () => {
+  it("valida formato y peso antes de subir", async () => {
+    const { checkVideoFile } = await import("./backend/storage");
+    expect(checkVideoFile({ name: "hero.mp4", type: "video/mp4", size: 5e6 })).toBeNull();
+    expect(checkVideoFile({ name: "hero.webm", type: "", size: 1e6 })).toBeNull();
+    expect(checkVideoFile({ name: "hero.mov", type: "video/quicktime", size: 1e6 })).toMatch(/MP4 o WebM/);
+    expect(checkVideoFile({ name: "hero.mp4", type: "video/mp4", size: 12 * 1048576 })).toMatch(/12\.0 MB/);
+  });
+});

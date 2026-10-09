@@ -1,9 +1,11 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useDoctors } from "@/lib/doctors";
 import { DEFAULT_MEDIA, HERO_ANIMS, type HeroSlide, MAX_HERO_SLIDES, isVideoUrl, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
 import { loadImage } from "@/lib/image";
+import { checkVideoFile, isHostedVideo, removeHostedVideo, uploadHeroVideo } from "@/lib/backend/storage";
 import { toast } from "@/lib/toast";
 
 const inp: React.CSSProperties = { borderRadius: 8, border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--surface)", color: "inherit", minWidth: 0, boxSizing: "border-box" };
@@ -180,6 +182,21 @@ export function resetMedia() {
 function HeroSlides({ slides }: { slides: HeroSlide[] }) {
   const set = (hero: HeroSlide[]) => commit(() => ({ hero }));
   const full = slides.length >= MAX_HERO_SLIDES;
+  const [busy, setBusy] = useState(false);
+  async function onVideo(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const bad = checkVideoFile(f);
+    if (bad) return toast(bad);
+    setBusy(true);
+    const r = await uploadHeroVideo(f);
+    setBusy(false);
+    if (!r.ok) return toast(r.error);
+    add({ kind: "video", src: r.url });
+    toast("Video subido · ya está en el carrusel");
+  }
+  const drop = (sl: HeroSlide) => { if (sl.kind === "video" && sl.src && isHostedVideo(sl.src)) void removeHostedVideo(sl.src); set(slides.filter((x) => x.id !== sl.id)); };
   const add = (sl: Omit<HeroSlide, "id">) => set([...slides, { ...sl, id: nextId(slides) }]);
   const patch = (id: number, p: Partial<HeroSlide>) => set(slides.map((x) => (x.id === id ? { ...x, ...p } : x)));
   const move = (k: number, d: number) => { const n = [...slides]; const j = k + d; if (j < 0 || j >= n.length) return; [n[k], n[j]] = [n[j], n[k]]; set(n); };
@@ -196,7 +213,7 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
   return (
     <>
       <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
-        Con una sola diapositiva se muestra fija; con varias pasan solas cada pocos segundos (se pausan al pasar el mouse). Los videos van en bucle y sin sonido: pega el enlace https de un archivo <b>.mp4</b> o <b>.webm</b> liviano (ideal de 5 a 15 s y menos de 8 MB). Sin diapositivas se usa la «Foto hero» de Identidad.
+        Con una sola diapositiva se muestra fija; con varias pasan solas cada pocos segundos (se pausan al pasar el mouse). Los videos van en bucle y sin sonido: usa «+ Video» para subir un archivo <b>MP4</b> o <b>WebM</b> (de 5 a 15 s, máximo 10 MB) o «+ Video por enlace» si ya lo tienes alojado. Sin diapositivas se usa la «Foto hero» de Identidad.
       </div>
       {slides.length === 0 && empty("Sin diapositivas: se usa la foto hero o un fondo de color.")}
       {slides.map((sl, k) => (
@@ -206,7 +223,8 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
           </div>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
             <b style={{ fontSize: 12 }}>{k + 1}. {sl.kind === "image" ? "Foto" : sl.kind === "video" ? "Video en bucle" : "Animación"}</b>
-            {sl.kind === "video" && <input aria-label={`Enlace del video ${k + 1}`} defaultValue={sl.src ?? ""} onBlur={(e) => { const v = e.target.value.trim(); if (v && !isVideoUrl(v)) toast("El enlace debe ser https y terminar en .mp4, .webm u .ogg"); else patch(sl.id, { src: v }); }} placeholder="https://…/video.mp4" style={{ ...inp, height: 30, padding: "0 8px" }} />}
+            {sl.kind === "video" && sl.src && isHostedVideo(sl.src) && <span style={{ fontSize: 12, color: "var(--ink-500)" }}>Video subido a tu sitio</span>}
+            {sl.kind === "video" && !(sl.src && isHostedVideo(sl.src)) && <input aria-label={`Enlace del video ${k + 1}`} defaultValue={sl.src ?? ""} onBlur={(e) => { const v = e.target.value.trim(); if (v && !isVideoUrl(v)) toast("El enlace debe ser https y terminar en .mp4, .webm u .ogg"); else patch(sl.id, { src: v }); }} placeholder="https://…/video.mp4" style={{ ...inp, height: 30, padding: "0 8px" }} />}
             {sl.kind === "anim" && (
               <select aria-label={`Animación ${k + 1}`} value={sl.anim ?? "ondas"} onChange={(e) => patch(sl.id, { anim: e.target.value as HeroSlide["anim"] })} style={{ ...inp, height: 30 }}>
                 {HERO_ANIMS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
@@ -215,7 +233,7 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
           </div>
           <button type="button" aria-label="Subir" disabled={k === 0} onClick={() => move(k, -1)} style={{ ...small, opacity: k === 0 ? 0.4 : 1 }}>↑</button>
           <button type="button" aria-label="Bajar" disabled={k === slides.length - 1} onClick={() => move(k, 1)} style={{ ...small, opacity: k === slides.length - 1 ? 0.4 : 1 }}>↓</button>
-          {trash(() => set(slides.filter((x) => x.id !== sl.id)), "Quitar diapositiva")}
+          {trash(() => drop(sl), "Quitar diapositiva")}
         </div>
       ))}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -223,7 +241,11 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
           <input type="file" accept="image/png,image/jpeg,image/webp" aria-label="Agregar foto al hero" disabled={full} onChange={onFile} style={{ display: "none" }} />
           + Foto
         </label>
-        <button type="button" disabled={full} onClick={() => add({ kind: "video", src: "" })} style={addStyle(full)}>+ Video (enlace)</button>
+        <label style={addStyle(full || busy)}>
+          <input type="file" accept="video/mp4,video/webm" aria-label="Subir video al hero" disabled={full || busy} onChange={onVideo} style={{ display: "none" }} />
+          {busy ? "Subiendo…" : "+ Video"}
+        </label>
+        <button type="button" disabled={full} onClick={() => add({ kind: "video", src: "" })} style={addStyle(full)}>+ Video por enlace</button>
         <button type="button" disabled={full} onClick={() => add({ kind: "anim", anim: HERO_ANIMS[slides.filter((x) => x.kind === "anim").length % HERO_ANIMS.length][0] })} style={addStyle(full)}>+ Animación</button>
       </div>
       {full && <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Máximo {MAX_HERO_SLIDES} diapositivas.</div>}
