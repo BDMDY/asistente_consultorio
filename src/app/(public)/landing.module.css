@@ -6,7 +6,7 @@
 .mobileMenu { display: none; flex-direction: column; background: var(--surface); border-bottom: 1px solid var(--line); }
 .mobileMenu a { min-height: 48px; padding: 0 var(--ph); display: flex; align-items: center; font-weight: 600; color: var(--ink-900); border-top: 1px solid var(--line); }
 .headLink { font-weight: 600; font-size: 15px; white-space: nowrap; color: var(--brand-text); }
-.heroLink { display: inline-block; margin-top: 4px; font-weight: 600; font-size: 15px; color: var(--brand-text); text-decoration: underline; text-underline-offset: 3px; }
+.heroLink { display: inline-block; align-self: flex-start; width: fit-content; margin-top: 4px; font-weight: 600; font-size: 15px; color: var(--brand-text); text-decoration: underline; text-underline-offset: 3px; }
 .staffLink { font-weight: 600; font-size: 14px; white-space: nowrap; color: var(--ink-500); padding: 8px 12px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line); }
 @media (max-width: 1099px) { .headLink, .staffLink { display: none; } }
 .cta { padding: 12px 20px; border-radius: 12px; background: var(--grad-btn); color: #fff !important; font-weight: 600; font-size: 15px; white-space: nowrap; }
