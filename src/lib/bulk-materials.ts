@@ -1,4 +1,4 @@
-import { type InvItem } from "./mod";
+import type { InvItem } from "./mod";
 
 export interface BulkMatRow {
   line: number;
@@ -66,6 +66,7 @@ export function parseMaterialSheet(sheet: unknown[][], current: InvItem[]): Bulk
   });
   if (col.qty === undefined) errors.push("No encontré la columna «Cantidad»: los productos nuevos empiezan en 0.");
 
+  current = withMatCodes(current);
   const byCode = new Map(current.filter((s) => s.code).map((s) => [s.code!.toUpperCase(), s]));
   const byName = new Map(current.map((s) => [norm(s.n), s]));
   const seen = new Map<string, number>();
@@ -100,7 +101,7 @@ export function parseMaterialSheet(sheet: unknown[][], current: InvItem[]): Bulk
 /** Aplica la carga: nuevos con código MAT-###; existentes con la cantidad sumada (entrada) o reemplazada (conteo de stock). */
 export function applyMaterials(current: InvItem[], rows: BulkMatRow[], mode: "sumar" | "reemplazar", newId: () => string): { inv: InvItem[]; created: number; updated: number } {
   let created = 0, updated = 0;
-  const inv = current.map((i) => ({ ...i }));
+  const inv = withMatCodes(current).map((i) => ({ ...i }));
   for (const r of rows) {
     if (r.action === "actualizar") {
       const it = inv.find((x) => x.id === r.targetId);
@@ -124,3 +125,11 @@ export const MAT_TEMPLATE: { head: string[]; rows: (string | number)[][] } = {
   head: ["Código (opcional)", "Producto", "Unidad", "Cantidad", "Stock mínimo (opcional)", "Vencimiento (opcional)"],
   rows: [["", "Resina A2", "g", 30, 10, ""], ["", "Anestesia lidocaína", "ml", 50, 20, "2027-06-30"]],
 };
+
+/** Asigna código MAT-### a los productos que aún no lo tienen (en el orden del inventario). */
+export function withMatCodes(inv: InvItem[]): InvItem[] {
+  if (inv.every((i) => i.code)) return inv;
+  const out: InvItem[] = [];
+  for (const i of inv) out.push(i.code ? i : { ...i, code: nextMatCode([...inv, ...out]) });
+  return out;
+}

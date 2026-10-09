@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { isRemote } from "./backend/config";
+import { withMatCodes } from "./bulk-materials";
 import { addPayment } from "./payments";
 import { defineStore } from "./store";
 import { toast } from "./toast";
@@ -102,7 +103,10 @@ export const pendingCharges = (m: ModData) => m.fin.filter((f) => f.st === "pend
 
 export function useMod() {
   const [m] = modStore.useStore();
-  return useMemo(() => ({ data: m, low: stockLow(m), pending: pendingCharges(m) }), [m]);
+  return useMemo(() => {
+    const data = m.inv.every((i) => i.code) ? m : { ...m, inv: withMatCodes(m.inv) };
+    return { data, low: stockLow(data), pending: pendingCharges(data) };
+  }, [m]);
 }
 
 /** Administrador activo (perfil que se muestra en el menú). */
@@ -111,7 +115,7 @@ export const initialsOf = (name: string) => name.split(" ").slice(0, 2).map((w) 
 
 /** Guarda cambios del módulo y avisa; si se pasa `undo` (estado previo) ofrece deshacer. */
 export function saveMod(next: ModData, msg?: string, undo?: ModData) {
-  modStore.set(next);
+  modStore.set(next.inv.every((i) => i.code) ? next : { ...next, inv: withMatCodes(next.inv) });
   if (msg) toast(msg, undo ? () => modStore.set(undo) : undefined);
 }
 

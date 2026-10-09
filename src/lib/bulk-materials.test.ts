@@ -38,3 +38,14 @@ describe("carga masiva de materiales", () => {
     expect(applyMaterials(inv, rows, "reemplazar", () => "z").inv.find((i) => i.id === "a")!.qty).toBe(20);
   });
 });
+
+describe("códigos del inventario existente", () => {
+  it("los productos sin código lo reciben en orden y la carga masiva respeta ese orden", () => {
+    const cur: InvItem[] = [{ id: "a", n: "A", u: "g", qty: 1, min: 1, venc: "" }, { id: "b", n: "B", u: "g", qty: 1, min: 1, venc: "" }];
+    const rows = parseMaterialSheet([["Producto", "Cantidad"], ["B", 5], ["C", 2]], cur).rows;
+    const out = applyMaterials(cur, rows, "sumar", () => "c").inv;
+    expect(out.find((i) => i.id === "a")!.code).toBe("MAT-001");
+    expect(out.find((i) => i.id === "b")!.code).toBe("MAT-002");
+    expect(out.find((i) => i.id === "c")!.code).toBe("MAT-003");
+  });
+});
