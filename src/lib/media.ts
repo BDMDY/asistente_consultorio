@@ -11,7 +11,7 @@ export interface DoctorProfile { id: number; title?: string; spec: string; photo
 export interface Facility { id: number; cap: string; photo: string }
 export interface BeforeAfter { id: number; label: string; before: string; after: string }
 /** Catálogo único: lo editan el módulo Servicios y Medios de marca; lo usan landing, reserva y agenda. */
-export interface Service { id: number; name: string; /** código para organizar el catálogo (ej. TRT-012) */ code?: string; desc: string; price: string; /** sesiones del tratamiento: el precio es el total y cada sesión vale precio ÷ sesiones (1 si falta) */ sessions?: number; /** pago inicial (S/), parte del precio total que se cobra al empezar; las sesiones valen (precio − inicial) ÷ sesiones */ initial?: number; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean }
+export interface Service { id: number; name: string; /** código para organizar el catálogo (ej. TRT-012) */ code?: string; desc: string; price: string; /** sesiones del tratamiento: el precio es el total y cada sesión vale precio ÷ sesiones (1 si falta) */ sessions?: number; /** pago inicial (S/), parte del precio total que se cobra al empezar; las sesiones valen (precio − inicial) ÷ sesiones */ initial?: number; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean; /** false = solo uso interno: no se muestra en el sitio ni en la reserva web (sí en agenda, planes y cobros) */ web?: boolean }
 export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string }
 
 export interface Media {
@@ -92,6 +92,8 @@ export const serviceSlots = (svc: Pick<Service, "dur"> | undefined, index = 0) =
 
 /** Servicios que se ofrecen (activos). */
 export const activeServices = (m: Media) => m.services.filter((x) => x.on !== false);
+/** Servicios que el paciente ve en el sitio y en la reserva web. */
+export const webServices = (m: Media) => m.services.filter((x) => x.on !== false && x.web !== false);
 
 /** Número de sesiones asignado al tratamiento (mínimo 1). */
 export const serviceSessions = (s: Pick<Service, "sessions">) => Math.max(1, Math.round(s.sessions ?? 1) || 1);

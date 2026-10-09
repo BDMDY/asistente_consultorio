@@ -103,7 +103,7 @@ export function parseServiceSheet(sheet: unknown[][], current: Service[]): BulkR
 }
 
 /** Aplica la carga al catálogo: actualiza los existentes (precio y sesiones; duración y descripción si vienen) y crea los nuevos con código. */
-export function applyBulk(current: Service[], rows: BulkRow[]): { services: Service[]; created: number; updated: number } {
+export function applyBulk(current: Service[], rows: BulkRow[], opts: { web?: boolean } = {}): { services: Service[]; created: number; updated: number } {
   let created = 0, updated = 0;
   const list = current.map((s) => ({ ...s }));
   const maxId = list.reduce((n, s) => Math.max(n, s.id), 0);
@@ -121,7 +121,7 @@ export function applyBulk(current: Service[], rows: BulkRow[]): { services: Serv
       if (r.code && !s.code) s.code = r.code;
       updated++;
     } else {
-      list.push({ id: ++nextId, name: r.name, code: r.code || nextServiceCode(list), desc: r.desc ?? "", price: r.price === null ? "" : String(r.price), sessions: r.sessions, ...(r.initial ? { initial: r.initial } : {}), dur: r.dur ?? 30, on: true });
+      list.push({ id: ++nextId, name: r.name, code: r.code || nextServiceCode(list), desc: r.desc ?? "", price: r.price === null ? "" : String(r.price), sessions: r.sessions, ...(r.initial ? { initial: r.initial } : {}), dur: r.dur ?? 30, on: true, ...(opts.web === false ? { web: false } : {}) });
       created++;
     }
   }

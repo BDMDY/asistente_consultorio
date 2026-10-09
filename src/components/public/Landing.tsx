@@ -5,7 +5,7 @@ import BrandMark from "@/components/BrandMark";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useBrand } from "@/lib/brand";
 import { useDoctors } from "@/lib/doctors";
-import { activeServices, useMedia } from "@/lib/media";
+import { webServices, useMedia } from "@/lib/media";
 import MapEmbed from "./MapEmbed";
 import s from "@/app/(public)/landing.module.css";
 
@@ -79,11 +79,11 @@ export default function Landing() {
         <div className={s.heroImg} role={img.hero ? "img" : undefined} aria-label={img.hero ? brand.name : undefined} style={bg(img.hero)} />
       </section>
 
-      {activeServices(media).length > 0 && (
+      {webServices(media).length > 0 && (
         <section id="servicios" className={s.section}>
           <h2 className={s.h2}>{brand.servicesTitle}</h2>
           <div className={s.cards4}>
-            {activeServices(media).map((sv, i) => (
+            {webServices(media).map((sv, i) => (
               <div key={sv.id} className={s.card}>
                 <span className={s.svcIcon}><Icon name={SERVICE_ICONS[i % 5]} size={24} /></span>
                 <b style={{ fontSize: 18 }}>{sv.name}</b>

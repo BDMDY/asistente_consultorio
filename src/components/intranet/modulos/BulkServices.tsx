@@ -4,7 +4,7 @@ import { type BulkResult, BULK_TEMPLATE, applyBulk, parseServiceSheet } from "@/
 import { mediaStore, resolveMedia } from "@/lib/media";
 import { money0 } from "@/lib/mod";
 import { toast } from "@/lib/toast";
-import { Actions, SheetSub } from "./kit";
+import { Actions, ChipField, SheetSub } from "./kit";
 
 /** Carga masiva de tratamientos desde Excel: plantilla, vista previa con avisos e importación. */
 export function BulkServices({ onDone }: { onDone: () => void }) {
@@ -12,6 +12,7 @@ export function BulkServices({ onDone }: { onDone: () => void }) {
   const [file, setFile] = useState("");
   const [res, setRes] = useState<BulkResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [vis, setVis] = useState<"Solo uso interno" | "En el sitio y la reserva web">("Solo uso interno");
 
   async function template() {
     const { default: writeXlsxFile } = await import("write-excel-file/browser");
@@ -47,7 +48,7 @@ export function BulkServices({ onDone }: { onDone: () => void }) {
 
   function run() {
     if (!res || !rows.length) return;
-    const out = applyBulk(resolveMedia(mediaStore.get()).services, rows);
+    const out = applyBulk(resolveMedia(mediaStore.get()).services, rows, { web: vis === "En el sitio y la reserva web" });
     mediaStore.update((m) => ({ ...m, services: out.services }));
     toast(`${out.created} creados · ${out.updated} actualizados`);
     onDone();
@@ -57,6 +58,8 @@ export function BulkServices({ onDone }: { onDone: () => void }) {
     <>
       <SheetSub sub="Sube un Excel con las columnas Tratamiento, Precio y Sesiones (opcionales: Código, Pago inicial, Duración y Descripción). El precio es el total del tratamiento; si tiene pago inicial, cada sesión vale (precio − inicial) ÷ sesiones. Los tratamientos nuevos reciben un código TRT-###; los que ya existen (mismo código o nombre) se actualizan." />
       <input ref={input} type="file" accept=".xlsx" aria-label="Archivo de Excel" hidden onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
+      <ChipField label="Los tratamientos nuevos serán" value={vis} options={["Solo uso interno", "En el sitio y la reserva web"] as const} onChange={setVis} />
+      <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Recomendado: importarlos como uso interno y luego elegir cuáles se muestran con «Seleccionar». Los que ya existen conservan su visibilidad.</div>
       <Actions items={[
         { t: busy ? "Leyendo…" : file ? `Cambiar archivo (${file})` : "Elegir archivo de Excel", kind: res ? "" : "p", icon: "upload", run: () => input.current?.click() },
         { t: "Descargar plantilla", icon: "download", run: template },

@@ -65,3 +65,15 @@ describe("tratamientos con pago inicial", () => {
     expect(applyBulk([], r.rows).services[0]).toMatchObject({ initial: 1400 });
   });
 });
+
+describe("visibilidad en el sitio", () => {
+  it("la carga masiva puede dejar los nuevos como solo uso interno y webServices los oculta", async () => {
+    const { webServices, DEFAULT_MEDIA } = await import("./media");
+    const rows = parseServiceSheet([["Tratamiento", "Precio"], ["Espigo", 150]], []).rows;
+    const out = applyBulk([], rows, { web: false }).services;
+    expect(out[0].web).toBe(false);
+    expect(applyBulk([], rows).services[0].web).toBeUndefined();
+    const m = { ...DEFAULT_MEDIA, services: [...out, { id: 9, name: "Consulta", desc: "", price: "50" }, { id: 10, name: "Apagado", desc: "", price: "1", on: false }] };
+    expect(webServices(m).map((s) => s.name)).toEqual(["Consulta"]);
+  });
+});

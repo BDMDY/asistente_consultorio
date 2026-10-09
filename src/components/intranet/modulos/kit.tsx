@@ -12,13 +12,14 @@ export const E: Tone = ["var(--error-bg)", "var(--error-fg)"];
 export const N: Tone = ["var(--muted)", "var(--ink-700)"];
 
 export interface Row { id: string; t: string; sub: string; badge: string; tone: Tone; progress?: number }
+export interface ExtraBtn { label: string; icon?: IconName; onClick: () => void; pressed?: boolean }
 export interface Kpi { l: string; v: string; c?: string }
 
 /** Plantilla de módulo: encabezado, indicadores, filtros y lista; el detalle abre en panel lateral (escritorio) u hoja inferior (móvil). */
-export function ModuleLayout({ title, sub, kpis, chips, chip, onChip, query, onQuery, showSearch = true, cta, onCta, rows, onOpen, panel, panelTitle, onClose, emptyHint, extra }: {
+export function ModuleLayout({ title, sub, kpis, chips, chip, onChip, query, onQuery, showSearch = true, cta, onCta, rows, onOpen, panel, panelTitle, onClose, emptyHint, extra, select, toolbar }: {
   title: string; sub: string; kpis: Kpi[]; chips: string[]; chip: number; onChip: (i: number) => void;
   query: string; onQuery: (q: string) => void; showSearch?: boolean; cta: string; onCta: () => void;
-  rows: Row[]; onOpen: (id: string) => void; panel: React.ReactNode | null; panelTitle: string; onClose: () => void; emptyHint?: string; /** segunda acción junto al botón principal */ extra?: { label: string; icon?: IconName; onClick: () => void };
+  rows: Row[]; onOpen: (id: string) => void; panel: React.ReactNode | null; panelTitle: string; onClose: () => void; emptyHint?: string; /** segunda acción junto al botón principal */ extra?: ExtraBtn | ExtraBtn[]; /** selección múltiple con casillas (acciones en bloque) */ select?: { on: boolean; selected: Set<string>; toggle: (id: string) => void }; /** barra sobre la lista (por ejemplo, acciones en bloque) */ toolbar?: React.ReactNode;
 }) {
   const wide = useMediaQuery("(min-width: 900px)");
   const panelBody = panel && (
@@ -43,7 +44,9 @@ export function ModuleLayout({ title, sub, kpis, chips, chip, onChip, query, onQ
             <input value={query} onChange={(e) => onQuery(e.target.value)} aria-label="Buscar" placeholder="Buscar" />
           </label>
         )}
-        {extra && <button type="button" className={s.cta} onClick={extra.onClick} style={{ background: "transparent", color: "var(--brand-text)", boxShadow: "inset 0 0 0 1.5px var(--brand-300, var(--line))" }}>{extra.icon && <Icon name={extra.icon} />}{extra.label}</button>}
+        {(Array.isArray(extra) ? extra : extra ? [extra] : []).map((x) => (
+          <button key={x.label} type="button" className={s.cta} aria-pressed={x.pressed} onClick={x.onClick} style={{ background: x.pressed ? "var(--brand-50)" : "transparent", color: "var(--brand-text)", boxShadow: "inset 0 0 0 1.5px var(--brand-300, var(--line))" }}>{x.icon && <Icon name={x.icon} />}{x.label}</button>
+        ))}
         <button type="button" className={s.cta} onClick={onCta}><Icon name="plus" />{cta}</button>
       </header>
       <div className={s.body}>
@@ -58,9 +61,11 @@ export function ModuleLayout({ title, sub, kpis, chips, chip, onChip, query, onQ
               <button key={t} type="button" role="tab" aria-selected={i === chip} className={s.chip} data-on={i === chip} onClick={() => onChip(i)}>{t}</button>
             ))}
           </div>
+          {toolbar}
           <div className={s.list}>
             {rows.map((r) => (
-              <button key={r.id} type="button" className={s.row} onClick={() => onOpen(r.id)}>
+              <button key={r.id} type="button" className={s.row} aria-pressed={select?.on ? select.selected.has(r.id) : undefined} onClick={() => (select?.on ? select.toggle(r.id) : onOpen(r.id))} style={select?.on && select.selected.has(r.id) ? { boxShadow: "inset 0 0 0 2px var(--brand-500, var(--brand-600))" } : undefined}>
+                {select?.on && <input type="checkbox" readOnly tabIndex={-1} aria-label={`Seleccionar ${r.t}`} checked={select.selected.has(r.id)} style={{ width: 20, height: 20, flexShrink: 0, pointerEvents: "none" }} />}
                 <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                   <b style={{ fontSize: 15 }}>{r.t}</b>
                   <span style={{ fontSize: 13, color: "var(--ink-500)" }}>{r.sub}</span>

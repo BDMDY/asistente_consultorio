@@ -2,7 +2,7 @@
 import Icon from "@/components/ui/Icon";
 import { useBrand } from "@/lib/brand";
 import { useDoctors } from "@/lib/doctors";
-import { activeServices, useMedia } from "@/lib/media";
+import { webServices, useMedia } from "@/lib/media";
 
 const bgi = (u?: string) => (u ? { backgroundImage: `url("${u}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined);
 
@@ -33,11 +33,11 @@ export default function MediaPreview() {
           </div>
           <div style={{ height: 240, borderRadius: 16, overflow: "hidden", background: "repeating-linear-gradient(135deg,var(--brand-100) 0 12px,var(--brand-50) 12px 24px)", ...bgi(img.hero) }} />
         </div>
-        {activeServices(m).length > 0 && (
+        {webServices(m).length > 0 && (
           <div style={{ padding: "28px 32px 8px", display: "flex", flexDirection: "column", gap: 12, color: "var(--ink-900)" }}>
             <b style={{ fontSize: 20 }}>{b.servicesTitle}</b>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 12 }}>
-              {activeServices(m).map((s) => <div key={s.id} style={{ background: "#fff", borderRadius: 14, padding: 12, boxShadow: "var(--shadow-md)", fontSize: 13 }}><b>{s.name || "Servicio"}</b><div style={{ color: "var(--ink-500)", fontSize: 12 }}>{s.desc}</div></div>)}
+              {webServices(m).map((s) => <div key={s.id} style={{ background: "#fff", borderRadius: 14, padding: 12, boxShadow: "var(--shadow-md)", fontSize: 13 }}><b>{s.name || "Servicio"}</b><div style={{ color: "var(--ink-500)", fontSize: 12 }}>{s.desc}</div></div>)}
             </div>
           </div>
         )}

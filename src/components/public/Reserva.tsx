@@ -12,7 +12,7 @@ import { useBrand } from "@/lib/brand";
 import { addDays, dayOfMonth, labelLong, limaMinutesNow, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
 import { useDoctors } from "@/lib/doctors";
-import { activeServices, initials, serviceSlots, useMedia } from "@/lib/media";
+import { webServices, initials, serviceSlots, useMedia } from "@/lib/media";
 import { defineStore } from "@/lib/store";
 
 const ICONS: IconName[] = ["smile", "sparkles", "sun", "shield-check", "stethoscope"];
@@ -42,7 +42,7 @@ export default function Reserva() {
   const media = useMedia();
   const appts = useBusy();
   const docs = useDoctors();
-  const services = activeServices(media);
+  const services = webServices(media);
   const doctorIds = docs.map((d) => d.id);
 
   const [d] = draftStore.useStore();
