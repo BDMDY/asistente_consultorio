@@ -10,7 +10,8 @@ import { inProgress } from "@/lib/attention";
 import { type PlanItem, addItems, anamnesisStore, emptyAnam, itemBalance, payItem, planItems, plansStore, sessionPrice } from "@/lib/clinical";
 import { useMediaQuery } from "@/lib/media-query";
 import { activeServices, initials, parsePrice, serviceSessions, useMedia } from "@/lib/media";
-import { uid } from "@/lib/mod";
+import { matUseOf } from "@/lib/materials";
+import { modStore, uid } from "@/lib/mod";
 import { type Patient, patientOf, patientsStore } from "@/lib/patients";
 import { PAY_METHODS, type PayMethod, addPayments, money } from "@/lib/payments";
 import { type Appt, apptWhenShort } from "@/lib/agenda";
@@ -43,7 +44,7 @@ export default function Pacientes() {
   });
   const [view, setView] = useState<"list" | "detail">(params.get("id") ? "detail" : "list");
   const [tab, setTab] = useState<TabKey>("hist");
-  const [matsFor, setMatsFor] = useState<Appt | null>(null);
+  const [matsFor, setMatsFor] = useState<{ a: Appt; finish: boolean } | null>(null);
   const [modal, setModal] = useState<Modal>(params.get("nuevo") ? "new" : null);
   /** tratamientos sugeridos al crear el seguimiento clínico desde un plan de pago */
   const [seed, setSeed] = useState<PlanSeed[] | undefined>();
@@ -56,6 +57,9 @@ export default function Pacientes() {
   const cur = patients.find((p) => p.id === selId) ?? null;
   const showList = wide || view === "list";
   const showDetail = wide || view === "detail";
+  const [mod] = modStore.useStore();
+  // Cita a la que se le puede liquidar materiales desde la ficha: la que está en curso o la última atendida sin liquidar.
+  const matTarget = cur ? appts.filter((a) => patientOf([cur], a) && a.t0 && !matUseOf(mod.mats, a.id)).sort((x, y) => y.date.localeCompare(x.date) || y.slot - x.slot)[0] : undefined;
   const running = cur ? appts.find((a) => inProgress(a) && patientOf([cur], a)) : undefined;
 
   return (
@@ -106,10 +110,11 @@ export default function Pacientes() {
                     <div style={{ fontSize: 24, fontWeight: 800 }}>{cur.name}</div>
                     <div className="tnum" style={{ color: "var(--ink-500)", fontSize: 14 }}>DNI {cur.dni || "—"} · {cur.phone || "sin celular"}{cur.email ? ` · ${cur.email}` : ""}</div>
                   </div>
+                  {matTarget && !running && <button type="button" onClick={() => setMatsFor({ a: matTarget, finish: false })} style={{ cursor: "pointer", padding: "12px 16px", borderRadius: 12, border: 0, boxShadow: "inset 0 0 0 1.5px var(--brand-300, var(--line))", background: "transparent", color: "var(--brand-text)", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", fontFamily: "inherit" }}>Liquidar materiales</button>}
                   <Link href={`/intranet/agenda?nueva=${encodeURIComponent(cur.name)}`} style={{ padding: "12px 16px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap" }}>Nueva cita</Link>
                 </div>
                 {running && (
-                  <AtencionBanner a={running} onAddTreatment={() => { setSeed(undefined); setModal("plan"); }} onBack={() => router.push("/intranet/agenda")} onFinish={() => setMatsFor(running)} />
+                  <AtencionBanner a={running} onAddTreatment={() => { setSeed(undefined); setModal("plan"); }} onBack={() => router.push("/intranet/agenda")} onFinish={() => setMatsFor({ a: running, finish: true })} onMaterials={matUseOf(mod.mats, running.id) ? undefined : () => setMatsFor({ a: running, finish: false })} />
                 )}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   {cur.alerts.map((a) => (
@@ -137,7 +142,7 @@ export default function Pacientes() {
         )}
       </div>
 
-      {matsFor && <MaterialsDialog a={matsFor} finish sheet={!wide} onClose={() => setMatsFor(null)} />}
+      {matsFor && <MaterialsDialog a={matsFor.a} finish={matsFor.finish} sheet={!wide} onClose={() => setMatsFor(null)} />}
       {modal === "new" && <NewPatientDialog sheet={!wide} onClose={() => setModal(null)} toastText="Paciente creado · completa la historia inicial" onCreated={(np) => { setSelId(np.id); setView("detail"); setTab("anam"); }} />}
       {modal === "plan" && cur && <PlanDialog p={cur} seed={seed} sheet={!wide} onClose={() => setModal(null)} onCreated={() => setTab("plan")} />}
       {modal === "pay" && cur && <PayDialog key={payFor ?? "libre"} p={cur} concept="" itemId={payFor} sheet={!wide} onClose={() => setModal(null)} onSaved={() => setTab(payFor ? "plan" : "pagos")} />}

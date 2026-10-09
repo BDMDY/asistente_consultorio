@@ -6,7 +6,7 @@ import { limaMinutesNow } from "@/lib/dates";
 import { useNowMin } from "@/lib/hooks";
 
 /** Franja de la ficha del paciente mientras su atención está en curso: tiempo transcurrido y fin de la atención. */
-export default function AtencionBanner({ a, onFinish, onBack, onAddTreatment }: { a: Appt; onFinish: () => void; onBack: () => void; onAddTreatment: () => void }) {
+export default function AtencionBanner({ a, onFinish, onBack, onAddTreatment, onMaterials }: { a: Appt; onFinish: () => void; onBack: () => void; onAddTreatment: () => void; onMaterials?: () => void }) {
   const now = useNowMin();
   const t0 = a.t0 ? limaMinutesNow(new Date(a.t0)) : null;
   const elapsed = t0 !== null && now >= 0 ? Math.max(0, now - t0) : null;
@@ -20,6 +20,7 @@ export default function AtencionBanner({ a, onFinish, onBack, onAddTreatment }: 
         <div>{a.t0 ? `Desde las ${limaHM(a.t0)}` : "Paciente en sala"} · programada {hm(a.slot)}–{hm(a.slot + a.dur)}{elapsed !== null ? ` · ${elapsed} de ${planned} min${over ? " (excedida)" : ""}` : ""}</div>
       </div>
       <button type="button" onClick={onAddTreatment} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "9px 14px", minHeight: 40, fontWeight: 700, fontSize: 13, background: "var(--surface)", color: "var(--ink-900)", fontFamily: "inherit" }}>+ Agregar tratamiento</button>
+      {onMaterials && <button type="button" onClick={onMaterials} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "9px 14px", minHeight: 40, fontWeight: 700, fontSize: 13, background: "var(--surface)", color: "var(--ink-900)", fontFamily: "inherit" }}>Liquidar materiales</button>}
       <button type="button" onClick={onBack} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "9px 14px", minHeight: 40, fontWeight: 700, fontSize: 13, background: "var(--surface)", color: "var(--ink-900)", fontFamily: "inherit" }}>Volver a la agenda</button>
       <button type="button" onClick={onFinish} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "9px 14px", minHeight: 40, fontWeight: 700, fontSize: 13, background: "var(--grad-btn)", color: "#fff", fontFamily: "inherit" }}>Finalizar atención</button>
     </div>
