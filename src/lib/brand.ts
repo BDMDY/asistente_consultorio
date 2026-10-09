@@ -83,3 +83,17 @@ export const AZUL_DEMO = { name: "Dental Norte", kicker: "ODONTOLOGÍA INTEGRAL 
 
 /** Horario de atención vigente (el configurado o, si no hay, lunes a sábado 09:00–17:00). */
 export const getSchedule = (): Schedule => scheduleOf(brandStore.get().schedule);
+
+/**
+ * Enlace a la red social de la clínica a partir de lo que se haya escrito: @usuario, /pagina, usuario,
+ * instagram.com/usuario o la dirección completa. Devuelve null si está vacío o no es un enlace http(s) válido.
+ */
+export function socialUrl(kind: "instagram" | "facebook", value: string | undefined): string | null {
+  const v = (value ?? "").trim();
+  if (!v) return null;
+  const host = kind === "instagram" ? "instagram.com" : "facebook.com";
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return /^https?:\/\//i.test(v) ? v : null;
+  if (/^(www\.)?(instagram|facebook|fb)\.com\//i.test(v) || /^(m\.)?facebook\.com\//i.test(v)) return "https://" + v.replace(/^\/+/, "");
+  const user = v.replace(/^[@/]+/, "").replace(/\s+/g, "");
+  return user ? `https://${host}/${user}` : null;
+}

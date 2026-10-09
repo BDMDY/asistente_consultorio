@@ -4,7 +4,7 @@ import { useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import HeroCarousel from "./HeroCarousel";
 import Icon, { type IconName } from "@/components/ui/Icon";
-import { useBrand } from "@/lib/brand";
+import { socialUrl, useBrand } from "@/lib/brand";
 import { useDoctors } from "@/lib/doctors";
 import { heroSlides, webServices, useMedia } from "@/lib/media";
 import MapEmbed from "./MapEmbed";
@@ -218,8 +218,11 @@ export default function Landing() {
         </div>
         <div className={s.footerR}>
           <span style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-            <span>Instagram {brand.instagram}</span>
-            <span>Facebook {brand.facebook}</span>
+            {(["instagram", "facebook"] as const).map((k) => {
+              const name = k === "instagram" ? "Instagram" : "Facebook";
+              const url = socialUrl(k, brand[k]);
+              return url ? <a key={k} href={url} target="_blank" rel="noopener noreferrer" aria-label={`${name} de ${brand.name} (se abre en una pestaña nueva)`} style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>{name} {brand[k]}</a> : <span key={k}>{name} {brand[k]}</span>;
+            })}
           </span>
           <span style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
             <Link href="/clientes">Clientes</Link>

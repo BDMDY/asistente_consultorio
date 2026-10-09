@@ -101,3 +101,16 @@ describe("subida de video", () => {
     expect(checkVideoFile({ name: "hero.mp4", type: "video/mp4", size: 12 * 1048576 })).toMatch(/12\.0 MB/);
   });
 });
+
+describe("enlaces de redes sociales", () => {
+  it("arma el enlace desde @usuario, /pagina, dominio o URL y rechaza lo que no es http(s)", async () => {
+    const { socialUrl } = await import("./brand");
+    expect(socialUrl("instagram", "@clinicasonrie")).toBe("https://instagram.com/clinicasonrie");
+    expect(socialUrl("facebook", "/clinicasonrie")).toBe("https://facebook.com/clinicasonrie");
+    expect(socialUrl("facebook", "clinica.sonrie")).toBe("https://facebook.com/clinica.sonrie");
+    expect(socialUrl("instagram", "instagram.com/dental")).toBe("https://instagram.com/dental");
+    expect(socialUrl("facebook", "https://www.facebook.com/dental.mavila")).toBe("https://www.facebook.com/dental.mavila");
+    expect(socialUrl("instagram", "  ")).toBeNull();
+    expect(socialUrl("instagram", "javascript:alert(1)")).toBeNull();
+  });
+});
