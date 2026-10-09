@@ -19,7 +19,7 @@ import { Anamnesis } from "./Anamnesis";
 import AtencionBanner from "./AtencionBanner";
 import NewPatientDialog from "./NewPatientDialog";
 import { Odontograma } from "./Odontograma";
-import { TabArchivos, TabDatos, TabHistoria, TabPagos, TabPlan } from "./tabs";
+import { type PlanSeed, TabArchivos, TabDatos, TabHistoria, TabPagos, TabPlan } from "./tabs";
 import s from "./pac.module.css";
 
 type TabKey = "hist" | "anam" | "odo" | "datos" | "plan" | "files" | "pagos";
@@ -42,6 +42,8 @@ export default function Pacientes() {
   const [view, setView] = useState<"list" | "detail">(params.get("id") ? "detail" : "list");
   const [tab, setTab] = useState<TabKey>("hist");
   const [modal, setModal] = useState<Modal>(params.get("nuevo") ? "new" : null);
+  /** tratamientos sugeridos al crear el seguimiento clínico desde un plan de pago */
+  const [seed, setSeed] = useState<PlanSeed[] | undefined>();
   /** se llegó desde "Iniciar atención" de la agenda: la nota clínica queda lista para escribir */
   const fromAgenda = !!params.get("atencion");
 
@@ -119,10 +121,10 @@ export default function Pacientes() {
                 </div>
 
                 {tab === "hist" && <TabHistoria p={cur} autoFocus={fromAgenda} />}
-                {tab === "anam" && <Anamnesis p={cur} onGoPlan={() => setModal("plan")} />}
+                {tab === "anam" && <Anamnesis p={cur} onGoPlan={() => { setSeed(undefined); setModal("plan"); }} />}
                 {tab === "odo" && <Odontograma p={cur} onSaved={() => setTab("hist")} />}
                 {tab === "datos" && <TabDatos p={cur} />}
-                {tab === "plan" && <TabPlan p={cur} plan={plans[cur.id]} onCreate={() => setModal("plan")} onPay={() => setModal("pay")} />}
+                {tab === "plan" && <TabPlan p={cur} plan={plans[cur.id]} onCreate={(sd) => { setSeed(sd); setModal("plan"); }} onPay={() => setModal("pay")} />}
                 {tab === "files" && <TabArchivos p={cur} />}
                 {tab === "pagos" && <TabPagos p={cur} onPay={() => setModal("pay")} />}
               </>
@@ -132,7 +134,7 @@ export default function Pacientes() {
       </div>
 
       {modal === "new" && <NewPatientDialog sheet={!wide} onClose={() => setModal(null)} toastText="Paciente creado · completa la historia inicial" onCreated={(np) => { setSelId(np.id); setView("detail"); setTab("anam"); }} />}
-      {modal === "plan" && cur && <PlanDialog p={cur} sheet={!wide} onClose={() => setModal(null)} onCreated={() => setTab("plan")} />}
+      {modal === "plan" && cur && <PlanDialog p={cur} seed={seed} sheet={!wide} onClose={() => setModal(null)} onCreated={() => setTab("plan")} />}
       {modal === "pay" && cur && <PayDialog p={cur} concept={plans[cur.id]?.name ?? ""} sheet={!wide} onClose={() => setModal(null)} onSaved={() => setTab("pagos")} />}
     </div>
   );
@@ -155,10 +157,10 @@ const border = (ok: boolean, tried: boolean) => (tried && !ok ? "2px solid var(-
 interface PlanRow { key: number; name: string; total: string; price: string }
 
 /** Crea el plan del paciente o le agrega tratamientos: cada uno con sus controles previstos y su precio total. */
-function PlanDialog({ p, sheet, onClose, onCreated }: { p: Patient; sheet: boolean; onClose: () => void; onCreated: () => void }) {
+function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?: PlanSeed[]; sheet: boolean; onClose: () => void; onCreated: () => void }) {
   const media = useMedia();
   const existing = plansStore.get()[p.id];
-  const [rows, setRows] = useState<PlanRow[]>([{ key: 1, name: "", total: "12", price: "" }]);
+  const [rows, setRows] = useState<PlanRow[]>(() => (seed?.length ? seed.map((x, k) => ({ key: k + 1, name: x.name, total: String(x.total), price: String(x.price) })) : [{ key: 1, name: "", total: "12", price: "" }]));
   const [tried, setTried] = useState(false);
   const valid = (r: PlanRow) => r.name.trim().length > 2 && parseInt(r.total, 10) > 0 && parseFloat(r.price) > 0;
   const patch = (key: number, x: Partial<PlanRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...x } : r)));

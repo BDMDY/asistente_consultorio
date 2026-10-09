@@ -3,7 +3,7 @@ import Link from "next/link";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useState } from "react";
 import { consumeCode } from "@/lib/discounts";
-import { type Plan, modStore, money0, saveMod, uid, useMod } from "@/lib/mod";
+import { type Plan, modStore, money0, payInstallment, saveMod, uid, useMod } from "@/lib/mod";
 import { parsePrice, useMedia, activeServices } from "@/lib/media";
 import { patientsStore } from "@/lib/patients";
 import { toast } from "@/lib/toast";
@@ -101,8 +101,7 @@ function PlanDetail({ rec, onDone }: { rec: Plan; onDone: () => void }) {
       <Actions items={[
         { t: `Registrar pago de cuota ${rec.paid + 1}`, kind: "p", icon: "banknote", off: done, run: () => {
           if (done) return toast("No disponible en este estado");
-          const prev = modStore.get();
-          saveMod({ ...prev, planes: prev.planes.map((x) => (x.id === rec.id ? { ...x, paid: x.paid + 1, cuota } : x)), fin: [{ id: uid(), c: `${rec.pac} · Cuota ${rec.paid + 1}`, m: "Efectivo", a: cuota, st: "pagado" }, ...prev.fin] }, "Pago registrado · también en Finanzas", prev);
+          payInstallment(rec.id, cuota);
           onDone();
         } },
         { t: "Guardar nueva cuota", icon: "save", run: () => patchPlan({ cuota }, "Cuota actualizada") },

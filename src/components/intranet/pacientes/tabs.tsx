@@ -3,6 +3,7 @@ import Icon, { type IconName } from "@/components/ui/Icon";
 import { STATUS_LABEL, hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
 import { useDoctors } from "@/lib/doctors";
+import { modStore, payInstallment } from "@/lib/mod";
 import { type ClinicalNote, type PatientFile, type PlanItem, type TreatmentPlan, addNote, advance, filesStore, notesStore, planItems, plansStore, sessionPrice } from "@/lib/clinical";
 import { newId } from "@/lib/ids";
 import { isISODate, labelDate, labelShort, todayISO } from "@/lib/dates";
@@ -95,20 +96,16 @@ export function TabDatos({ p }: { p: Patient }) {
 }
 
 // ───────────── Plan de tratamiento ─────────────
-export function TabPlan({ p, plan, onCreate, onPay }: { p: Patient; plan: TreatmentPlan | undefined; onCreate: () => void; onPay: () => void }) {
+export interface PlanSeed { name: string; total: number; price: number }
+
+/** Plan de tratamiento del paciente: planes de pago (cuotas, de Planes de tratamiento) y seguimiento clínico por tratamiento. */
+export function TabPlan({ p, plan, onCreate, onPay }: { p: Patient; plan: TreatmentPlan | undefined; onCreate: (seed?: PlanSeed[]) => void; onPay: () => void }) {
   const [payments] = paymentsStore.useStore();
-  if (!plan) {
-    return (
-      <div style={{ padding: 24, borderRadius: 16, border: "1.5px dashed var(--brand-200)", textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-        <b>Sin plan de tratamiento</b>
-        <span style={{ fontSize: 14, color: "var(--ink-500)" }}>Crea un plan (uno o varios tratamientos) para seguir el avance y los pagos.</span>
-        <button type="button" onClick={onCreate} style={primaryBtn}>Crear plan</button>
-      </div>
-    );
-  }
+  const [mod] = modStore.useStore();
+  const mine = mod.planes.filter((x) => x.pac.toLowerCase() === p.name.toLowerCase());
   const items = planItems(plan);
-  const paid = plan.paidBase + payments.filter((x) => samePatientName(x.patient, p.name)).reduce((t, x) => t + x.amount, 0);
-  const pct = Math.min(100, Math.round((plan.done / Math.max(1, plan.total)) * 100));
+  const paid = (plan?.paidBase ?? 0) + payments.filter((x) => samePatientName(x.patient, p.name)).reduce((t, x) => t + x.amount, 0);
+  const pct = plan ? Math.min(100, Math.round((plan.done / Math.max(1, plan.total)) * 100)) : 0;
   function addControl(it: PlanItem) {
     if (it.done >= it.total) return toast(`${it.name} ya está completo`);
     plansStore.update((all) => ({ ...all, [p.id]: advance(all[p.id], [it.id]) }));
@@ -117,35 +114,71 @@ export function TabPlan({ p, plan, onCreate, onPay }: { p: Patient; plan: Treatm
   const bar = (v: number) => (
     <div role="progressbar" aria-valuenow={v} aria-valuemin={0} aria-valuemax={100} style={{ height: 10, borderRadius: 5, background: "var(--brand-100)" }}><div style={{ width: `${v}%`, height: "100%", borderRadius: 5, background: "var(--grad-btn)" }} /></div>
   );
+  const card: React.CSSProperties = { borderRadius: 16, boxShadow: "inset 0 0 0 1px var(--line)", padding: 20, display: "flex", flexDirection: "column", gap: 12 };
+
   return (
-    <div style={{ borderRadius: 16, boxShadow: "inset 0 0 0 1px var(--line)", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-      <b style={{ fontSize: 18 }}>{items.length > 1 ? `Plan de tratamiento · ${items.length} tratamientos` : plan.name}</b>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ink-500)" }}><span>Avance total</span><b className="tnum" style={{ color: "var(--ink-900)" }}>{plan.done} de {plan.total} controles · {pct}%</b></div>
-      {bar(pct)}
-      <div className="tnum" style={{ fontSize: 14, color: "var(--ink-500)" }}>Pagado {money(paid)} de {money(plan.price)}</div>
-      {items.length > 1 || plan.items ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {items.map((it) => {
-            const v = Math.min(100, Math.round((it.done / Math.max(1, it.total)) * 100));
-            return (
-              <div key={it.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: 12, background: "var(--brand-50)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <b style={{ fontSize: 14 }}>{it.name}</b>
-                  <span className="tnum" style={{ fontSize: 13, color: "var(--ink-500)" }}>{it.done} de {it.total} controles · {money(it.price)} ({money(sessionPrice(it))} por sesión)</span>
-                </div>
-                {bar(v)}
-                <button type="button" onClick={() => addControl(it)} disabled={it.done >= it.total} style={{ ...outlineBtn, alignSelf: "flex-start", minHeight: 36, padding: "0 12px", fontSize: 13, opacity: it.done >= it.total ? 0.5 : 1 }}>{it.done >= it.total ? "Completo" : `Registrar control de ${it.name}`}</button>
-              </div>
-            );
-          })}
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {mine.map((m) => {
+        const v = Math.min(100, Math.round((m.paid / Math.max(1, m.n)) * 100));
+        const done = m.paid >= m.n;
+        return (
+          <div key={m.id} style={card}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
+              <b style={{ fontSize: 18 }}>{m.trat}</b>
+              <span style={{ padding: "3px 10px", borderRadius: 999, background: "var(--info-bg)", color: "var(--info-fg)", fontSize: 12, fontWeight: 700 }}>Plan de pago</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ink-500)" }}><span>Cuotas pagadas</span><b className="tnum" style={{ color: "var(--ink-900)" }}>{m.paid} de {m.n} · {v}%</b></div>
+            {bar(v)}
+            <div className="tnum" style={{ fontSize: 14, color: "var(--ink-500)" }}>{money(m.cuota)} por cuota · saldo {money((m.n - m.paid) * m.cuota)}{m.disc ? ` · descuento ${m.disc.label}` : ""}</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" disabled={done} onClick={() => payInstallment(m.id)} style={{ ...primaryBtn, opacity: done ? 0.5 : 1 }}>{done ? "Plan pagado" : `Registrar cuota ${m.paid + 1} (${money(m.cuota)})`}</button>
+              {!plan && <button type="button" onClick={() => onCreate((m.svcs ?? [m.trat]).map((name) => ({ name, total: Math.max(1, Math.ceil(m.n / (m.svcs?.length || 1))), price: Math.round(((m.n * m.cuota) / (m.svcs?.length || 1)) * 100) / 100 })))} style={outlineBtn}>Crear seguimiento clínico</button>}
+              <Link href="/intranet/modulos/planes" style={{ ...outlineBtn, display: "flex", alignItems: "center" }}>Ver en Planes de tratamiento</Link>
+            </div>
+          </div>
+        );
+      })}
+
+      {!plan ? (
+        <div style={{ padding: 24, borderRadius: 16, border: "1.5px dashed var(--brand-200)", textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+          <b>{mine.length ? "Sin seguimiento clínico" : "Sin plan de tratamiento"}</b>
+          <span style={{ fontSize: 14, color: "var(--ink-500)" }}>{mine.length ? "Registra el avance de cada tratamiento (controles hechos) para verlo aquí y poder cobrar y avanzar por sesión." : "Crea un plan (uno o varios tratamientos) para seguir el avance y los pagos."}</span>
+          <button type="button" onClick={() => onCreate()} style={primaryBtn}>{mine.length ? "Crear seguimiento" : "Crear plan"}</button>
         </div>
-      ) : null}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {!plan.items && <button type="button" onClick={() => addControl(items[0])} style={primaryBtn}>Registrar control</button>}
-        <button type="button" onClick={onCreate} style={outlineBtn}>+ Agregar tratamiento</button>
-        <button type="button" onClick={onPay} style={outlineBtn}>Registrar pago</button>
-        <Link href={`/intranet/agenda?nueva=${encodeURIComponent(p.name)}&serie=1`} style={{ ...outlineBtn, display: "flex", alignItems: "center" }}>Agendar controles en serie</Link>
-      </div>
+      ) : (
+        <div style={card}>
+          <b style={{ fontSize: 18 }}>{items.length > 1 ? `Seguimiento clínico · ${items.length} tratamientos` : plan.name}</b>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ink-500)" }}><span>Avance total</span><b className="tnum" style={{ color: "var(--ink-900)" }}>{plan.done} de {plan.total} controles · {pct}%</b></div>
+          {bar(pct)}
+          <div className="tnum" style={{ fontSize: 14, color: "var(--ink-500)" }}>Pagado {money(paid)} de {money(plan.price)}</div>
+          {items.length > 1 || plan.items ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {items.map((it) => {
+                const v = Math.min(100, Math.round((it.done / Math.max(1, it.total)) * 100));
+                return (
+                  <div key={it.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: 12, background: "var(--brand-50)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <b style={{ fontSize: 14 }}>{it.name}</b>
+                      <span className="tnum" style={{ fontSize: 13, color: "var(--ink-500)" }}>{it.done} de {it.total} controles · {money(it.price)} ({money(sessionPrice(it))} por sesión)</span>
+                    </div>
+                    {bar(v)}
+                    <button type="button" onClick={() => addControl(it)} disabled={it.done >= it.total} style={{ ...outlineBtn, alignSelf: "flex-start", minHeight: 36, padding: "0 12px", fontSize: 13, opacity: it.done >= it.total ? 0.5 : 1 }}>{it.done >= it.total ? "Completo" : `Registrar control de ${it.name}`}</button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {!plan.items && <button type="button" onClick={() => addControl(items[0])} style={primaryBtn}>Registrar control</button>}
+            <button type="button" onClick={() => onCreate()} style={outlineBtn}>+ Agregar tratamiento</button>
+            <button type="button" onClick={onPay} style={outlineBtn}>Registrar pago</button>
+            <Link href={`/intranet/agenda?nueva=${encodeURIComponent(p.name)}&serie=1`} style={{ ...outlineBtn, display: "flex", alignItems: "center" }}>Agendar controles en serie</Link>
+          </div>
+        </div>
+      )}
+      {!plan && mine.length > 0 && (
+        <Link href={`/intranet/agenda?nueva=${encodeURIComponent(p.name)}&serie=1`} style={{ ...outlineBtn, display: "flex", alignItems: "center", alignSelf: "flex-start" }}>Agendar controles en serie</Link>
+      )}
     </div>
   );
 }

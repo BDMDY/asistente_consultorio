@@ -113,3 +113,17 @@ export function saveMod(next: ModData, msg?: string, undo?: ModData) {
 export const money0 = (n: number) => "S/ " + Number(n || 0).toLocaleString("en-US");
 /** Identificador de registros de módulos; en modo remoto es un UUID (las fichas de personal lo exigen). */
 export const uid = () => (isRemote ? crypto.randomUUID() : "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
+
+/** Registra el pago de la siguiente cuota de un plan de pago: suma la cuota y deja el cobro en Finanzas. */
+export function payInstallment(planId: string, cuota?: number): boolean {
+  const prev = modStore.get();
+  const plan = prev.planes.find((x) => x.id === planId);
+  if (!plan || plan.paid >= plan.n) return false;
+  const monto = cuota && cuota > 0 ? cuota : plan.cuota;
+  saveMod(
+    { ...prev, planes: prev.planes.map((x) => (x.id === planId ? { ...x, paid: x.paid + 1, cuota: monto } : x)), fin: [{ id: uid(), c: `${plan.pac} · Cuota ${plan.paid + 1}`, m: "Efectivo", a: monto, st: "pagado" }, ...prev.fin] },
+    "Pago registrado · también en Finanzas",
+    prev,
+  );
+  return true;
+}
