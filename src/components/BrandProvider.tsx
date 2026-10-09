@@ -18,16 +18,29 @@ export default function BrandProvider() {
   }, [theme]);
 
   // Favicon de la empresa (si subió uno); si no, queda el predeterminado.
+  // El navegador elige entre todos los <link rel="icon">: se quitan los predeterminados de Next y queda solo el de la empresa
+  // (si se vuelve a insertar alguno al navegar, se vuelve a quitar).
   useEffect(() => {
-    if (!img.favicon) return;
-    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"][data-da]');
+    const href = img.favicon;
+    if (!href) {
+      document.querySelector('link[data-da="favicon"]')?.remove();
+      return;
+    }
+    const others = () => document.querySelectorAll('link[rel~="icon"]:not([data-da]), link[rel="apple-touch-icon"]:not([data-da])');
+    let link = document.querySelector<HTMLLinkElement>('link[data-da="favicon"]');
     if (!link) {
       link = document.createElement("link");
       link.rel = "icon";
-      link.dataset.da = "1";
+      link.dataset.da = "favicon";
       document.head.appendChild(link);
     }
-    link.href = img.favicon;
+    link.type = /^data:([^;,]+)/.exec(href)?.[1] ?? "";
+    link.setAttribute("sizes", "any");
+    link.href = href;
+    others().forEach((n) => n.remove());
+    const mo = new MutationObserver(() => others().forEach((n) => n.remove()));
+    mo.observe(document.head, { childList: true });
+    return () => mo.disconnect();
   }, [img.favicon]);
 
   const keepInDark = ["--brand-50", "--brand-100", "--brand-800"];

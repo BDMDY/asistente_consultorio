@@ -12,7 +12,7 @@ const readAsDataURL = (f: Blob) => new Promise<string>((res, rej) => {
 });
 
 /** `logo` conserva transparencia (PNG); las fotos se reducen a 1000 px en JPEG. */
-export async function loadImage(file: File, opts: { logo?: boolean } = {}): Promise<ImageResult> {
+export async function loadImage(file: File, opts: { logo?: boolean; /** lado máximo en px (por ejemplo 128 para el favicon) */ max?: number } = {}): Promise<ImageResult> {
   if (!IMG_TYPES.includes(file.type)) return { ok: false, error: "Formato no permitido. Usa PNG, JPG, WebP o SVG" };
   if (file.size > MAX_BYTES) return { ok: false, error: `El archivo supera 2 MB (${(file.size / 1048576).toFixed(1)} MB)` };
   try {
@@ -24,7 +24,7 @@ export async function loadImage(file: File, opts: { logo?: boolean } = {}): Prom
       i.onerror = () => rej(new Error("imagen"));
       i.src = src;
     });
-    const max = opts.logo ? 800 : 1000;
+    const max = opts.max ?? (opts.logo ? 800 : 1000);
     const k = Math.min(1, max / Math.max(img.width, img.height));
     const c = document.createElement("canvas");
     c.width = Math.round(img.width * k);

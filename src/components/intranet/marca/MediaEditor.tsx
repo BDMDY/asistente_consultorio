@@ -21,12 +21,12 @@ function delItem(key: ListKey, id: number) {
 }
 
 /** Botón-imagen: abre el selector y guarda la foto reducida. */
-function Pick({ src, label, w, h, round, icon, fit = "cover", logoMode, onPick, bg = "var(--brand-50)" }: { src?: string; label: string; w?: number | string; h: number; round?: boolean; icon: IconName; fit?: "cover" | "contain"; logoMode?: boolean; onPick: (url: string) => void; bg?: string }) {
+function Pick({ src, label, w, h, round, icon, fit = "cover", logoMode, max, onPick, bg = "var(--brand-50)" }: { src?: string; label: string; w?: number | string; h: number; round?: boolean; icon: IconName; fit?: "cover" | "contain"; logoMode?: boolean; max?: number; onPick: (url: string) => void; bg?: string }) {
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    const r = await loadImage(f, { logo: logoMode });
+    const r = await loadImage(f, { logo: logoMode, max });
     if (!r.ok) return toast(r.error);
     onPick(r.dataUrl);
     toast("Imagen cargada");
@@ -73,7 +73,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
           {singles.map(([k, label, fit, bg, logo]) => (
             <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
-              <Pick src={m.img[k]} label={label} h={72} icon="upload" fit={fit} bg={bg} logoMode={logo} onPick={(u) => setImg(k, u)} />
+              <Pick src={m.img[k]} label={label} h={72} icon="upload" fit={fit} bg={bg} logoMode={logo} max={k === "favicon" ? 128 : undefined} onPick={(u) => setImg(k, u)} />
               <button type="button" onClick={() => delImg(k)} style={{ cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--error-fg)", visibility: m.img[k] ? "visible" : "hidden", background: "transparent", border: 0, textAlign: "left", padding: 0 }}>Quitar</button>
             </div>
           ))}

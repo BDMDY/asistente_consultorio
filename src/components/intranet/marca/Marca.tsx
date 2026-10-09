@@ -43,7 +43,7 @@ function Drop({ label, k, dark }: { label: string; k: keyof MediaImages; dark?: 
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    const r = await loadImage(f, { logo: true });
+    const r = await loadImage(f, { logo: true, ...(k === "favicon" ? { max: 128 } : {}) });
     if (!r.ok) return toast(r.error);
     mediaStore.update((p) => ({ ...p, img: { ...resolveMedia(p).img, [k]: r.dataUrl } }));
     toast("Imagen cargada");
