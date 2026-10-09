@@ -2,7 +2,7 @@
 import Icon from "@/components/ui/Icon";
 import { useBrand } from "@/lib/brand";
 import { useDoctors } from "@/lib/doctors";
-import { webServices, useMedia } from "@/lib/media";
+import { heroSlides, webServices, useMedia } from "@/lib/media";
 
 const bgi = (u?: string) => (u ? { backgroundImage: `url("${u}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined);
 
@@ -31,7 +31,7 @@ export default function MediaPreview() {
             <div style={{ fontFamily: b.head, fontSize: 38, fontWeight: 800, lineHeight: 1.06, letterSpacing: "-.02em" }}>{b.slogan}</div>
             <div style={{ color: "var(--ink-500)", fontSize: 15 }}>{b.heroSub}</div>
           </div>
-          <div style={{ height: 240, borderRadius: 16, overflow: "hidden", background: "repeating-linear-gradient(135deg,var(--brand-100) 0 12px,var(--brand-50) 12px 24px)", ...bgi(img.hero) }} />
+          <div style={{ height: 240, borderRadius: 16, overflow: "hidden", background: "repeating-linear-gradient(135deg,var(--brand-100) 0 12px,var(--brand-50) 12px 24px)", ...bgi(heroSlides(m).find((x) => x.kind === "image")?.src) }} />
         </div>
         {webServices(m).length > 0 && (
           <div style={{ padding: "28px 32px 8px", display: "flex", flexDirection: "column", gap: 12, color: "var(--ink-900)" }}>

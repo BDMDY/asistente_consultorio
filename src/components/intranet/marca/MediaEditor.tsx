@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useDoctors } from "@/lib/doctors";
-import { DEFAULT_MEDIA, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
+import { DEFAULT_MEDIA, HERO_ANIMS, type HeroSlide, MAX_HERO_SLIDES, isVideoUrl, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
 import { loadImage } from "@/lib/image";
 import { toast } from "@/lib/toast";
 
@@ -77,6 +77,8 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
           ))}
         </div>
       ))}
+
+      {section("Hero · carrusel", m.hero.length, null, <HeroSlides slides={m.hero} />)}
 
       {section("Servicios", m.services.length, addBtn("+ Agregar servicio", () => commit((x) => ({ services: [...x.services, { id: nextId(x.services), name: "", desc: "", price: "", dur: 30, on: true }] }))),
         <>
@@ -172,4 +174,59 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
 export function resetMedia() {
   mediaStore.set({ ...JSON.parse(JSON.stringify(DEFAULT_MEDIA)) });
   toast("Valores restablecidos");
+}
+
+/** Carrusel del hero: fotos, videos en bucle (enlace) y animaciones incluidas; con orden. */
+function HeroSlides({ slides }: { slides: HeroSlide[] }) {
+  const set = (hero: HeroSlide[]) => commit(() => ({ hero }));
+  const full = slides.length >= MAX_HERO_SLIDES;
+  const add = (sl: Omit<HeroSlide, "id">) => set([...slides, { ...sl, id: nextId(slides) }]);
+  const patch = (id: number, p: Partial<HeroSlide>) => set(slides.map((x) => (x.id === id ? { ...x, ...p } : x)));
+  const move = (k: number, d: number) => { const n = [...slides]; const j = k + d; if (j < 0 || j >= n.length) return; [n[k], n[j]] = [n[j], n[k]]; set(n); };
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const r = await loadImage(f, {});
+    if (!r.ok) return toast(r.error);
+    add({ kind: "image", src: r.dataUrl });
+  }
+  const small: React.CSSProperties = { cursor: "pointer", width: 28, height: 28, borderRadius: 8, border: 0, background: "var(--brand-50)", color: "var(--brand-800)", fontWeight: 800, fontFamily: "inherit" };
+  const addStyle = (off: boolean): React.CSSProperties => ({ cursor: off ? "not-allowed" : "pointer", padding: "7px 12px", borderRadius: 10, background: "var(--brand-50)", color: "var(--brand-800)", fontWeight: 700, fontSize: 12, border: 0, fontFamily: "inherit", opacity: off ? 0.5 : 1 });
+  return (
+    <>
+      <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
+        Con una sola diapositiva se muestra fija; con varias pasan solas cada pocos segundos (se pausan al pasar el mouse). Los videos van en bucle y sin sonido: pega el enlace https de un archivo <b>.mp4</b> o <b>.webm</b> liviano (ideal de 5 a 15 s y menos de 8 MB). Sin diapositivas se usa la «Foto hero» de Identidad.
+      </div>
+      {slides.length === 0 && empty("Sin diapositivas: se usa la foto hero o un fondo de color.")}
+      {slides.map((sl, k) => (
+        <div key={sl.id} style={row}>
+          <div style={{ width: 56, height: 40, borderRadius: 8, flexShrink: 0, overflow: "hidden", background: "linear-gradient(135deg,var(--brand-700),var(--brand-300))", backgroundImage: sl.kind === "image" ? `url("${sl.src}")` : undefined, backgroundSize: "cover", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+            {sl.kind === "video" && <Icon name="play" size={16} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+            <b style={{ fontSize: 12 }}>{k + 1}. {sl.kind === "image" ? "Foto" : sl.kind === "video" ? "Video en bucle" : "Animación"}</b>
+            {sl.kind === "video" && <input aria-label={`Enlace del video ${k + 1}`} defaultValue={sl.src ?? ""} onBlur={(e) => { const v = e.target.value.trim(); if (v && !isVideoUrl(v)) toast("El enlace debe ser https y terminar en .mp4, .webm u .ogg"); else patch(sl.id, { src: v }); }} placeholder="https://…/video.mp4" style={{ ...inp, height: 30, padding: "0 8px" }} />}
+            {sl.kind === "anim" && (
+              <select aria-label={`Animación ${k + 1}`} value={sl.anim ?? "ondas"} onChange={(e) => patch(sl.id, { anim: e.target.value as HeroSlide["anim"] })} style={{ ...inp, height: 30 }}>
+                {HERO_ANIMS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+              </select>
+            )}
+          </div>
+          <button type="button" aria-label="Subir" disabled={k === 0} onClick={() => move(k, -1)} style={{ ...small, opacity: k === 0 ? 0.4 : 1 }}>↑</button>
+          <button type="button" aria-label="Bajar" disabled={k === slides.length - 1} onClick={() => move(k, 1)} style={{ ...small, opacity: k === slides.length - 1 ? 0.4 : 1 }}>↓</button>
+          {trash(() => set(slides.filter((x) => x.id !== sl.id)), "Quitar diapositiva")}
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <label style={addStyle(full)}>
+          <input type="file" accept="image/png,image/jpeg,image/webp" aria-label="Agregar foto al hero" disabled={full} onChange={onFile} style={{ display: "none" }} />
+          + Foto
+        </label>
+        <button type="button" disabled={full} onClick={() => add({ kind: "video", src: "" })} style={addStyle(full)}>+ Video (enlace)</button>
+        <button type="button" disabled={full} onClick={() => add({ kind: "anim", anim: HERO_ANIMS[slides.filter((x) => x.kind === "anim").length % HERO_ANIMS.length][0] })} style={addStyle(full)}>+ Animación</button>
+      </div>
+      {full && <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Máximo {MAX_HERO_SLIDES} diapositivas.</div>}
+    </>
+  );
 }

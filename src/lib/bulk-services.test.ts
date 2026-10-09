@@ -77,3 +77,17 @@ describe("visibilidad en el sitio", () => {
     expect(webServices(m).map((s) => s.name)).toEqual(["Consulta"]);
   });
 });
+
+describe("hero", () => {
+  it("valida enlaces de video y usa la foto hero cuando no hay carrusel", async () => {
+    const { isVideoUrl, heroSlides, DEFAULT_MEDIA } = await import("./media");
+    expect(isVideoUrl("https://cdn.ejemplo.com/hero.mp4")).toBe(true);
+    expect(isVideoUrl("https://x.com/a.webm?v=2")).toBe(true);
+    expect(isVideoUrl("http://x.com/a.mp4")).toBe(false);
+    expect(isVideoUrl("https://youtube.com/watch?v=1")).toBe(false);
+    expect(heroSlides(DEFAULT_MEDIA)).toEqual([]);
+    expect(heroSlides({ ...DEFAULT_MEDIA, img: { hero: "data:x" } })).toEqual([{ id: 0, kind: "image", src: "data:x" }]);
+    const a = { id: 1, kind: "anim" as const, anim: "ondas" as const };
+    expect(heroSlides({ ...DEFAULT_MEDIA, img: { hero: "data:x" }, hero: [a] })).toEqual([a]);
+  });
+});

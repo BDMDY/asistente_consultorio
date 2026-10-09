@@ -14,7 +14,17 @@ export interface BeforeAfter { id: number; label: string; before: string; after:
 export interface Service { id: number; name: string; /** código para organizar el catálogo (ej. TRT-012) */ code?: string; desc: string; price: string; /** sesiones del tratamiento: el precio es el total y cada sesión vale precio ÷ sesiones (1 si falta) */ sessions?: number; /** pago inicial (S/), parte del precio total que se cobra al empezar; las sesiones valen (precio − inicial) ÷ sesiones */ initial?: number; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean; /** false = solo uso interno: no se muestra en el sitio ni en la reserva web (sí en agenda, planes y cobros) */ web?: boolean }
 export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string }
 
+/** Diapositiva del hero: foto, video en bucle (enlace .mp4/.webm) o animación incluida. */
+export interface HeroSlide { id: number; kind: "image" | "video" | "anim"; /** foto (data URL) o enlace del video */ src?: string; anim?: "ondas" | "burbujas" | "destellos" }
+export const HERO_ANIMS: [NonNullable<HeroSlide["anim"]>, string][] = [["ondas", "Ondas suaves"], ["burbujas", "Burbujas"], ["destellos", "Destellos"]];
+export const MAX_HERO_SLIDES = 6;
+
+/** ¿Es un enlace de video que el navegador puede reproducir (https, .mp4/.webm/.ogg)? */
+export const isVideoUrl = (u: string) => /^https:\/\/[^\s]+\.(mp4|webm|ogg)(\?[^\s]*)?$/i.test(u.trim());
+
 export interface Media {
+  /** diapositivas del hero (carrusel); vacío = la foto hero o un fondo de color */
+  hero: HeroSlide[];
   stats: Stat[];
   quotes: Quote[];
   img: MediaImages;
@@ -25,6 +35,7 @@ export interface Media {
 }
 
 export const DEFAULT_MEDIA: Media = {
+  hero: [],
   stats: [
     { id: 1, n: "12+", l: "años de experiencia" },
     { id: 2, n: "3,200", l: "pacientes atendidos" },
@@ -56,6 +67,7 @@ export const mediaStore = defineStore<Partial<Media>>("da-media-v2", () => ({}),
 
 export function resolveMedia(p: Partial<Media>): Media {
   return {
+    hero: p.hero ?? [],
     stats: p.stats ?? DEFAULT_MEDIA.stats,
     quotes: p.quotes ?? DEFAULT_MEDIA.quotes,
     img: p.img ?? {},
@@ -112,3 +124,6 @@ export function parsePrice(price: string): number {
 
 export const initials = (name: string) =>
   name.replace(/^(Dra?\.)\s*/, "").split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
+
+/** Diapositivas que se muestran en el hero: las del carrusel o, si no hay, la foto hero. */
+export const heroSlides = (m: Media): HeroSlide[] => (m.hero.length ? m.hero : m.img.hero ? [{ id: 0, kind: "image", src: m.img.hero }] : []);

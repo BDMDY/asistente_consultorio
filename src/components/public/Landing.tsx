@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import BrandMark from "@/components/BrandMark";
+import HeroCarousel from "./HeroCarousel";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useBrand } from "@/lib/brand";
 import { useDoctors } from "@/lib/doctors";
-import { webServices, useMedia } from "@/lib/media";
+import { heroSlides, webServices, useMedia } from "@/lib/media";
 import MapEmbed from "./MapEmbed";
 import s from "@/app/(public)/landing.module.css";
 
@@ -33,7 +34,7 @@ export default function Landing() {
   const doctors = useDoctors();
   const [menu, setMenu] = useState(false);
   const [faq, setFaq] = useState(0);
-  const { img } = media;
+
 
   return (
     <div className={s.root}>
@@ -76,7 +77,7 @@ export default function Landing() {
             <b style={{ color: "var(--ink-900)" }}>{media.stats[2]?.n}</b> · {media.stats[1]?.n} pacientes · {brand.hours}
           </div>
         </div>
-        <div className={s.heroImg} role={img.hero ? "img" : undefined} aria-label={img.hero ? brand.name : undefined} style={bg(img.hero)} />
+        <HeroCarousel slides={heroSlides(media)} label={brand.name} />
       </section>
 
       {webServices(media).length > 0 && (
