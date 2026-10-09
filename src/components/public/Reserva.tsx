@@ -22,6 +22,9 @@ const LABELS = ["PASO 1 DE 5", "PASO 2 DE 5 · OPCIONAL", "PASO 3 DE 5", "PASO 4
 type DocChoice = "any" | number | null;
 interface Form { name: string; dni: string; phone: string; email?: string }
 interface Booked { ref: string; doc: number; existing: boolean; name: string }
+/** Tramos de 15 min: 0 = 00:00. */
+const PERIODS: [string, number, number][] = [["Madrugada", 0, 24], ["Mañana", 24, 48], ["Tarde", 48, 72], ["Noche", 72, 96]];
+
 interface Draft { booked?: Booked; step: number; svcId: number | null; doc: DocChoice; date: string | null; slot: number | null; consent: boolean; f: Form }
 const EMPTY: Draft = { step: 0, svcId: null, doc: null, date: null, slot: null, consent: false, f: { name: "", dni: "", phone: "", email: "" } };
 /** Borrador de la reserva: persiste en la sesión del navegador (se pierde al cerrar la pestaña). */
@@ -58,13 +61,14 @@ export default function Reserva() {
   const svc = services.find((s) => s.id === d.svcId) ?? null;
   const dur = svc ? serviceSlots(svc, media.services.indexOf(svc)) : 0;
 
-  const days = today ? Array.from({ length: 6 }, (_, i) => addDays(today, i)) : [];
+  const days = today ? Array.from({ length: 14 }, (_, i) => addDays(today, i)) : [];
   const slots = (() => {
     if (!today || !d.date || !svc || d.doc === null || isClosedDay(d.date)) return [];
     const nowMin = limaMinutesNow();
     const w = dayWindow(d.date, scheduleOf(brand.schedule));
     if (!w) return [];
-    return Array.from({ length: Math.max(0, Math.ceil((w.to - w.from) / 2)) }, (_, i) => w.from + i * 2).filter((sl) => {
+    // Todos los inicios posibles, cada 15 min (antes solo cada 30): un hueco libre entre dos citas también se ofrece.
+    return Array.from({ length: Math.max(0, w.to - w.from) }, (_, i) => w.from + i).filter((sl) => {
       if (d.date === today && DAY_START_MIN + sl * 15 <= nowMin) return false;
       return !isSlotTaken(appts, doctorIds, d.date!, d.doc === "any" ? null : d.doc, sl, dur);
     });
@@ -199,11 +203,20 @@ export default function Reserva() {
               })}
             </div>
             <div style={{ fontSize: 13, color: "var(--ink-500)" }}>Solo horarios libres · hora de Lima</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-              {slots.map((sl) => (
-                <button key={sl} type="button" className="tnum" style={chipStyle(d.slot === sl)} onClick={() => patch({ slot: sl })}>{hm(sl)}</button>
-              ))}
-            </div>
+            {PERIODS.map(([label, from, to]) => {
+              const list = slots.filter((sl) => sl >= from && sl < to);
+              if (!list.length) return null;
+              return (
+                <div key={label} role="group" aria-label={label} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-500)" }}>{label} · {list.length} {list.length === 1 ? "horario" : "horarios"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                    {list.map((sl) => (
+                      <button key={sl} type="button" className="tnum" style={chipStyle(d.slot === sl)} onClick={() => patch({ slot: sl })}>{hm(sl)}</button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
             {d.date === null && <div style={{ fontSize: 13, color: "var(--ink-500)" }}>Elige un día para ver los horarios.</div>}
             {d.date !== null && slots.length === 0 && <div style={{ padding: 14, borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14 }}>Ese día no hay atención o no quedan horarios. Elige otro.</div>}
           </>
