@@ -1,11 +1,8 @@
 "use client";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Icon from "@/components/ui/Icon";
-import type { HeroSlide } from "@/lib/media";
+import { type HeroSlide, heroSlideSecs } from "@/lib/media";
 import s from "./hero.module.css";
-
-const SLIDE_MS = 6500;
-const VIDEO_MAX_MS = 14000;
 
 const QUERY = "(prefers-reduced-motion: reduce)";
 const subscribeCalm = (cb: () => void) => {
@@ -17,14 +14,16 @@ const subscribeCalm = (cb: () => void) => {
 /** Hero con fotos, videos en bucle (mudos) y animaciones incluidas, en carrusel. Se pausa al pasar el mouse, en pestañas ocultas y con «reducir movimiento». */
 export default function HeroCarousel({ slides, label }: { slides: HeroSlide[]; label: string }) {
   const [i, setI] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [hover, setHover] = useState(false);
   const [hidden, setHidden] = useState(false);
   const calm = useSyncExternalStore(subscribeCalm, () => window.matchMedia(QUERY).matches, () => false);
   const many = slides.length > 1;
   const idx = slides.length ? i % slides.length : 0;
   const cur = slides[idx];
-  const running = many && !paused && !hover && !hidden && !calm;
+  // «Reducir movimiento» detiene el carrusel por defecto, pero el botón de reproducir del visitante lo reactiva
+  const [forced, setForced] = useState<boolean | null>(null);
+  const playing = forced ?? !calm;
+  const running = many && playing && !hover && !hidden;
 
   useEffect(() => {
     const on = () => setHidden(document.hidden);
@@ -34,9 +33,9 @@ export default function HeroCarousel({ slides, label }: { slides: HeroSlide[]; l
 
   useEffect(() => {
     if (!running) return;
-    const t = setTimeout(() => setI((n) => n + 1), cur?.kind === "video" ? VIDEO_MAX_MS : SLIDE_MS);
+    const t = setTimeout(() => setI((n) => n + 1), heroSlideSecs(cur) * 1000);
     return () => clearTimeout(t);
-  }, [running, idx, cur?.kind]);
+  }, [running, idx, cur]);
 
   if (!slides.length) return <div className={s.box} />;
   return (
@@ -47,13 +46,13 @@ export default function HeroCarousel({ slides, label }: { slides: HeroSlide[]; l
         if (sl.kind === "anim") return <div key={sl.id} className={`${s.slide} ${s.anim} ${s[sl.anim ?? "ondas"]}`} data-on={on} aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>;
         return (
           <div key={sl.id} className={s.slide} data-on={on} aria-hidden={!on}>
-            {on && <video className={s.video} src={sl.src} autoPlay={!calm} muted loop playsInline preload="metadata" aria-label={label} />}
+            {on && <video className={s.video} src={sl.src} autoPlay={forced ?? !calm} muted loop playsInline preload="metadata" aria-label={label} />}
           </div>
         );
       })}
       {many && (
         <div className={s.ctrl}>
-          <button type="button" className={s.pause} aria-label={paused || calm ? "Reanudar carrusel" : "Pausar carrusel"} onClick={() => setPaused(!paused)}><Icon name={paused || calm ? "play" : "pause"} size={14} /></button>
+          <button type="button" className={s.pause} aria-label={playing ? "Pausar carrusel" : "Reanudar carrusel"} onClick={() => setForced(!playing)}><Icon name={playing ? "pause" : "play"} size={14} /></button>
           {slides.map((sl, k) => (
             <button key={sl.id} type="button" className={s.dotHit} aria-label={`Ir a la diapositiva ${k + 1}`} onClick={() => setI(k)}><span className={s.dot} aria-current={k === idx} /></button>
           ))}

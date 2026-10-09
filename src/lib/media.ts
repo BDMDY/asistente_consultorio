@@ -15,7 +15,15 @@ export interface Service { id: number; name: string; /** código para organizar 
 export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string }
 
 /** Diapositiva del hero: foto, video en bucle (enlace .mp4/.webm) o animación incluida. */
-export interface HeroSlide { id: number; kind: "image" | "video" | "anim"; /** foto (data URL) o enlace del video */ src?: string; anim?: "ondas" | "burbujas" | "destellos" }
+export interface HeroSlide { id: number; kind: "image" | "video" | "anim"; /** foto (data URL) o enlace del video */ src?: string; anim?: "ondas" | "burbujas" | "destellos"; /** segundos que se muestra antes de pasar a la siguiente (por defecto 6,5 s; 14 s en video) */ secs?: number }
+export const HERO_SECS_MIN = 2;
+export const HERO_SECS_MAX = 60;
+/** Segundos que permanece una diapositiva: el configurado o el valor por defecto de su tipo. */
+export const heroSlideSecs = (sl: Pick<HeroSlide, "kind" | "secs"> | undefined) => {
+  const d = sl?.kind === "video" ? 14 : 6.5;
+  const n = Number(sl?.secs);
+  return Number.isFinite(n) && n > 0 ? Math.min(HERO_SECS_MAX, Math.max(HERO_SECS_MIN, n)) : d;
+};
 export const HERO_ANIMS: [NonNullable<HeroSlide["anim"]>, string][] = [["ondas", "Ondas suaves"], ["burbujas", "Burbujas"], ["destellos", "Destellos"]];
 export const MAX_HERO_SLIDES = 6;
 
