@@ -1,4 +1,5 @@
 "use client";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { useBrand } from "@/lib/brand";
 import { useMedia } from "@/lib/media";
@@ -18,30 +19,39 @@ export default function BrandProvider() {
   }, [theme]);
 
   // Favicon de la empresa (si subió uno); si no, queda el predeterminado.
-  // El navegador elige entre todos los <link rel="icon">: se quitan los predeterminados de Next y queda solo el de la empresa
-  // (si se vuelve a insertar alguno al navegar, se vuelve a quitar).
+  // Favicon de la empresa: se cambia el atributo del <link rel="icon"> que ya existe (sin quitar ni insertar nodos que Next
+  // administra; hacerlo rompe la navegación). Al quitarlo se restaura el predeterminado.
+  const pathname = usePathname();
   useEffect(() => {
     const href = img.favicon;
-    if (!href) {
-      document.querySelector('link[data-da="favicon"]')?.remove();
-      return;
-    }
-    const others = () => document.querySelectorAll('link[rel~="icon"]:not([data-da]), link[rel="apple-touch-icon"]:not([data-da])');
-    let link = document.querySelector<HTMLLinkElement>('link[data-da="favicon"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      link.dataset.da = "favicon";
-      document.head.appendChild(link);
-    }
-    link.type = /^data:([^;,]+)/.exec(href)?.[1] ?? "";
-    link.setAttribute("sizes", "any");
-    link.href = href;
-    others().forEach((n) => n.remove());
-    const mo = new MutationObserver(() => others().forEach((n) => n.remove()));
-    mo.observe(document.head, { childList: true });
-    return () => mo.disconnect();
-  }, [img.favicon]);
+    const apply = () => {
+      const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')];
+      for (const l of links) {
+        if (l.dataset.origHref === undefined) { l.dataset.origHref = l.getAttribute("href") ?? ""; l.dataset.origType = l.type; }
+        if (href) {
+          l.type = /^data:([^;,]+)/.exec(href)?.[1] ?? "";
+          l.setAttribute("sizes", "any");
+          if (l.getAttribute("href") !== href) l.href = href;
+        } else if (l.dataset.origHref) {
+          l.type = l.dataset.origType ?? "";
+          l.setAttribute("href", l.dataset.origHref);
+        }
+      }
+      return links.length;
+    };
+    // Next agrega su ícono después de que carga la página: se reintenta unos instantes (solo cambia atributos, nunca quita nodos).
+    const timers = [0, 300, 1000, 2500].map((ms) => setTimeout(apply, ms));
+    // Si no hay ningún ícono (no debería pasar), se crea uno.
+    const last = setTimeout(() => {
+      if (href && !document.querySelector('link[rel~="icon"]')) {
+        const l = document.createElement("link");
+        l.rel = "icon";
+        document.head.appendChild(l);
+        apply();
+      }
+    }, 3000);
+    return () => { timers.forEach(clearTimeout); clearTimeout(last); };
+  }, [img.favicon, pathname]);
 
   const keepInDark = ["--brand-50", "--brand-100", "--brand-800"];
   let light = `--font-sans:${brand.body};--font-display:${brand.head};`;
