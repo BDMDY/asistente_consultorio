@@ -63,9 +63,9 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const money = (n: number) => "S/ " + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** Comprobante de la sesión (HTML imprimible): todos los cobros de la cita, con su código, comprobantes, método y total. */
-export function sessionReceiptHtml(g: SessionGroup, o: { clinic: string; doctor?: string; when: (iso: string) => string; day: (iso: string) => string; /** costo unitario (valor de una sesión) de un cobro */ unit?: (p: Payment) => number }): string {
+export function sessionReceiptHtml(g: SessionGroup, o: { clinic: string; doctor?: string; when: (iso: string) => string; day: (iso: string) => string; /** costo unitario (valor de una sesión) de un cobro */ unit?: (p: Payment) => number; /** código del tratamiento de un cobro */ code?: (p: Payment) => string | undefined }): string {
   const a = g.appt;
-  const rows = g.lines.map((p) => `<tr><td>${esc(o.when(p.at))}</td><td>${esc(p.no)}</td><td>${esc(p.concept)}</td><td style="text-align:right">${money(o.unit?.(p) ?? p.amount)}</td><td>${esc(p.method)}</td><td style="text-align:right">${money(p.amount)}</td></tr>`).join("");
+  const rows = g.lines.map((p) => `<tr><td>${esc(o.when(p.at))}</td><td>${esc(p.no)}</td><td>${o.code?.(p) ? `<span style="color:#777">${esc(o.code(p)!)}</span> · ` : ""}${esc(p.concept)}</td><td style="text-align:right">${money(o.unit?.(p) ?? p.amount)}</td><td>${esc(p.method)}</td><td style="text-align:right">${money(p.amount)}</td></tr>`).join("");
   const voided = g.voided.length ? `<p style="color:#888;font-size:12px">Cobros anulados de esta sesión (no incluidos): ${g.voided.map((p) => `${esc(p.no)} ${money(p.amount)}`).join(", ")}</p>` : "";
   return `<!doctype html><meta charset="utf-8"><title>Comprobante de la cita ${esc(g.code)}</title>
 <body style="font-family:system-ui,sans-serif;padding:28px;max-width:720px;margin:auto;color:#10241B">

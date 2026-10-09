@@ -34,3 +34,16 @@ export function liquidateMaterials(o: { apptId: number; patient: string; service
   modStore.set({ ...prev, inv, mats: [rec, ...(prev.mats ?? [])] });
   return { low: inv.filter((i) => used.some((l) => l.invId === i.id) && i.qty < i.min).map((i) => i.n) };
 }
+
+/** Deshace la liquidación de una cita: devuelve las cantidades al inventario (los productos que ya no existen se omiten) y quita el registro. */
+export function undoLiquidation(apptId: number): boolean {
+  const prev = modStore.get();
+  const rec = matUseOf(prev.mats, apptId);
+  if (!rec) return false;
+  const inv = prev.inv.map((i) => {
+    const l = rec.lines.find((x) => x.invId === i.id);
+    return l ? { ...i, qty: Math.round((i.qty + l.qty) * 100) / 100 } : i;
+  });
+  modStore.set({ ...prev, inv, mats: (prev.mats ?? []).filter((x) => x.apptId !== apptId) });
+  return true;
+}

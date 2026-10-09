@@ -2,7 +2,8 @@ import { type Appt, hm } from "./agenda";
 import { getSchedule } from "./brand";
 import { dayWindow } from "./schedule";
 import { MONTHS_SHORT, WEEKDAYS_SHORT, addDays, dayNumber, dayOfMonth, fromDayNumber, isISODate, todayISO, weekday } from "./dates";
-import type { Doctor } from "./media";
+import type { Doctor, Service } from "./media";
+import type { InvItem, MatUse } from "./mod";
 import { type Patient, samePatientName } from "./patients";
 import { PAY_METHODS, type Payment } from "./payments";
 import { apptCode } from "./receipts";
@@ -56,7 +57,7 @@ export function openDays(r: Range): number {
 }
 
 /** Orden en que se listan los reportes. */
-const ORDER = ["ing", "ingd", "ses", "serv", "sdia", "cli", "ocu", "nue", "can"];
+const ORDER = ["ing", "ingd", "ses", "serv", "mat", "sdia", "cli", "ocu", "nue", "can"];
 const ACTIVE = new Set(["pendiente", "confirmada", "en-sala", "atendida", "reprogramada"]);
 const STATUS = { pendiente: "Pendiente", confirmada: "Confirmada", "en-sala": "En sala", atendida: "Atendida", cancelada: "Cancelada", "no-show": "No-show", reprogramada: "Reprogramada", bloqueo: "Bloqueado" } as const;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -89,7 +90,7 @@ export function bucketLabel(l: string): string {
   return /^\d{4}-\d{2}$/.test(l) ? `${MONTHS_SHORT[Number(l.slice(5, 7)) - 1]} ${l.slice(0, 4)}` : l;
 }
 
-export function buildReports(i: { today: string; period: Period; custom?: Range; appts: Appt[]; payments: Payment[]; patients: Patient[]; doctors: Doctor[] }): { reports: Report[]; summary: Summary; range: Range } {
+export function buildReports(i: { today: string; period: Period; custom?: Range; appts: Appt[]; payments: Payment[]; patients: Patient[]; doctors: Doctor[]; /** catálogo, para mostrar el código de cada tratamiento */ services?: Service[]; /** liquidaciones de materiales de las atenciones */ mats?: MatUse[]; /** inventario actual (stock) */ inv?: InvItem[] }): { reports: Report[]; summary: Summary; range: Range } {
   const range = periodRange(i.today, i.period, i.custom);
   // Los bloqueos de horario (almuerzo, reuniones) no son citas: no entran a ningún reporte.
   const appts = i.appts.filter((a) => a.st !== "bloqueo" && inRange(a.date, range));
@@ -113,7 +114,8 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
     byService.set(k, { n: cur.n + 1, sum: cur.sum + p.amount });
   }
   const income = round2(pays.reduce((n, p) => n + p.amount, 0));
-  const ingRows = [...byService.entries()].sort((a, b) => b[1].sum - a[1].sum).map(([k, v]): Cell[] => [k, v.n, round2(v.sum), pct(v.sum, income)]);
+  const codeOf = (concept: string) => i.services?.find((s) => s.name === concept)?.code ?? "—";
+  const ingRows = [...byService.entries()].sort((a, b) => b[1].sum - a[1].sum).map(([k, v]): Cell[] => [k, codeOf(k), v.n, round2(v.sum), pct(v.sum, income)]);
 
   // Pacientes nuevos
   const b = buckets(range);
@@ -142,6 +144,23 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
     const m = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
     return m;
   };
+  // Uso de materiales: lo liquidado en las atenciones del periodo (por fecha de liquidación, hora de Lima).
+  const uses = (i.mats ?? []).filter((m) => inRange(limaDateOf(m.at), range)).sort((x, y) => x.at.localeCompare(y.at));
+  const matAgg = new Map<string, { n: string; u: string; qty: number; appts: Set<number> }>();
+  for (const m of uses) for (const l of m.lines) {
+    const cur = matAgg.get(l.invId) ?? { n: l.n, u: l.u, qty: 0, appts: new Set<number>() };
+    cur.qty = round2(cur.qty + l.qty);
+    cur.appts.add(m.apptId);
+    matAgg.set(l.invId, cur);
+  }
+  const matRows = [...matAgg.entries()].sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([id, v]): Cell[] => {
+    const stock = i.inv?.find((x) => x.id === id);
+    return [v.n, v.u, v.appts.size, v.qty, stock ? stock.qty : "—"];
+  });
+  const matDetail = uses.flatMap((m) => m.lines.map((l): Cell[] => {
+    const a = i.appts.find((x) => x.id === m.apptId);
+    return [limaDateOf(m.at), horaDe(m.at), apptCode(m.apptId), m.patient, a ? docName(a.doc) : "—", m.service, l.n, l.qty, l.u];
+  }));
 
   // Servicios por día: una fila por día y servicio
   const sd = new Map<string, { date: string; svc: string; n: number; att: number; canc: number; sum: number }>();
@@ -197,7 +216,7 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
   for (const p of pays.slice().sort((x, y) => x.at.localeCompare(y.at))) byNo.set(p.no, [...(byNo.get(p.no) ?? []), p]);
   const receiptRows: Cell[][] = [...byNo.values()].map((l): Cell[] => {
     const f = l[0];
-    return [limaDateOf(f.at), horaDe(f.at), f.apptId ? apptCode(f.apptId) : "—", f.no, f.patient, [...new Set(l.map((x) => x.concept))].join(" + "), apptOf(f.apptId) ? docName(apptOf(f.apptId)!.doc) : "—", [...new Set(l.map((x) => x.method))].join(" + "), round2(l.reduce((n, x) => n + x.amount, 0))];
+    return [limaDateOf(f.at), horaDe(f.at), f.apptId ? apptCode(f.apptId) : "—", f.no, f.patient, [...new Set(l.map((x) => x.concept))].join(" + "), [...new Set(l.map((x) => codeOf(x.concept)))].filter((c) => c !== "—").join(" + ") || "—", apptOf(f.apptId) ? docName(apptOf(f.apptId)!.doc) : "—", [...new Set(l.map((x) => x.method))].join(" + "), round2(l.reduce((n, x) => n + x.amount, 0))];
   });
   const sesRows: Cell[][] = [...groups.values()].map((list): Cell[] => {
     const first = list[0], ap = apptOf(first.apptId);
@@ -242,8 +261,8 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
       },
       {
         id: "ing", title: "Ingresos por servicio", sub: "Soles cobrados en el periodo",
-        summary: { columns: ["Servicio", "Cobros", "Monto (S/)", "% del total"], rows: ingRows, total: ["Total", pays.length, income, ingRows.length ? 100 : 0], money: [2], pct: [3] },
-        detail: { title: "Cobros del periodo", table: { columns: ["Fecha", "Código de cita", "Comprobante", "Paciente", "Servicio", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => x.at.localeCompare(y.at)).map((p): Cell[] => [limaDateOf(p.at), p.apptId ? apptCode(p.apptId) : "—", p.no, p.patient, p.concept, p.method, p.amount]), total: ["Total", "", "", "", "", "", income], money: [6] } },
+        summary: { columns: ["Servicio", "Código", "Cobros", "Monto (S/)", "% del total"], rows: ingRows, total: ["Total", "", pays.length, income, ingRows.length ? 100 : 0], money: [3], pct: [4] },
+        detail: { title: "Cobros del periodo", table: { columns: ["Fecha", "Código de cita", "Comprobante", "Paciente", "Servicio", "Código", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => x.at.localeCompare(y.at)).map((p): Cell[] => [limaDateOf(p.at), p.apptId ? apptCode(p.apptId) : "—", p.no, p.patient, p.concept, codeOf(p.concept), p.method, p.amount]), total: ["Total", "", "", "", "", "", "", income], money: [7] } },
       },
       {
         id: "nue", title: "Pacientes nuevos", sub: "Pacientes registrados en el periodo (los creados antes de usar el sistema no tienen fecha)",
@@ -258,12 +277,17 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
       {
         id: "ingd", title: "Ingresos detallados", sub: "Cobros por día y método de pago, con el detalle de cada comprobante",
         summary: { columns: ["Fecha", "Cobros", ...methodCols.map((m) => m + " (S/)"), "Total (S/)"], rows: idRows, total: idTotal, money: [...methodCols.map((_, k) => k + 2), methodCols.length + 2] },
-        detail: { title: "Comprobantes (uno por cita o sesión)", table: { columns: ["Fecha", "Hora", "Código de cita", "Comprobante", "Paciente", "Tratamientos", "Doctor", "Método", "Monto (S/)"], rows: receiptRows, total: ["Total", "", "", "", "", "", "", "", income], money: [8] } },
+        detail: { title: "Comprobantes (uno por cita o sesión)", table: { columns: ["Fecha", "Hora", "Código de cita", "Comprobante", "Paciente", "Tratamientos", "Códigos", "Doctor", "Método", "Monto (S/)"], rows: receiptRows, total: ["Total", "", "", "", "", "", "", "", "", income], money: [9] } },
+      },
+      {
+        id: "mat", title: "Uso de materiales", sub: "Materiales liquidados en las atenciones del periodo, por producto, y su stock actual",
+        summary: { columns: ["Material", "Unidad", "Atenciones", "Cantidad usada", "Stock actual"], rows: matRows, total: ["Total", "", new Set(uses.map((m) => m.apptId)).size, "", ""] },
+        detail: { title: "Liquidaciones de materiales", table: { columns: ["Fecha", "Hora", "Código de cita", "Paciente", "Doctor", "Tratamiento", "Material", "Cantidad", "Unidad"], rows: matDetail } },
       },
       {
         id: "ses", title: "Pagos por sesión", sub: "Cobros agrupados por cita (código CIT-…): tratamientos, comprobantes, métodos y total de cada sesión",
         summary: { columns: ["Código de cita", "Fecha", "Hora", "Paciente", "Doctor", "Tratamientos cobrados", "Comprobantes", "Métodos", "Monto (S/)"], rows: sesRows, total: ["Total", "", "", "", "", "", "", "", income], money: [8] },
-        detail: { title: "Cobros de cada sesión", table: { columns: ["Código de cita", "Fecha", "Hora", "Comprobante", "Paciente", "Tratamiento", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => (x.apptId ?? 0) - (y.apptId ?? 0) || x.at.localeCompare(y.at)).map((p): Cell[] => [p.apptId ? apptCode(p.apptId) : "—", limaDateOf(p.at), horaDe(p.at), p.no, p.patient, p.concept, p.method, p.amount]), total: ["Total", "", "", "", "", "", "", income], money: [7] } },
+        detail: { title: "Cobros de cada sesión", table: { columns: ["Código de cita", "Fecha", "Hora", "Comprobante", "Paciente", "Tratamiento", "Código", "Método", "Monto (S/)"], rows: pays.slice().sort((x, y) => (x.apptId ?? 0) - (y.apptId ?? 0) || x.at.localeCompare(y.at)).map((p): Cell[] => [p.apptId ? apptCode(p.apptId) : "—", limaDateOf(p.at), horaDe(p.at), p.no, p.patient, p.concept, codeOf(p.concept), p.method, p.amount]), total: ["Total", "", "", "", "", "", "", "", income], money: [8] } },
       },
       {
         id: "serv", title: "Servicios", sub: "Citas, atención y cobros por servicio en el periodo (elige un rango personalizado para comparar fechas)",
@@ -289,9 +313,9 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
 export function allApptsTable(i: { appts: Appt[]; doctors: Doctor[]; range: Range }): Table {
   const doc = (id: number) => i.doctors.find((d) => d.id === id)?.full ?? "";
   return {
-    columns: ["Fecha", "Hora", "Paciente", "Servicio", "Doctor", "Estado", "Duración (min)", "Origen"],
+    columns: ["Código de cita", "Fecha", "Hora", "Paciente", "Servicio", "Doctor", "Estado", "Duración (min)", "Origen"],
     rows: i.appts.filter((a) => a.st !== "bloqueo" && inRange(a.date, i.range)).sort((a, b) => a.date.localeCompare(b.date) || a.slot - b.slot)
-      .map((a): Cell[] => [a.date, hm(a.slot), a.p, a.s, doc(a.doc), STATUS[a.st], a.dur * 15, a.web ? "Reserva web" : "Clínica"]),
+      .map((a): Cell[] => [apptCode(a.id), a.date, hm(a.slot), a.p, a.s, doc(a.doc), STATUS[a.st], a.dur * 15, a.web ? "Reserva web" : "Clínica"]),
   };
 }
 

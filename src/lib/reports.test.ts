@@ -35,8 +35,21 @@ describe("reportes con datos reales", () => {
   });
   const rep = (id: string) => r.reports.find((x) => x.id === id)!;
   it("ingresos por servicio ordenados, con su porcentaje y total", () => {
-    expect(rep("ing").summary.rows).toEqual([["Ortodoncia", 2, 500, 84.7], ["Limpieza", 1, 90, 15.3]]);
-    expect(rep("ing").summary.total).toEqual(["Total", 3, 590, 100]);
+    expect(rep("ing").summary.rows).toEqual([["Ortodoncia", "—", 2, 500, 84.7], ["Limpieza", "—", 1, 90, 15.3]]);
+    expect(rep("ing").summary.total).toEqual(["Total", "", 3, 590, 100]);
+  });
+  it("uso de materiales: por producto, solo el periodo, con stock actual", () => {
+    const mats = [
+      { id: "a", apptId: 1, at: t("2026-10-12"), patient: "Ana", service: "Ortodoncia", lines: [{ invId: "r", n: "Resina A2", u: "g", qty: 2 }, { invId: "g", n: "Guantes M", u: "cajas", qty: 1 }] },
+      { id: "b", apptId: 2, at: t("2026-10-13"), patient: "Luis", service: "Limpieza", lines: [{ invId: "r", n: "Resina A2", u: "g", qty: 1.5 }] },
+      { id: "c", apptId: 6, at: t("2026-09-01"), patient: "Fuera", service: "X", lines: [{ invId: "r", n: "Resina A2", u: "g", qty: 9 }] },
+    ];
+    const inv = [{ id: "r", n: "Resina A2", u: "g", qty: 4, min: 10, venc: "" }];
+    const m = buildReports({ today: TODAY, period: 1, appts, payments, patients, doctors: docs, mats, inv }).reports.find((x) => x.id === "mat")!;
+    expect(m.summary.rows).toEqual([["Guantes M", "cajas", 1, 1, "—"], ["Resina A2", "g", 2, 3.5, 4]]);
+    expect(m.summary.total).toEqual(["Total", "", 2, "", ""]);
+    expect(m.detail.table.rows).toHaveLength(3);
+    expect(m.detail.table.rows[0].slice(2, 4)).toEqual(["CIT-00001", "Ana"]);
   });
   it("ocupación por doctor sobre la capacidad", () => {
     const cap = openDays(r.range) * 32;
@@ -78,6 +91,6 @@ describe("reportes con datos reales", () => {
     const withVoid = [...payments, { ...pay(9, t("2026-10-13"), "Limpieza", 1000), voided: true }];
     const v = buildReports({ today: TODAY, period: 1, appts, payments: withVoid, patients, doctors: docs });
     expect(v.summary.income).toBe(590);
-    expect(v.reports.find((x) => x.id === "ing")!.summary.total).toEqual(["Total", 3, 590, 100]);
+    expect(v.reports.find((x) => x.id === "ing")!.summary.total).toEqual(["Total", "", 3, 590, 100]);
   });
 });

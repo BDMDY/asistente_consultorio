@@ -8,6 +8,8 @@ import { useToday } from "@/lib/hooks";
 import { patientsStore } from "@/lib/patients";
 import { paymentsStore } from "@/lib/payments";
 import { PERIOD_NAMES, type Period, type Range, type Report, type Table, buildReports, fmtCell } from "@/lib/reports";
+import { useMedia } from "@/lib/media";
+import { useMod } from "@/lib/mod";
 import { toast } from "@/lib/toast";
 
 function download(name: string, blob: Blob) {
@@ -58,6 +60,8 @@ export function Reportes() {
   const [payments] = paymentsStore.useStore();
   const [patients] = patientsStore.useStore();
   const doctors = useDoctors();
+  const media = useMedia();
+  const { data: mod } = useMod();
   const [period, setPeriod] = useState<Period>(1);
   const [custom, setCustom] = useState<Range>({ from: "", to: "" });
   const [busy, setBusy] = useState(false);
@@ -65,7 +69,7 @@ export function Reportes() {
 
   if (!today) return null;
   const range0 = period === 3 && !custom.from && !custom.to ? { from: today.slice(0, 8) + "01", to: today } : custom;
-  const { reports, summary, range } = buildReports({ today, period, custom: period === 3 ? range0 : undefined, appts, payments, patients, doctors });
+  const { reports, summary, range } = buildReports({ today, period, custom: period === 3 ? range0 : undefined, appts, payments, patients, doctors, services: media.services, mats: mod.mats, inv: mod.inv });
   const periodLabel = period === 1 ? `${MONTHS_LONG[Number(today.slice(5, 7)) - 1]} ${today.slice(0, 4)}` : period === 2 ? `año ${today.slice(0, 4)}` : `${labelShort(range.from)} al ${labelShort(range.to)}`;
   const money = (n: number) => "S/ " + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const shown = reports.find((r) => r.id === sel) ?? reports[0];
