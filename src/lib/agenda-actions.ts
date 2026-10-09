@@ -63,7 +63,7 @@ export interface SessionLine { concept: string; amount: number; planItem?: strin
  * suma un control a cada tratamiento del plan que se realizó y deja la cita como atendida.
  */
 export function chargeSession(a: Appt, lines: SessionLine[], method: PayMethod, patientId?: number): Payment[] {
-  const pays = addPayments(lines.map((l) => ({ concept: l.concept, amount: l.amount })), { apptId: a.id, patient: a.p, method, date: apptWhenShort(a) });
+  const pays = addPayments(lines.map((l) => ({ concept: l.concept, amount: l.amount, ...(l.planItem && patientId !== undefined ? { itemId: l.planItem } : {}) })), { apptId: a.id, patient: a.p, method, date: apptWhenShort(a), ...(patientId !== undefined ? { patientId } : {}) });
   const linked = lines.filter((l): l is SessionLine & { planItem: string } => !!l.planItem).map((l) => ({ planItem: l.planItem, amount: l.amount }));
   if (patientId !== undefined && linked.length) {
     plansStore.update((all) => (all[patientId] ? { ...all, [patientId]: applyLines(all[patientId], linked) } : all));
@@ -72,7 +72,7 @@ export function chargeSession(a: Appt, lines: SessionLine[], method: PayMethod, 
   return pays;
 }
 
-export const paidFor = (apptId: number) => paymentsStore.get().filter((p) => p.apptId === apptId).reduce((n, p) => n + p.amount, 0);
+export const paidFor = (apptId: number) => paymentsStore.get().filter((p) => p.apptId === apptId && !p.voided).reduce((n, p) => n + p.amount, 0);
 
 export type MoveCheck = { ok: true } | { ok: false; error: string };
 

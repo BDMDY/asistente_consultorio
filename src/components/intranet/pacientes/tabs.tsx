@@ -227,14 +227,14 @@ export function TabPagos({ p, onPay }: { p: Patient; onPay: () => void }) {
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <b className="tnum" style={{ fontSize: 18 }}>Total pagado {money(pays.reduce((t, x) => t + x.amount, 0))}</b>
+        <b className="tnum" style={{ fontSize: 18 }}>Total pagado {money(pays.filter((x) => !x.voided).reduce((t, x) => t + x.amount, 0))}</b>
         <button type="button" onClick={onPay} style={primaryBtn}>Registrar pago</button>
       </div>
       {pays.map((x) => (
         <div key={x.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 14px", borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
           <Icon name="banknote" style={{ color: "var(--brand-600)" }} />
           <div style={{ flex: 1, fontSize: 14 }}><b>{x.concept}</b><div className="tnum" style={{ fontSize: 12, color: "var(--ink-500)" }}>{x.no} · {payLabel(x.date)} · {x.method}</div></div>
-          <b className="tnum">{money(x.amount)}</b>
+          <b className="tnum" style={x.voided ? { textDecoration: "line-through", color: "var(--ink-500)" } : undefined}>{x.voided ? "Anulado · " : ""}{money(x.amount)}</b>
         </div>
       ))}
       {pays.length === 0 && <div style={{ color: "var(--ink-500)", fontSize: 14 }}>Sin pagos registrados.</div>}

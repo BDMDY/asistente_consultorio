@@ -133,12 +133,7 @@ function ItemDetail({ pid, pac, item, onDone }: { pid: number; pac: string; item
     plansStore.update((all) => { const cur = all[pid]; if (!cur) return all; const next = fn(cur); const out = { ...all }; if (next) out[pid] = next; else delete out[pid]; return out; });
   const charge = (withSession: boolean) => {
     if (withSession && finished) return toast("Las sesiones de este tratamiento ya están completas");
-    if (amt > 0) {
-      addPayment({ patient: pac, concept: item.name, amount: amt, method, date: todayISO() });
-      // También queda en Finanzas, como los pagos de cuota de los planes de pago.
-      const prev = modStore.get();
-      saveMod({ ...prev, fin: [{ id: uid(), c: `${pac} · ${item.name}${withSession ? ` · sesión ${Math.min(item.total, item.done + 1)}` : ""}`, m: method, a: amt, st: "pagado" }, ...prev.fin] });
-    }
+    if (amt > 0) addPayment({ patient: pac, concept: item.name, amount: amt, method, date: todayISO(), itemId: item.id, patientId: pid });
     patch((pl) => (withSession ? applyLines(pl, [{ planItem: item.id, amount: amt }]) : payItem(pl, item.id, amt)));
     toast(withSession ? `Sesión ${Math.min(item.total, item.done + 1)} de ${item.total} registrada${amt > 0 ? ` · cobro ${money0(amt)}` : ""}` : `Pago registrado · ${money0(amt)}`);
     onDone();

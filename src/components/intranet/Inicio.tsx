@@ -1,4 +1,7 @@
 "use client";
+import { paymentsInRange, sumLive } from "@/lib/finance";
+import { paymentsStore } from "@/lib/payments";
+import { periodRange } from "@/lib/reports";
 import { useBrand } from "@/lib/brand";
 import Link from "next/link";
 import Icon, { type IconName } from "@/components/ui/Icon";
@@ -24,6 +27,7 @@ function greeting() {
 export default function Inicio() {
   const today = useToday();
   const { data: mod, low, pending } = useMod();
+  const [payments] = paymentsStore.useStore();
   const [{ appts }] = agendaStore.useStore();
   const [session] = sessionStore.useStore();
   const [perms] = permsStore.useStore();
@@ -39,7 +43,7 @@ export default function Inicio() {
   const dayCap = win ? win.to - win.from : 32;
   const occ = docs.map((d) => ({ name: d.name, pct: Math.min(100, Math.round((todays.filter((a) => a.doc === d.id).reduce((n, a) => n + a.dur, 0) / dayCap) * 100)) }));
   const occAvg = occ.length ? Math.round(occ.reduce((n, o) => n + o.pct, 0) / occ.length) : 0;
-  const paid = mod.fin.filter((f) => f.st === "pagado").reduce((n, f) => n + f.a, 0);
+  const paid = today ? sumLive(paymentsInRange(payments, periodRange(today, 1))) : 0;
   const pendTotal = pending.reduce((n, f) => n + f.a, 0);
   const can = (m: string) => canAccess(perms, user?.rol, m);
   const M = "/intranet/modulos/";

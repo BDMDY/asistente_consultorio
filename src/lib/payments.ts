@@ -18,6 +18,11 @@ export interface Payment {
   date: string;
   /** instante del registro */
   at: string;
+  /** anulado: no cuenta en finanzas ni en reportes */
+  voided?: boolean;
+  /** tratamiento del plan al que se aplicó el pago, y su paciente */
+  itemId?: string;
+  patientId?: number;
 }
 
 export const paymentsStore = defineStore<Payment[]>("da-payments-v1", () => [], { remote: { name: "payments", empty: () => [] } });
@@ -35,13 +40,16 @@ export function addPayment(p: Omit<Payment, "id" | "no" | "at">): Payment {
 }
 
 /** Cobro de varios tratamientos en una misma sesión: un comprobante con una línea por tratamiento. */
-export function addPayments(lines: { concept: string; amount: number }[], common: Omit<Payment, "id" | "no" | "at" | "concept" | "amount">): Payment[] {
+export function addPayments(lines: { concept: string; amount: number; itemId?: string }[], common: Omit<Payment, "id" | "no" | "at" | "concept" | "amount" | "itemId">): Payment[] {
   const out: Payment[] = [];
   paymentsStore.update((list) => {
     const no = "B001-" + String(list.length + 124).padStart(6, "0");
     const at = new Date().toISOString();
-    for (const l of lines) out.push({ ...common, id: newId(), no, concept: l.concept, amount: l.amount, at });
+    for (const l of lines) out.push({ ...common, id: newId(), no, concept: l.concept, amount: l.amount, at, ...(l.itemId ? { itemId: l.itemId } : {}) });
     return [...list, ...out];
   });
   return out;
 }
+
+/** Cobros vigentes (sin los anulados). */
+export const livePayments = (list: Payment[]) => list.filter((p) => !p.voided);

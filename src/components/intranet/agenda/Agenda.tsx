@@ -95,7 +95,7 @@ export default function Agenda() {
       toast(`Duración: ${dur * 15} min · termina a las ${hm(a.slot + dur)}`, r.undo);
     },
     alerts: (name) => alertsFor(patients, name),
-    paid: (id) => payments.filter((p) => p.apptId === id).reduce((n, p) => n + p.amount, 0),
+    paid: (id) => payments.filter((p) => p.apptId === id && !p.voided).reduce((n, p) => n + p.amount, 0),
   };
 
   const alerts = today ? delayAlerts(appts, today, nowMin) : [];

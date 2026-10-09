@@ -74,4 +74,10 @@ describe("reportes con datos reales", () => {
     expect(createdDateOfId(3)).toBeNull();
     expect(createdDateOfId(1791496962844852)).toBe("2026-10-08");
   });
+  it("los cobros anulados no entran a los reportes", () => {
+    const withVoid = [...payments, { ...pay(9, t("2026-10-13"), "Limpieza", 1000), voided: true }];
+    const v = buildReports({ today: TODAY, period: 1, appts, payments: withVoid, patients, doctors: docs });
+    expect(v.summary.income).toBe(590);
+    expect(v.reports.find((x) => x.id === "ing")!.summary.total).toEqual(["Total", 3, 590, 100]);
+  });
 });

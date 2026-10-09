@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { isRemote } from "./backend/config";
+import { addPayment } from "./payments";
 import { defineStore } from "./store";
 import { toast } from "./toast";
 
@@ -9,7 +10,8 @@ export interface PlanDiscount { t?: string; label: string; amt: number }
 export interface Plan { id: string; pac: string; trat: string; svcs?: string[]; n: number; paid: number; cuota: number; base?: number; disc?: PlanDiscount }
 export interface InvItem { id: string; n: string; u: string; qty: number; min: number; venc: string }
 export type FinStatus = "pagado" | "pendiente" | "vencido" | "anulado";
-export interface FinItem { id: string; c: string; m: string; a: number; st: FinStatus; base?: number; disc?: PlanDiscount }
+/** Cuenta por cobrar o registro manual. Los cobros reales (con fecha, comprobante y método) viven en los pagos; `payId` enlaza el pago que saldó este registro. */
+export interface FinItem { id: string; c: string; m: string; a: number; st: FinStatus; base?: number; disc?: PlanDiscount; pac?: string; con?: string; /** alta (ISO) */ at?: string; payId?: number }
 export type MsgStatus = "activa" | "pausada" | "borrador";
 export interface MsgSeg { t: "Todos" | "Inactivos" | "Edad" | "Inconclusos" | "Citas"; a: number; b: number }
 export interface Msg { id: string; n: string; seg?: MsgSeg; aud: string; link?: string; lp?: string; txt: string; st: MsgStatus; sent: number }
@@ -46,10 +48,8 @@ export const seedMod = (): ModData => ({
     { id: "i4", n: "Guantes M", u: "cajas", qty: 34, min: 20, venc: "" },
   ],
   fin: [
-    { id: "f1", c: "Lucía Rojas · Cuota 8", m: "Yape", a: 350, st: "pagado" },
-    { id: "f2", c: "Carlos Vera · Implante", m: "Tarjeta", a: 1200, st: "pagado" },
-    { id: "f3", c: "Ana Cruz · Saldo", m: "", a: 280, st: "pendiente" },
-    { id: "f4", c: "Mario Soto · Cuota 3", m: "", a: 400, st: "vencido" },
+    { id: "f3", c: "Ana Cruz · Saldo", m: "", a: 280, st: "pendiente", pac: "Ana Cruz", con: "Saldo" },
+    { id: "f4", c: "Mario Soto · Cuota 3", m: "", a: 400, st: "vencido", pac: "Mario Soto", con: "Cuota 3" },
   ],
   msg: [
     { id: "m1", n: "Recordatorio de cita", seg: { t: "Citas", a: 0, b: 2 }, aud: "Cita en 0–2 días", link: "Confirmar cita", lp: "", txt: "Hola {nombre}, te esperamos pronto a las {hora}. Confirma tu cita aquí:", st: "activa", sent: 0 },
@@ -114,16 +114,13 @@ export const money0 = (n: number) => "S/ " + Number(n || 0).toLocaleString("en-U
 /** Identificador de registros de módulos; en modo remoto es un UUID (las fichas de personal lo exigen). */
 export const uid = () => (isRemote ? crypto.randomUUID() : "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
 
-/** Registra el pago de la siguiente cuota de un plan de pago: suma la cuota y deja el cobro en Finanzas. */
+/** Registra el pago de la siguiente cuota de un plan de pago: suma la cuota y deja el cobro (con fecha y comprobante) en Finanzas y Reportes. */
 export function payInstallment(planId: string, cuota?: number): boolean {
   const prev = modStore.get();
   const plan = prev.planes.find((x) => x.id === planId);
   if (!plan || plan.paid >= plan.n) return false;
   const monto = cuota && cuota > 0 ? cuota : plan.cuota;
-  saveMod(
-    { ...prev, planes: prev.planes.map((x) => (x.id === planId ? { ...x, paid: x.paid + 1, cuota: monto } : x)), fin: [{ id: uid(), c: `${plan.pac} · Cuota ${plan.paid + 1}`, m: "Efectivo", a: monto, st: "pagado" }, ...prev.fin] },
-    "Pago registrado · también en Finanzas",
-    prev,
-  );
+  addPayment({ patient: plan.pac, concept: plan.trat, amount: monto, method: "Efectivo", date: `Cuota ${plan.paid + 1} de ${plan.n}` });
+  saveMod({ ...prev, planes: prev.planes.map((x) => (x.id === planId ? { ...x, paid: x.paid + 1, cuota: monto } : x)) }, "Cuota registrada · ya figura en Finanzas y Reportes", prev);
   return true;
 }

@@ -213,7 +213,7 @@ function PayDialog({ p, concept, itemId, sheet, onClose, onSaved }: { p: Patient
   const amt = parseFloat(f.amount.replace(",", "."));
   function save() {
     if (!(amt > 0)) return setTried(true);
-    addPayment({ patient: p.name, concept: item ? item.name : f.concept.trim() || "Pago", amount: amt, method, date: todayISO() });
+    addPayment({ patient: p.name, concept: item ? item.name : f.concept.trim() || "Pago", amount: amt, method, date: todayISO(), ...(item ? { itemId: item.id, patientId: p.id } : { patientId: p.id }) });
     if (item) plansStore.update((all) => (all[p.id] ? { ...all, [p.id]: payItem(all[p.id], item.id, amt) } : all));
     onSaved();
     onClose();

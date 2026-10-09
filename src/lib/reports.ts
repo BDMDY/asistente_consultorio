@@ -92,7 +92,7 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
   const range = periodRange(i.today, i.period, i.custom);
   // Los bloqueos de horario (almuerzo, reuniones) no son citas: no entran a ningún reporte.
   const appts = i.appts.filter((a) => a.st !== "bloqueo" && inRange(a.date, range));
-  const pays = i.payments.filter((p) => inRange(limaDateOf(p.at), range));
+  const pays = i.payments.filter((p) => !p.voided && inRange(limaDateOf(p.at), range));
   const docName = (id: number) => i.doctors.find((d) => d.id === id)?.full ?? "Doctor sin asignar";
   const apptRow = (a: Appt): Cell[] => [a.date, hm(a.slot), a.p, a.s, docName(a.doc), STATUS[a.st], a.dur * 15];
 
