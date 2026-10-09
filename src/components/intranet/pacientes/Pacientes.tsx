@@ -155,7 +155,7 @@ function Frame({ title, onClose, sheet, children }: { title: string; onClose: ()
 }
 const border = (ok: boolean, tried: boolean) => (tried && !ok ? "2px solid var(--error-fg)" : "1px solid var(--line)");
 
-interface PlanRow { key: number; name: string; total: string; price: string }
+interface PlanRow { key: number; name: string; total: string; price: string; /** el precio se calculó solo (valor por sesión × sesiones) y no se editó a mano */ auto?: boolean }
 
 /** Crea el plan del paciente o le agrega tratamientos: cada uno con sus controles previstos y su precio total. */
 function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?: PlanSeed[]; sheet: boolean; onClose: () => void; onCreated: () => void }) {
@@ -165,12 +165,19 @@ function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?:
   const [tried, setTried] = useState(false);
   const valid = (r: PlanRow) => r.name.trim().length > 2 && parseInt(r.total, 10) > 0 && parseFloat(r.price) > 0;
   const patch = (key: number, x: Partial<PlanRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...x } : r)));
-  function pick(key: number, name: string) {
-    // Al elegir un servicio del catálogo se sugiere el precio: valor de una sesión por el número de controles.
+  const unitOf = (name: string) => {
     const sv = activeServices(media).find((x) => x.name === name);
+    return sv ? parsePrice(sv.price) : NaN;
+  };
+  const auto = (name: string, total: string) => String(Math.round(unitOf(name) * (parseInt(total, 10) || 1) * 100) / 100);
+  function pick(key: number, name: string) {
+    // Al elegir un servicio del catálogo se calcula el precio: valor de una sesión por el número de sesiones.
     const row = rows.find((r) => r.key === key)!;
-    const unit = sv ? parsePrice(sv.price) : NaN;
-    patch(key, { name, ...(unit > 0 && !row.price ? { price: String(unit * (parseInt(row.total, 10) || 1)) } : {}) });
+    patch(key, { name, ...(unitOf(name) > 0 ? { price: auto(name, row.total), auto: true } : { auto: false }) });
+  }
+  function setTotal(key: number, total: string) {
+    const row = rows.find((r) => r.key === key)!;
+    patch(key, { total, ...(row.auto && unitOf(row.name) > 0 ? { price: auto(row.name, total) } : {}) });
   }
   function save() {
     if (!rows.every(valid)) return setTried(true);
@@ -183,13 +190,19 @@ function PlanDialog({ p, seed, sheet, onClose, onCreated }: { p: Patient; seed?:
   const input = (ok: boolean): React.CSSProperties => ({ ...fieldStyle, height: 46, fontSize: 15, border: border(ok, tried) });
   return (
     <Frame title={existing ? "Agregar tratamientos al plan" : "Crear plan de tratamiento"} onClose={onClose} sheet={sheet}>
-      <datalist id="da-plan-services">{activeServices(media).map((x) => <option key={x.id} value={x.name} />)}</datalist>
       {rows.map((r, k) => (
         <div key={r.key} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" }}>
-          <label style={labelStyle}>Tratamiento {rows.length > 1 ? k + 1 : ""}<input list="da-plan-services" value={r.name} onChange={(e) => pick(r.key, e.target.value)} placeholder="Ej. Ortodoncia" style={input(r.name.trim().length > 2)} /></label>
+          <label style={labelStyle}>Tratamiento {rows.length > 1 ? k + 1 : ""}
+            <select value={activeServices(media).some((x) => x.name === r.name) ? r.name : r.name ? "__otro" : ""} onChange={(e) => (e.target.value !== "__otro" ? pick(r.key, e.target.value) : patch(r.key, { name: " ", auto: false }))} style={input(r.name.trim().length > 2)}>
+              <option value="" disabled>Elige un servicio…</option>
+              {activeServices(media).map((x) => <option key={x.id} value={x.name}>{x.name} · {money(parsePrice(x.price) || 0)} por sesión</option>)}
+              <option value="__otro">Otro tratamiento (escribir)</option>
+            </select>
+            {r.name !== "" && !activeServices(media).some((x) => x.name === r.name) && <input aria-label="Nombre del tratamiento" value={r.name.trim() === "" ? "" : r.name} onChange={(e) => patch(r.key, { name: e.target.value, auto: false })} placeholder="Nombre del tratamiento" style={{ ...input(r.name.trim().length > 2), marginTop: 6 }} />}
+          </label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={labelStyle}>N.° de sesiones<input value={r.total} inputMode="numeric" onChange={(e) => patch(r.key, { total: e.target.value })} style={input(parseInt(r.total, 10) > 0)} /></label>
-            <label style={labelStyle}>Precio total (S/)<input value={r.price} inputMode="decimal" onChange={(e) => patch(r.key, { price: e.target.value })} style={input(parseFloat(r.price) > 0)} /></label>
+            <label style={labelStyle}>N.° de sesiones<input value={r.total} inputMode="numeric" onChange={(e) => setTotal(r.key, e.target.value)} style={input(parseInt(r.total, 10) > 0)} /></label>
+            <label style={labelStyle}>Precio total (S/)<input value={r.price} inputMode="decimal" onChange={(e) => patch(r.key, { price: e.target.value, auto: false })} style={input(parseFloat(r.price) > 0)} /></label>
           </div>
           {rows.length > 1 && <button type="button" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} style={{ alignSelf: "flex-start", cursor: "pointer", background: "transparent", border: 0, color: "var(--error-fg)", fontWeight: 700, fontSize: 13, minHeight: 32, fontFamily: "inherit" }}>Quitar este tratamiento</button>}
         </div>

@@ -335,12 +335,14 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   const extra = activeServices(media).filter((sv) => !lines.some((l) => l.concept === sv.name));
   // Tratamiento nuevo indicado durante la sesión (por ejemplo, tras la evaluación): entra al plan del paciente y a este cobro.
   const [adding, setAdding] = useState(false);
-  const [nt, setNt] = useState({ name: "", n: "1", price: "" });
+  const [nt, setNt] = useState({ name: "", n: "1", price: "", auto: false, custom: false });
+  const unitOf = (name: string) => parsePrice(activeServices(media).find((x) => x.name === name)?.price ?? "");
+  const autoPrice = (name: string, n: string) => String(Math.round(unitOf(name) * (parseInt(n, 10) || 1) * 100) / 100);
   function pickNew(name: string) {
-    const sv = activeServices(media).find((x) => x.name === name);
-    const unit = sv ? parsePrice(sv.price) : NaN;
-    setNt((x) => ({ ...x, name, ...(unit > 0 && !x.price ? { price: String(unit * (parseInt(x.n, 10) || 1)) } : {}) }));
+    if (name === "__otro") return setNt((x) => ({ ...x, name: "", custom: true, auto: false }));
+    setNt((x) => (unitOf(name) > 0 ? { ...x, name, custom: false, price: autoPrice(name, x.n), auto: true } : { ...x, name, auto: false }));
   }
+  const setSessions = (n: string) => setNt((x) => ({ ...x, n, ...(x.auto && unitOf(x.name) > 0 ? { price: autoPrice(x.name, n) } : {}) }));
   function addNew() {
     if (!patient) return toast("Registra primero al paciente en Pacientes para crear su plan");
     const n = Math.max(1, parseInt(nt.n, 10) || 1), price = parseFloat(nt.price);
@@ -349,7 +351,7 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
     plansStore.update((all) => ({ ...all, [patient.id]: addItems(all[patient.id], [it]) }));
     setLines((ls) => [...ls, { key: "p:" + it.id, concept: it.name, amount: String(sessionPrice(it)), on: true, planItem: it.id }]);
     setAdding(false);
-    setNt({ name: "", n: "1", price: "" });
+    setNt({ name: "", n: "1", price: "", auto: false, custom: false });
     toast(`${it.name} agregado al plan del paciente`);
   }
 
@@ -391,11 +393,15 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
               {adding ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, borderRadius: 12, boxShadow: "inset 0 0 0 1.5px var(--brand-200)" }}>
                   <b style={{ fontSize: 14 }}>Nuevo tratamiento del plan</b>
-                  <datalist id="da-new-treat">{activeServices(media).map((x) => <option key={x.id} value={x.name} />)}</datalist>
-                  <input list="da-new-treat" aria-label="Nuevo tratamiento" value={nt.name} onChange={(e) => pickNew(e.target.value)} placeholder="Tratamiento (ej. Endodoncia)" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
+                  <select aria-label="Nuevo tratamiento" value={nt.custom ? "__otro" : nt.name} onChange={(e) => pickNew(e.target.value)} style={{ ...fieldStyle, height: 44, fontSize: 14 }}>
+                    <option value="" disabled>Elige un servicio…</option>
+                    {activeServices(media).map((x) => <option key={x.id} value={x.name}>{x.name} · {money(parsePrice(x.price) || 0)} por sesión</option>)}
+                    <option value="__otro">Otro tratamiento (escribir)</option>
+                  </select>
+                  {nt.custom && <input aria-label="Nombre del tratamiento" value={nt.name} onChange={(e) => setNt({ ...nt, name: e.target.value })} placeholder="Nombre del tratamiento" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <input aria-label="Sesiones previstas" value={nt.n} inputMode="numeric" onChange={(e) => setNt({ ...nt, n: e.target.value })} placeholder="Sesiones" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
-                    <input aria-label="Precio total del tratamiento" value={nt.price} inputMode="decimal" onChange={(e) => setNt({ ...nt, price: e.target.value })} placeholder="Precio total (S/)" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
+                    <input aria-label="Sesiones previstas" value={nt.n} inputMode="numeric" onChange={(e) => setSessions(e.target.value)} placeholder="Sesiones" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
+                    <input aria-label="Precio total del tratamiento" value={nt.price} inputMode="decimal" onChange={(e) => setNt({ ...nt, price: e.target.value, auto: false })} placeholder="Precio total (S/)" style={{ ...fieldStyle, height: 44, fontSize: 14 }} />
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button type="button" onClick={() => setAdding(false)} style={btnOutline}>Cancelar</button>
