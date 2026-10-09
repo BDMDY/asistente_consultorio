@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import MisCitas from "@/components/public/MisCitas";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Consultar mis citas" };
-
+/** Enlace anterior: el portal ahora se llama «Clientes». */
 export default function Page() {
-  return <MisCitas />;
+  redirect("/clientes");
 }
