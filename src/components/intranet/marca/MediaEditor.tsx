@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useDoctors } from "@/lib/doctors";
-import { DEFAULT_MEDIA, HERO_ANIMS, type HeroSlide, MAX_HERO_SLIDES, isVideoUrl, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
+import { DEFAULT_MEDIA, HERO_ANIMS, HERO_SECS_MAX, HERO_SECS_MIN, heroSlideSecs, type HeroSlide, MAX_HERO_SLIDES, isVideoUrl, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
 import { loadImage } from "@/lib/image";
 import { checkVideoFile, isHostedVideo, removeHostedVideo, uploadHeroVideo } from "@/lib/backend/storage";
 import { toast } from "@/lib/toast";
@@ -213,7 +213,7 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
   return (
     <>
       <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
-        Con una sola diapositiva se muestra fija; con varias pasan solas cada pocos segundos (se pausan al pasar el mouse). Los videos van en bucle y sin sonido: usa «+ Video» para subir un archivo <b>MP4</b> o <b>WebM</b> (de 5 a 15 s, máximo 10 MB) o «+ Video por enlace» si ya lo tienes alojado. Sin diapositivas se usa la «Foto hero» de Identidad.
+        Con una sola diapositiva se muestra fija; con varias pasan solas según los «Segundos» de cada una (vacío = 6,5 s; 14 s en video; de 2 a 60) y se pausan al pasar el mouse. Los videos van en bucle y sin sonido: usa «+ Video» para subir un archivo <b>MP4</b> o <b>WebM</b> (de 5 a 15 s, máximo 10 MB) o «+ Video por enlace» si ya lo tienes alojado. Sin diapositivas se usa la «Foto hero» de Identidad.
       </div>
       {slides.length === 0 && empty("Sin diapositivas: se usa la foto hero o un fondo de color.")}
       {slides.map((sl, k) => (
@@ -231,6 +231,10 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
               </select>
             )}
           </div>
+          <label style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 11, color: "var(--ink-500)", flexShrink: 0 }}>
+            Segundos
+            <input type="number" aria-label={`Segundos de la diapositiva ${k + 1}`} min={HERO_SECS_MIN} max={HERO_SECS_MAX} step={0.5} defaultValue={sl.secs ?? ""} placeholder={String(heroSlideSecs({ kind: sl.kind }))} onBlur={(e) => { const n = parseFloat(e.target.value); patch(sl.id, { secs: Number.isFinite(n) && n > 0 ? Math.min(HERO_SECS_MAX, Math.max(HERO_SECS_MIN, n)) : undefined }); }} style={{ ...inp, height: 30, width: 64, padding: "0 6px" }} />
+          </label>
           <button type="button" aria-label="Subir" disabled={k === 0} onClick={() => move(k, -1)} style={{ ...small, opacity: k === 0 ? 0.4 : 1 }}>↑</button>
           <button type="button" aria-label="Bajar" disabled={k === slides.length - 1} onClick={() => move(k, 1)} style={{ ...small, opacity: k === slides.length - 1 ? 0.4 : 1 }}>↓</button>
           {trash(() => drop(sl), "Quitar diapositiva")}

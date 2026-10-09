@@ -25,7 +25,7 @@
 .btnPrimary { padding: 16px 26px; border-radius: 12px; background: var(--grad-btn); color: #fff !important; font-weight: 700; font-size: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.15); }
 .btnGhost { padding: 15px 26px; border-radius: 12px; background: var(--surface); color: var(--brand-text); font-weight: 700; font-size: 16px; border: 1.5px solid var(--brand-200); display: flex; gap: 8px; align-items: center; }
 .rating { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--ink-500); flex-wrap: wrap; }
-.heroImg { height: 440px; border-radius: 20px; overflow: hidden; background: repeating-linear-gradient(135deg, var(--brand-100) 0 14px, var(--brand-50) 14px 28px); background-size: cover; background-position: center; }
+.heroImg { aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden; background: repeating-linear-gradient(135deg, var(--brand-100) 0 14px, var(--brand-50) 14px 28px); background-size: cover; background-position: center; }
 .section { padding: var(--pv) var(--ph) 24px; display: flex; flex-direction: column; gap: 28px; scroll-margin-top: 80px; }
 .sectionTight { padding: 40px var(--ph) 24px; display: flex; flex-direction: column; gap: 28px; }
 .h2 { font-family: var(--font-display); font-size: 36px; font-weight: 800; letter-spacing: -.02em; margin: 0; }
@@ -76,7 +76,6 @@
   .root { --ph: 20px; --pv: 40px; }
   .hero { grid-template-columns: minmax(0, 1fr); gap: 28px; }
   .h1 { font-size: 36px; }
-  .heroImg { height: 240px; }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .casos, .steps, .loc, .footer { grid-template-columns: minmax(0, 1fr); }
   .footerR { align-items: flex-start; }
