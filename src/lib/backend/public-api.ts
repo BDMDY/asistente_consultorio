@@ -3,7 +3,10 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Appt } from "../agenda";
 import { addAppts, agendaStore } from "../agenda-store";
 import { addDays, todayISO } from "../dates";
+import { anamnesisStore, notesStore, plansStore, planItems } from "../clinical";
 import { ensurePatient, patchPatient, patientsStore } from "../patients";
+import { paymentsStore } from "../payments";
+import type { PortalData } from "../portal";
 import { getClient, errText } from "./client";
 import { CLINIC_SLUG, isRemote } from "./config";
 
@@ -138,4 +141,41 @@ export async function lookupAppts(dni: string, phone: string): Promise<FoundAppt
   const { data, error } = await getClient().rpc("public_lookup", { p_slug: CLINIC_SLUG, p_dni: dni, p_phone: phone });
   if (error) throw error;
   return (data as { token: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doctor_id: number }[]).map((r) => ({ ref: r.token, date: r.date, slot: r.slot, dur: r.dur, service: r.service, status: r.status, doc: r.doctor_id }));
+}
+
+// ───────── Portal de clientes ─────────
+/**
+ * Historial del paciente (citas, comprobantes y, si coincide la fecha de nacimiento, diagnósticos y tratamientos).
+ * Devuelve null si no hay coincidencia de DNI + teléfono.
+ */
+export async function lookupPortal(dni: string, phone: string, birth?: string): Promise<PortalData | null> {
+  if (!isRemote) {
+    const digits = (v: string) => v.replace(/\D/g, "").slice(-9);
+    const patient = patientsStore.get().find((p) => p.dni === dni && digits(p.phone ?? "") === digits(phone));
+    const appts = agendaStore.get().appts.filter((a) => a.st !== "bloqueo" && ((a.dni === dni && digits(a.phone ?? "") === digits(phone)) || (patient && !a.dni && a.p.toLowerCase() === patient.name.toLowerCase())));
+    if (!patient && !appts.length) return null;
+    const ids = new Set(appts.map((a) => a.id));
+    const fnac = patient ? anamnesisStore.get()[patient.id]?.v.fnac ?? "" : "";
+    const verified = !!patient && !!fnac && birth === fnac;
+    return {
+      name: patient?.name ?? appts[0].p,
+      verified,
+      hasBirth: !!fnac,
+      appts: appts.map((a) => ({ id: a.id, ref: String(a.id), date: a.date, slot: a.slot, dur: a.dur, service: a.s, status: a.st, doc: a.doc })),
+      payments: paymentsStore.get().filter((p) => !p.voided && ((patient && p.patientId === patient.id) || (p.apptId !== undefined && ids.has(p.apptId)))).map((p) => ({ id: p.id, no: p.no, ...(p.apptId !== undefined ? { apptId: p.apptId } : {}), concept: p.concept, amount: p.amount, method: p.method, at: p.at })),
+      notes: verified && patient ? (notesStore.get()[patient.id] ?? []).map((n) => ({ id: n.id, date: n.date, text: n.t })) : [],
+      plan: verified && patient ? planItems(plansStore.get()[patient.id]).map((i) => ({ name: i.name, total: i.total, done: i.done, price: i.price, paid: i.paid, initial: i.initial })) : [],
+    };
+  }
+  const { data, error } = await getClient().rpc("public_portal", { p_slug: CLINIC_SLUG, p_dni: dni, p_phone: phone, p_birth: birth || null });
+  if (error) throw error;
+  if (!data) return null;
+  const d = data as { name: string; verified: boolean; hasBirth: boolean; appts: { id: number; ref: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doctor_id: number }[]; payments: { id: number; no: string; appt_id: number | null; concept: string; amount: number; method: string; at: string }[]; notes: { id: number; date: string; text: string; created_at?: string }[]; plan: PortalData["plan"] };
+  return {
+    name: d.name, verified: d.verified, hasBirth: d.hasBirth,
+    appts: d.appts.map((a) => ({ id: Number(a.id), ref: a.ref, date: a.date, slot: a.slot, dur: a.dur, service: a.service, status: a.status, doc: a.doctor_id })),
+    payments: d.payments.map((p) => ({ id: Number(p.id), no: p.no, ...(p.appt_id != null ? { apptId: Number(p.appt_id) } : {}), concept: p.concept, amount: Number(p.amount), method: p.method, at: p.at })),
+    notes: d.notes.map((n) => ({ id: Number(n.id), date: n.date, text: n.text, ...(n.created_at ? { at: n.created_at } : {}) })),
+    plan: d.plan,
+  };
 }

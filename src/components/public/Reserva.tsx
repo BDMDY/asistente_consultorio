@@ -239,7 +239,7 @@ export default function Reserva() {
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingTop: 24 }}>
             <b style={{ fontSize: 22 }}>Tu reserva ya fue registrada</b>
             <span style={{ fontSize: 14, color: "var(--ink-500)", lineHeight: 1.5 }}>Consulta tu cita con tu DNI y teléfono, o reserva otra.</span>
-            <Link href="/mis-citas" style={{ minHeight: 50, padding: "0 22px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center" }}>Consultar mis citas</Link>
+            <Link href="/clientes" style={{ minHeight: 50, padding: "0 22px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center" }}>Consultar mis citas</Link>
             <button type="button" onClick={reset} style={{ cursor: "pointer", minHeight: 50, padding: "0 22px", borderRadius: 12, border: 0, boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", background: "transparent", fontWeight: 700, fontSize: 15, fontFamily: "inherit" }}>Reservar otra cita</button>
           </div>
         )}
