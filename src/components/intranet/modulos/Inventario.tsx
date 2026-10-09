@@ -5,11 +5,13 @@ import { diffDays } from "@/lib/dates";
 import { useToday } from "@/lib/hooks";
 import { enqueue } from "@/lib/outbox";
 import { toast } from "@/lib/toast";
+import { nextMatCode } from "@/lib/bulk-materials";
+import { BulkMaterials } from "./BulkMaterials";
 import { Actions, ChipField, E, G, ModuleLayout, type Row, TextField, SheetSub, W } from "./kit";
 
 const UNITS = ["unid.", "cajas", "paquetes", "frascos", "pares", "g", "kg", "ml", "L"] as const;
 const FILTERS = ["Todos", "Stock bajo", "Por vencer"];
-type Sel = null | { mode: "new" } | { id: string };
+type Sel = null | { mode: "new" } | { mode: "bulk" } | { id: string };
 
 export function Inventario() {
   const { data: d } = useMod();
@@ -22,18 +24,18 @@ export function Inventario() {
 
   const rows: Row[] = d.inv
     .filter((i) => !chip || (chip === 1 ? status(i).low : status(i).soon))
-    .filter((i) => !q.trim() || i.n.toLowerCase().includes(q.trim().toLowerCase()))
+    .filter((i) => !q.trim() || `${i.n} ${i.code ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()))
     .map((i) => {
       const st = status(i);
-      return { id: i.id, t: i.n, sub: `Stock ${i.qty} ${i.u} · mínimo ${i.min} ${i.u}${i.venc ? ` · vence ${i.venc}` : ""}`, badge: st.low ? "Bajo" : st.soon ? "Por vencer" : "OK", tone: st.low ? E : st.soon ? W : G };
+      return { id: i.id, t: i.n, sub: `${i.code ? i.code + " · " : ""}Stock ${i.qty} ${i.u} · mínimo ${i.min} ${i.u}${i.venc ? ` · vence ${i.venc}` : ""}`, badge: st.low ? "Bajo" : st.soon ? "Por vencer" : "OK", tone: st.low ? E : st.soon ? W : G };
     });
   const cur = sel && "id" in sel ? d.inv.find((i) => i.id === sel.id) : undefined;
 
   return (
     <ModuleLayout title="Inventario" sub={`${d.inv.length} productos`} kpis={[{ l: "Stock bajo", v: String(d.inv.filter((i) => status(i).low).length), c: "var(--error-fg)" }, { l: "Por vencer", v: String(d.inv.filter((i) => status(i).soon).length), c: "var(--warning-fg)" }]}
-      chips={FILTERS} chip={chip} onChip={setChip} query={q} onQuery={setQ} cta="Nuevo producto" onCta={() => setSel({ mode: "new" })} rows={rows}
-      onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={sel && "mode" in sel ? "Nuevo producto" : (cur?.n ?? "")}
-      panel={sel && "mode" in sel ? <NewProduct onDone={() => setSel(null)} /> : cur ? <Product key={cur.id + cur.qty} rec={cur} soonFn={soon} onDone={() => setSel(null)} /> : null} />
+      chips={FILTERS} chip={chip} onChip={setChip} query={q} onQuery={setQ} cta="Nuevo producto" onCta={() => setSel({ mode: "new" })} extra={{ label: "Carga masiva", icon: "upload", onClick: () => setSel({ mode: "bulk" }) }} rows={rows}
+      onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={sel && "mode" in sel ? (sel.mode === "bulk" ? "Carga masiva de materiales" : "Nuevo producto") : (cur?.n ?? "")}
+      panel={sel && "mode" in sel ? (sel.mode === "bulk" ? <BulkMaterials onDone={() => setSel(null)} /> : <NewProduct onDone={() => setSel(null)} />) : cur ? <Product key={cur.id + cur.qty} rec={cur} soonFn={soon} onDone={() => setSel(null)} /> : null} />
   );
 }
 
@@ -50,7 +52,7 @@ function NewProduct({ onDone }: { onDone: () => void }) {
       <Actions items={[{ t: "Guardar producto", kind: "p", icon: "check", run: () => {
         if (!f.n.trim()) return toast("Indica el nombre");
         const prev = modStore.get();
-        saveMod({ ...prev, inv: [{ id: uid(), n: f.n.trim(), u: f.u, qty: Number(f.qty) || 0, min: Number(f.min) || 5, venc: f.venc }, ...prev.inv] }, "Producto agregado", prev);
+        saveMod({ ...prev, inv: [{ id: uid(), code: nextMatCode(prev.inv), n: f.n.trim(), u: f.u, qty: Number(f.qty) || 0, min: Number(f.min) || 5, venc: f.venc }, ...prev.inv] }, "Producto agregado", prev);
         onDone();
       } }]} />
     </>
