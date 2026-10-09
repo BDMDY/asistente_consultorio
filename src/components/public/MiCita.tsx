@@ -23,6 +23,7 @@ const STATUS_NAME: Record<Appt["st"], string> = {
   atendida: "Atendida",
   "en-sala": "En sala",
   "no-show": "No asistió",
+  bloqueo: "Horario bloqueado",
 };
 
 const btn: React.CSSProperties = { cursor: "pointer", border: 0, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontWeight: 700 };

@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { type BrandVars, deriveAccent, deriveBrand } from "./color";
+import { type Schedule, scheduleOf, scheduleSummary } from "./schedule";
 import { defineStore } from "./store";
 
 export interface BrandConfig {
@@ -21,6 +22,8 @@ export interface BrandConfig {
   instagram: string;
   facebook: string;
   hours: string;
+  /** horario de atención por día y cierres especiales (si existe, reemplaza al texto `hours`) */
+  schedule?: Schedule;
 }
 
 export const DEFAULT_BRAND: BrandConfig = {
@@ -61,6 +64,7 @@ export function resolveBrand(partial: Partial<BrandConfig>): ResolvedBrand {
   if (b.accent && b.accent.toUpperCase() !== DEFAULT_BRAND.accent) Object.assign(vars, deriveAccent(b.accent));
   return {
     ...b,
+    hours: b.schedule ? scheduleSummary(scheduleOf(b.schedule)) : b.hours,
     vars,
     waLink: "https://wa.me/" + String(b.whatsapp || "").replace(/\D/g, ""),
     telLink: "tel:" + String(b.phone || "").replace(/[^\d+]/g, ""),
@@ -76,3 +80,6 @@ export function useBrand(): ResolvedBrand {
 
 /** Variante azul de ejemplo del landing (demostración white-label). */
 export const AZUL_DEMO = { name: "Dental Norte", kicker: "ODONTOLOGÍA INTEGRAL · LIMA", vars: deriveBrand("#2F6FDE") };
+
+/** Horario de atención vigente (el configurado o, si no hay, lunes a sábado 09:00–17:00). */
+export const getSchedule = (): Schedule => scheduleOf(brandStore.get().schedule);

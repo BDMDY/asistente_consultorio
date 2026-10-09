@@ -2,17 +2,20 @@
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/kit";
-import { type Appt, STATUS_LABEL, type ApptStatus, hm } from "@/lib/agenda";
+import { type Appt, STATUS_LABEL, type ApptStatus, hm, hoursError } from "@/lib/agenda";
 import { inProgress } from "@/lib/attention";
+import { toast } from "@/lib/toast";
 import { labelShort } from "@/lib/dates";
 import { initials } from "@/lib/media";
 import type { AgendaCtx } from "./Agenda";
-import ApptDetail from "./ApptDetail";
+import ApptDetail, { BlockDetail } from "./ApptDetail";
 
 const SLOT_H = 18;
 const HEAD_H = 44;
 const HOURS = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
-const ORDER: ApptStatus[] = ["atendida", "pendiente", "confirmada", "en-sala", "cancelada", "no-show", "reprogramada"];
+const ORDER: ApptStatus[] = ["atendida", "pendiente", "confirmada", "en-sala", "cancelada", "no-show", "reprogramada", "bloqueo"];
+const HATCH = "repeating-linear-gradient(135deg,rgba(120,140,130,.22) 0 6px,rgba(120,140,130,.08) 6px 12px)";
+const BLOCKED_BG = "repeating-linear-gradient(135deg,var(--st-bloqueo-bg) 0 8px,transparent 8px 16px)";
 const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
 const navBtn: React.CSSProperties = { cursor: "pointer", width: 40, height: 40, borderRadius: 10, background: "var(--surface)", boxShadow: "inset 0 0 0 1px var(--line)", display: "flex", alignItems: "center", justifyContent: "center", border: 0, color: "inherit" };
 
@@ -76,11 +79,13 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
+          <button type="button" onClick={() => ctx.open({ kind: "block" })} style={{ cursor: "pointer", padding: "13px 16px", borderRadius: 12, background: "var(--surface)", boxShadow: "inset 0 0 0 1.5px var(--line)", color: "var(--ink-900)", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>Bloquear horario</button>
           <button type="button" onClick={() => ctx.open({ kind: "new", mode: "series" })} style={{ cursor: "pointer", padding: "13px 16px", borderRadius: 12, background: "var(--surface)", boxShadow: "inset 0 0 0 1.5px var(--brand-200)", color: "var(--brand-text)", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>Citas en serie</button>
           <button type="button" onClick={() => ctx.open({ kind: "new", mode: "single" })} style={{ cursor: "pointer", padding: "13px 18px", borderRadius: 12, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontSize: 14, border: 0, fontFamily: "inherit" }}>+ Nueva cita</button>
         </div>
       </div>
 
+      {!ctx.win && <div role="status" style={{ padding: "12px 14px", borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14 }}>{ctx.closedMsg}. No se pueden crear citas este día.</div>}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         {ORDER.map((k) => <span key={k} style={{ whiteSpace: "nowrap", padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700, background: `var(--st-${k}-bg)`, color: `var(--st-${k}-fg)` }}>{STATUS_LABEL[k]}</span>)}
         <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--ink-500)" }}>Clic en un hueco para agendar · arrastra una cita o usa las flechas del teclado</span>
@@ -100,12 +105,15 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
               <div style={{ position: "absolute", top: HEAD_H, left: 0, right: 0, bottom: 0 }}>
                 {Array.from({ length: 32 }, (_, k) => (
                   <div key={k} className="da-slot" role="button" tabIndex={-1} aria-label={`Agendar ${hm(k)} con ${d.name}`}
-                    onClick={() => ctx.open({ kind: "new", mode: "single", doc: d.id, time: hm(k) })}
+                    onClick={() => { const he = hoursError(date, k, 1); if (he) return toast(he); ctx.open({ kind: "new", mode: "single", doc: d.id, time: hm(k) }); }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => { e.preventDefault(); const a = appts.find((x) => x.id === dragId); if (a) ctx.move(a, { doc: d.id, slot: Math.min(k, 32 - a.dur) }); setDragId(null); }}
-                    style={{ cursor: "pointer", height: SLOT_H, boxSizing: "border-box", borderTop: k % 4 === 0 ? "1px solid var(--line)" : "1px dashed rgba(220,229,224,.5)" }} />
+                    style={{ cursor: !ctx.win || k < ctx.win.from || k >= ctx.win.to ? "not-allowed" : "pointer", height: SLOT_H, boxSizing: "border-box", borderTop: k % 4 === 0 ? "1px solid var(--line)" : "1px dashed rgba(220,229,224,.5)" }} />
                 ))}
               </div>
+              {(!ctx.win ? [[0, 32]] : [[0, ctx.win.from], [ctx.win.to, 32]]).filter(([f, t]) => t > f).map(([f, t]) => (
+                <div key={f} aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: HEAD_H + f * SLOT_H, height: (t - f) * SLOT_H, background: HATCH, pointerEvents: "none" }} />
+              ))}
               {day.filter((a) => a.doc === d.id).map((a) => {
                 const dur = resizing?.id === a.id ? resizing.dur : a.dur;
                 const live = inProgress(a);
@@ -116,9 +124,9 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
                   onDragEnd={() => setDragId(null)}
                   onKeyDown={(e) => onKey(e, a)}
                   onClick={(e) => { e.stopPropagation(); ctx.setSel(a.id); }}
-                  style={{ position: "absolute", left: 6, right: 6, top: HEAD_H + a.slot * SLOT_H, height: dur * SLOT_H - 2, borderRadius: 10, padding: "6px 10px", boxSizing: "border-box", background: `var(--st-${a.st}-bg)`, color: `var(--st-${a.st}-fg)`, fontSize: 13, overflow: "hidden", cursor: "grab", boxShadow: selId === a.id ? "0 0 0 2px var(--brand-500)" : "none", opacity: a.st === "cancelada" ? 0.6 : 1 }}>
+                  style={{ position: "absolute", left: 6, right: 6, top: HEAD_H + a.slot * SLOT_H, height: dur * SLOT_H - 2, borderRadius: 10, padding: "6px 10px", boxSizing: "border-box", background: `var(--st-${a.st}-bg)`, ...(a.st === "bloqueo" ? { backgroundImage: BLOCKED_BG, border: "1px dashed var(--ink-300)" } : {}), color: `var(--st-${a.st}-fg)`, fontSize: 13, overflow: "hidden", cursor: "grab", boxShadow: selId === a.id ? "0 0 0 2px var(--brand-500)" : "none", opacity: a.st === "cancelada" ? 0.6 : 1 }}>
                   <b>{a.p}</b>
-                  <div className="tnum" style={{ opacity: 0.85, fontSize: 12 }}>{live ? "● En atención · " : ""}{hm(a.slot)}–{hm(a.slot + dur)} · {a.s}{a.web ? " · Web" : ""}</div>
+                  <div className="tnum" style={{ opacity: 0.85, fontSize: 12 }}>{live ? "● En atención · " : ""}{hm(a.slot)}–{hm(a.slot + dur)}{a.st === "bloqueo" ? "" : ` · ${a.s}${a.web ? " · Web" : ""}`}</div>
                   <div role="separator" aria-orientation="horizontal" aria-label={`Cambiar duración de ${a.p}`} draggable={false} onPointerDown={(e) => startResize(e, a)} onClick={(e) => e.stopPropagation()} className="da-resize" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 8, cursor: "ns-resize", touchAction: "none" }} />
                 </div>
                 );
@@ -135,6 +143,7 @@ export function AgendaDesktop({ ctx }: { ctx: AgendaCtx }) {
               <span style={{ fontSize: 13 }}>Verás el detalle y las acciones.</span>
             </div>
           ) : (
+            sel.st === "bloqueo" ? <BlockDetail a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} onResize={(d) => ctx.resize(sel, d)} onClose={() => ctx.setSel(null)} /> :
             <ApptDetail a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} alerts={ctx.alerts(sel.p)} paid={ctx.paid(sel.id)} onResize={(d) => ctx.resize(sel, d)}
               onResched={() => ctx.open({ kind: "resched" })} onPay={() => ctx.open({ kind: "pay" })} onCancel={() => ctx.open({ kind: "cancel" })} onClose={() => ctx.setSel(null)} />
           )}
@@ -165,9 +174,11 @@ export function AgendaMobile({ ctx }: { ctx: AgendaCtx }) {
           <button type="button" onClick={ctx.goToday} aria-label="Ir a hoy" style={{ fontSize: 17, fontWeight: 800, background: "transparent", border: 0, color: "inherit", fontFamily: "inherit", cursor: "pointer" }} aria-live="polite">{cap(labelShort(date))}</button>
           <button type="button" onClick={() => ctx.go(1)} aria-label="Siguiente" style={{ ...navBtn, width: 44, height: 44, border: 0, background: "transparent", boxShadow: "none" }}><Icon name="chevron-right" /></button>
         </div>
+        {!ctx.win && <div role="status" style={{ padding: "10px 12px", borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 13 }}>{ctx.closedMsg}. No se pueden crear citas este día.</div>}
         <div style={{ display: "flex", gap: 6, overflow: "auto" }}>
           <button type="button" style={chip(docF === null)} onClick={() => setDocF(null)}>Todos</button>
           {docs.map((d) => <button key={d.id} type="button" style={chip(docF === d.id)} onClick={() => setDocF(d.id)}>{short(d.name)}</button>)}
+          <button type="button" style={{ ...chip(false), marginLeft: "auto" }} onClick={() => ctx.open({ kind: "block" })}>Bloquear horario</button>
         </div>
       </div>
 
@@ -198,8 +209,10 @@ export function AgendaMobile({ ctx }: { ctx: AgendaCtx }) {
       {detail && sel && (
         <Modal sheet onClose={() => setDetail(false)} label="Detalle de la cita">
           <div style={{ padding: "18px 18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <ApptDetail compact a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} alerts={ctx.alerts(sel.p)} paid={ctx.paid(sel.id)} onResize={(d) => ctx.resize(sel, d)}
-              onResched={() => act({ kind: "resched" })} onPay={() => act({ kind: "pay" })} onCancel={() => act({ kind: "cancel" })} />
+            {sel.st === "bloqueo"
+              ? <BlockDetail compact a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} onResize={(d) => ctx.resize(sel, d)} onClose={() => setDetail(false)} />
+              : <ApptDetail compact a={sel} doctor={docs.find((d) => d.id === sel.doc)?.name ?? ""} alerts={ctx.alerts(sel.p)} paid={ctx.paid(sel.id)} onResize={(d) => ctx.resize(sel, d)}
+                onResched={() => act({ kind: "resched" })} onPay={() => act({ kind: "pay" })} onCancel={() => act({ kind: "cancel" })} />}
           </div>
         </Modal>
       )}

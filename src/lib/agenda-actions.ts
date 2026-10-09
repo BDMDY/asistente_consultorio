@@ -1,8 +1,8 @@
 "use client";
-import { type Appt, type ApptStatus, STATUS_LABEL, apptWhenShort, clash, generateSeries, hm, isClosedDay, slotOf, SLOTS, type SeriesRule } from "./agenda";
+import { type Appt, type ApptStatus, STATUS_LABEL, apptWhenShort, clash, generateSeries, hm, hoursError, isClosedDay, slotOf, SLOTS, type SeriesRule } from "./agenda";
 import { addAppts, agendaStore, patchAppt, removeAppts } from "./agenda-store";
 import { checkResize, minutesBetween } from "./attention";
-import { isISODate } from "./dates";
+import { addDays, isISODate } from "./dates";
 import { newId } from "./ids";
 import { mediaStore, parsePrice, resolveMedia } from "./media";
 import { enqueue } from "./outbox";
@@ -61,6 +61,8 @@ export type MoveCheck = { ok: true } | { ok: false; error: string };
 /** Mover una cita a otro doctor/tramo (arrastrar o teclado). */
 export function checkMove(list: Appt[], a: Appt, to: { doc: number; slot: number }, doctorIds: number[]): MoveCheck {
   if (to.slot < 0 || to.slot + a.dur > SLOTS || !doctorIds.includes(to.doc)) return { ok: false, error: "No se puede mover más allá" };
+  const he = a.st === "bloqueo" ? "" : hoursError(a.date, to.slot, a.dur);
+  if (he) return { ok: false, error: he };
   if (clash(list, { date: a.date, doc: to.doc, slot: to.slot, dur: a.dur }, a.id)) return { ok: false, error: "Choque: ese horario ya está ocupado" };
   return { ok: true };
 }
@@ -86,9 +88,9 @@ export function validateNew(list: Appt[], f: NewApptForm, mode: "single" | "seri
   const slot = slotOf(f.time);
   if (f.patient.trim().length < 3) return "Indica el paciente";
   if (!isISODate(f.date) || f.date < today) return "Elige una fecha válida (desde hoy)";
-  if (isClosedDay(f.date)) return "Los domingos no hay atención";
   if (slot === null) return "Hora entre 09:00 y 16:45, en tramos de 15 min";
-  if (slot + f.dur > SLOTS) return "La cita termina después de las 17:00";
+  const he = hoursError(f.date, slot, f.dur);
+  if (he) return he;
   if (mode === "single") {
     if (clash(list, { date: f.date, doc: f.doc, slot, dur: f.dur })) return "Ese horario ya está ocupado";
   } else {
@@ -136,4 +138,55 @@ export function finishAttention(a: Appt): number {
   const now = new Date().toISOString();
   patchAppt(a.id, { t1: now });
   return a.t0 ? minutesBetween(a.t0, now) : 0;
+}
+
+// ---------- bloqueos de horario (almuerzo, reuniones…) ----------
+
+export interface BlockForm {
+  /** doctores a bloquear */
+  docs: number[];
+  date: string;
+  from: string;
+  to: string;
+  label: string;
+  repeat: "once" | "daily";
+  /** último día si se repite todos los días de atención */
+  until: string;
+}
+
+const endSlotOf = (t: string) => (t === "17:00" ? SLOTS : slotOf(t));
+
+export function validateBlock(f: BlockForm, today: string): string {
+  const a = slotOf(f.from), b = endSlotOf(f.to);
+  if (!f.docs.length) return "Elige al menos un doctor";
+  if (f.label.trim().length < 2) return "Indica el motivo (por ejemplo, Almuerzo)";
+  if (!isISODate(f.date) || f.date < today) return "Elige una fecha válida (desde hoy)";
+  if (a === null || b === null) return "Hora entre 09:00 y 17:00, en tramos de 15 min";
+  if (b <= a) return "La hora de fin debe ser posterior a la de inicio";
+  if (f.repeat === "daily" && (!isISODate(f.until) || f.until < f.date)) return "Elige hasta qué día se repite";
+  return "";
+}
+
+/** Crea los bloqueos (uno por doctor y día de atención). Se omiten los horarios donde ya hay citas u otros bloqueos. */
+export function createBlocks(f: BlockForm) {
+  const a = slotOf(f.from)!, b = endSlotOf(f.to)!;
+  const list = agendaStore.get().appts.slice();
+  const last = f.repeat === "daily" ? (f.until < addDays(f.date, 120) ? f.until : addDays(f.date, 120)) : f.date;
+  const items: Omit<Appt, "id">[] = [];
+  let skipped = 0, days = 0;
+  for (let d = f.date; d <= last; d = addDays(d, 1)) {
+    if (isClosedDay(d)) continue;
+    let any = false;
+    for (const doc of f.docs) {
+      const probe = { date: d, doc, slot: a, dur: b - a };
+      if (clash(list, probe)) { skipped++; continue; }
+      const item = { ...probe, p: f.label.trim(), s: "Bloqueo", st: "bloqueo" as ApptStatus };
+      items.push(item);
+      list.push({ ...item, id: 0 });
+      any = true;
+    }
+    if (any) days++;
+  }
+  const created = addAppts(items);
+  return { created, skipped, days, undo: () => removeAppts(created.map((c) => c.id)) };
 }

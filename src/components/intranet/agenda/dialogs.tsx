@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { CloseBtn, Modal, Notice, Segmented, btnOutline, btnPrimary, chipStyle, fieldStyle, labelStyle } from "@/components/ui/kit";
-import { type Appt, type SeriesRule, SLOTS, checkReschedule, clash, freeStarts, generateSeries, hm, isClosedDay, slotOf } from "@/lib/agenda";
-import { CANCEL_REASONS, type NewApptForm, cancelAppt, chargeAppt, createAppts, priceFor, rescheduleAppt, validateNew } from "@/lib/agenda-actions";
+import { type Appt, type SeriesRule, checkReschedule, clash, freeStarts, generateSeries, hm, hoursError, isClosedDay, slotOf } from "@/lib/agenda";
+import { type BlockForm, CANCEL_REASONS, type NewApptForm, createBlocks, validateBlock, cancelAppt, chargeAppt, createAppts, priceFor, rescheduleAppt, validateNew } from "@/lib/agenda-actions";
 import { agendaStore } from "@/lib/agenda-store";
 import { labelShort, weekday, WEEKDAYS_SHORT } from "@/lib/dates";
 import { type Doctor, activeServices, serviceSlots, useMedia } from "@/lib/media";
@@ -12,7 +12,8 @@ import { enqueue } from "@/lib/outbox";
 import { patientsStore, samePatientName } from "@/lib/patients";
 import NewPatientDialog from "../pacientes/NewPatientDialog";
 import { toast } from "@/lib/toast";
-import { useBrand } from "@/lib/brand";
+import { getSchedule, useBrand } from "@/lib/brand";
+import { closedReason } from "@/lib/schedule";
 
 const DURS = [1, 2, 3, 4, 6, 8];
 const FREQS: ["weekly" | "biweekly" | "monthly", string][] = [["weekly", "Semanal"], ["biweekly", "Cada 2 semanas"], ["monthly", "Mensual"]];
@@ -61,9 +62,9 @@ export function NewApptDialog({ today, docs, initial, sheet, onClose, onCreated 
   const docName = docs.find((d) => d.id === f.doc)?.name ?? "";
 
   let avail: { tone: "success" | "warning" | "error"; icon: "circle-check" | "triangle-alert" | "circle-x" | "clock"; msg: string };
-  if (isClosedDay(f.date)) avail = { tone: "warning", icon: "triangle-alert", msg: "Los domingos no hay atención." };
+  if (isClosedDay(f.date)) avail = { tone: "warning", icon: "triangle-alert", msg: closedReason(f.date, getSchedule()) + "." };
   else if (slot === null) avail = { tone: "warning", icon: "clock", msg: "Elige una hora entre 09:00 y 16:45 en tramos de 15 min." };
-  else if (slot + f.dur > SLOTS) avail = { tone: "warning", icon: "clock", msg: "La cita terminaría después de las 17:00." };
+  else if (hoursError(f.date, slot, f.dur)) avail = { tone: "warning", icon: "clock", msg: hoursError(f.date, slot, f.dur) + "." };
   else if (hit) avail = { tone: "error", icon: "circle-x", msg: `Choca con ${hit.p} (${hm(hit.slot)}–${hm(hit.slot + hit.dur)}). Elige otro horario.` };
   else avail = { tone: "success", icon: "circle-check", msg: `Horario libre · ${docName} · ${hm(slot)}–${hm(slot + f.dur)}` };
 
@@ -409,6 +410,62 @@ export function ContactDialog({ next, delayMin, mode: initialMode, sheet, onClos
           <button type="button" onClick={send} style={btnPrimary()}>{phone ? "Abrir WhatsApp y registrar" : "Registrar aviso"}</button>
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-500)" }}>El envío automático se activará al conectar la API de WhatsApp; mientras tanto se abre el chat con el mensaje listo.</div>
+      </div>
+    </Modal>
+  );
+}
+
+// ───────────────────────── Bloquear horario ─────────────────────────
+
+const BLOCK_LABELS = ["Almuerzo", "Reunión", "Capacitación", "Otro"] as const;
+
+/** Reserva un rango de la agenda (almuerzo, reunión…) para uno o todos los doctores, una vez o todos los días de atención. */
+export function BlockDialog({ today, date, docs, initial, sheet, onClose, onCreated }: {
+  today: string; date: string; docs: Doctor[]; initial?: { doc?: number; time?: string }; sheet: boolean; onClose: () => void; onCreated: (date: string) => void;
+}) {
+  const [kind, setKind] = useState<(typeof BLOCK_LABELS)[number]>("Almuerzo");
+  const [other, setOther] = useState("");
+  const [f, setF] = useState({ doc: initial?.doc ?? 0, date: date < today ? today : date, from: initial?.time ?? "13:00", to: "14:00", repeat: "once" as "once" | "daily", until: "" });
+  const form: BlockForm = { docs: f.doc ? [f.doc] : docs.map((d) => d.id), date: f.date, from: f.from, to: f.to, label: kind === "Otro" ? other : kind, repeat: f.repeat, until: f.until || f.date };
+  const err = validateBlock(form, today);
+  const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
+
+  function create() {
+    if (err) return;
+    const r = createBlocks(form);
+    if (!r.created.length) return toast("No se creó: en ese horario ya hay citas o bloqueos");
+    toast(`Bloqueo «${form.label.trim()}» creado · ${f.from}–${f.to}${r.days > 1 ? ` · ${r.days} días` : ""}${r.skipped ? ` · ${r.skipped} omitido(s) por citas existentes` : ""}`, r.undo);
+    onCreated(f.date);
+    onClose();
+  }
+
+  return (
+    <Modal onClose={onClose} width={520} label="Bloquear horario" sheet={sheet}>
+      <div style={{ padding: 26, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><b style={{ fontSize: 22 }}>Bloquear horario</b><CloseBtn onClick={onClose} /></div>
+        <div style={{ fontSize: 13, color: "var(--ink-500)", lineHeight: 1.5 }}>Nadie podrá agendar en ese rango, ni en la agenda ni en la reserva web.</div>
+        <div role="group" aria-label="Motivo" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {BLOCK_LABELS.map((l) => <button key={l} type="button" aria-pressed={kind === l} onClick={() => setKind(l)} style={timeChip(kind === l)}>{l}</button>)}
+        </div>
+        {kind === "Otro" && <label style={labelStyle}>Motivo<input value={other} onChange={(e) => setOther(e.target.value)} placeholder="Ej. Mantenimiento del equipo" style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>}
+        <label style={labelStyle}>Doctor
+          <select value={f.doc} onChange={(e) => set({ doc: +e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }}>
+            <option value={0}>Todos los doctores</option>
+            {docs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </label>
+        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: 10 }}>
+          <label style={labelStyle}>Fecha<input type="date" min={today} value={f.date} onChange={(e) => set({ date: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
+          <label style={labelStyle}>Desde<input type="time" step={900} min="09:00" max="16:45" value={f.from} onChange={(e) => set({ from: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
+          <label style={labelStyle}>Hasta<input type="time" step={900} min="09:15" max="17:00" value={f.to} onChange={(e) => set({ to: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>
+        </div>
+        <Segmented value={f.repeat} onChange={(repeat) => set({ repeat })} options={[["once", "Solo este día"], ["daily", "Todos los días de atención"]]} />
+        {f.repeat === "daily" && <label style={labelStyle}>Repetir hasta<input type="date" min={f.date} value={f.until} onChange={(e) => set({ until: e.target.value })} style={{ ...fieldStyle, height: 46, fontSize: 15 }} /></label>}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span role="alert" style={{ flex: 1, minWidth: 160, fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>{err}</span>
+          <button type="button" onClick={onClose} style={btnOutline}>Cancelar</button>
+          <button type="button" onClick={create} disabled={!!err} style={btnPrimary(!err)}>Bloquear</button>
+        </div>
       </div>
     </Modal>
   );

@@ -69,6 +69,7 @@ export async function bookPublic(b: BookInput, doctorIds: number[]): Promise<Boo
 const BOOK_ERRORS: Record<string, string> = {
   too_many_pending: "Ya tienes 3 citas pendientes con este DNI. Confirma o cancela alguna para reservar otra.",
   invalid_dni: "El DNI debe tener 8 dígitos",
+  invalid_hours: "Ese horario está fuera del horario de atención",
   invalid_email: "Revisa el correo electrónico",
   invalid_phone: "Revisa el número de teléfono",
   invalid_name: "Revisa el nombre",

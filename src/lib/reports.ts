@@ -44,7 +44,7 @@ export function openDays(r: Range): number {
 /** Orden en que se listan los reportes. */
 const ORDER = ["ing", "ingd", "serv", "sdia", "cli", "ocu", "nue", "can"];
 const ACTIVE = new Set(["pendiente", "confirmada", "en-sala", "atendida", "reprogramada"]);
-const STATUS = { pendiente: "Pendiente", confirmada: "Confirmada", "en-sala": "En sala", atendida: "Atendida", cancelada: "Cancelada", "no-show": "No-show", reprogramada: "Reprogramada" } as const;
+const STATUS = { pendiente: "Pendiente", confirmada: "Confirmada", "en-sala": "En sala", atendida: "Atendida", cancelada: "Cancelada", "no-show": "No-show", reprogramada: "Reprogramada", bloqueo: "Bloqueado" } as const;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const pct = (n: number, total: number) => (total ? Math.round((n / total) * 1000) / 10 : 0);
 
@@ -77,7 +77,8 @@ export function bucketLabel(l: string): string {
 
 export function buildReports(i: { today: string; period: Period; custom?: Range; appts: Appt[]; payments: Payment[]; patients: Patient[]; doctors: Doctor[] }): { reports: Report[]; summary: Summary; range: Range } {
   const range = periodRange(i.today, i.period, i.custom);
-  const appts = i.appts.filter((a) => inRange(a.date, range));
+  // Los bloqueos de horario (almuerzo, reuniones) no son citas: no entran a ningún reporte.
+  const appts = i.appts.filter((a) => a.st !== "bloqueo" && inRange(a.date, range));
   const pays = i.payments.filter((p) => inRange(limaDateOf(p.at), range));
   const docName = (id: number) => i.doctors.find((d) => d.id === id)?.full ?? "Doctor sin asignar";
   const apptRow = (a: Appt): Cell[] => [a.date, hm(a.slot), a.p, a.s, docName(a.doc), STATUS[a.st], a.dur * 15];
@@ -254,7 +255,7 @@ export function allApptsTable(i: { appts: Appt[]; doctors: Doctor[]; range: Rang
   const doc = (id: number) => i.doctors.find((d) => d.id === id)?.full ?? "";
   return {
     columns: ["Fecha", "Hora", "Paciente", "Servicio", "Doctor", "Estado", "Duración (min)", "Origen"],
-    rows: i.appts.filter((a) => inRange(a.date, i.range)).sort((a, b) => a.date.localeCompare(b.date) || a.slot - b.slot)
+    rows: i.appts.filter((a) => a.st !== "bloqueo" && inRange(a.date, i.range)).sort((a, b) => a.date.localeCompare(b.date) || a.slot - b.slot)
       .map((a): Cell[] => [a.date, hm(a.slot), a.p, a.s, doc(a.doc), STATUS[a.st], a.dur * 15, a.web ? "Reserva web" : "Clínica"]),
   };
 }

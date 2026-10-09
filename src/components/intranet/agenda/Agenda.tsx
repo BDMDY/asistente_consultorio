@@ -5,7 +5,9 @@ import { type Appt, hm } from "@/lib/agenda";
 import { checkMove, moveAppt, resizeAppt } from "@/lib/agenda-actions";
 import { delayAlerts, suggestedDelay } from "@/lib/attention";
 import { agendaStore } from "@/lib/agenda-store";
-import { addDays, todayISO, nextOpenDay, weekday } from "@/lib/dates";
+import { addDays, todayISO } from "@/lib/dates";
+import { getSchedule, useBrand } from "@/lib/brand";
+import { type Window, closedReason, dayWindow, nextOpen, scheduleOf } from "@/lib/schedule";
 import { useNowMin, useToday } from "@/lib/hooks";
 import { outboxStore } from "@/lib/outbox";
 import { useDoctors } from "@/lib/doctors";
@@ -14,18 +16,22 @@ import { alertsFor, patientsStore } from "@/lib/patients";
 import { paymentsStore } from "@/lib/payments";
 import { toast } from "@/lib/toast";
 import DelayAlerts from "./DelayAlerts";
-import { CancelDialog, ContactDialog, NewApptDialog, PayDialog, RescheduleDialog } from "./dialogs";
+import { BlockDialog, CancelDialog, ContactDialog, NewApptDialog, PayDialog, RescheduleDialog } from "./dialogs";
 import { AgendaDesktop, AgendaMobile } from "./views";
 
 export type Dialog =
   | null
   | { kind: "new"; mode: "single" | "series"; doc?: number; time?: string; patient?: string }
+  | { kind: "block"; doc?: number; time?: string }
   | { kind: "resched" | "cancel" | "pay" }
   | { kind: "contact"; nextId: number; delayMin: number; mode: "demora" | "reprogramar" };
 
 export interface AgendaCtx {
   date: string;
   today: string;
+  /** horas de atención del día (null = día sin atención) y el motivo */
+  win: Window | null;
+  closedMsg: string;
   docs: ReturnType<typeof useDoctors>;
   appts: Appt[];
   selId: number | null;
@@ -51,7 +57,9 @@ export default function Agenda() {
   const wide = useMediaQuery("(min-width: 900px)");
   const docs = useDoctors();
 
-  const [date, setDate] = useState(() => nextOpenDay(todayISO()));
+  const brand = useBrand();
+  const schedule = scheduleOf(brand.schedule);
+  const [date, setDate] = useState(() => nextOpen(todayISO(), getSchedule()));
   const [selId, setSel] = useState<number | null>(null);
   const [dialog, setDialog] = useState<Dialog>(() => {
     const n = params.get("nueva");
@@ -61,12 +69,14 @@ export default function Agenda() {
   const sel = appts.find((a) => a.id === selId) ?? null;
   const ctx: AgendaCtx = {
     date, today, docs, appts, selId, setSel,
+    win: dayWindow(date, schedule), closedMsg: closedReason(date, schedule),
     go: (delta) => {
+      // Salta los días de descanso y los cierres especiales.
       let d = addDays(date, delta);
-      if (weekday(d) === 0) d = addDays(d, delta);
+      for (let i = 0; i < 14 && !dayWindow(d, schedule); i++) d = addDays(d, delta);
       setDate(d);
     },
-    goToday: () => setDate(nextOpenDay(today)),
+    goToday: () => setDate(nextOpen(today, schedule)),
     open: setDialog,
     move: (a, to) => {
       const c = checkMove(appts, a, to, docs.map((d) => d.id));
@@ -105,10 +115,11 @@ export default function Agenda() {
         <NewApptDialog
           key={`${dialog.mode}-${dialog.time ?? ""}-${dialog.doc ?? ""}`}
           today={today} docs={docs} sheet={!wide} onClose={close}
-          initial={{ mode: dialog.mode, date, doc: dialog.doc ?? firstDoc, time: dialog.time ?? firstFreeTime(appts, date, dialog.doc ?? firstDoc), patient: dialog.patient ?? "" }}
+          initial={{ mode: dialog.mode, date, doc: dialog.doc ?? firstDoc, time: dialog.time ?? firstFreeTime(appts, date, dialog.doc ?? firstDoc, ctx.win), patient: dialog.patient ?? "" }}
           onCreated={(d) => { setDate(d); }}
         />
       )}
+      {dialog?.kind === "block" && <BlockDialog today={today} date={date} docs={docs} initial={{ doc: dialog.doc, time: dialog.time }} sheet={!wide} onClose={close} onCreated={(d) => setDate(d)} />}
       {dialog?.kind === "resched" && sel && <RescheduleDialog a={sel} today={today} docs={docs} sheet={!wide} onClose={close} onDone={(d) => setDate(d)} />}
       {dialog?.kind === "contact" && contactNext && (
         <ContactDialog next={contactNext} delayMin={dialog.delayMin} mode={dialog.mode} sheet={!wide} onClose={close} onResched={() => { setSel(contactNext.id); setDialog({ kind: "resched" }); }} />
@@ -119,9 +130,9 @@ export default function Agenda() {
   );
 }
 
-function firstFreeTime(appts: Appt[], date: string, doc: number): string {
-  for (let s = 0; s + 3 <= 32; s++) {
+function firstFreeTime(appts: Appt[], date: string, doc: number, win: Window | null): string {
+  for (let s = win?.from ?? 0; s + 3 <= (win?.to ?? 32); s++) {
     if (!appts.some((b) => b.date === date && b.doc === doc && b.st !== "cancelada" && s < b.slot + b.dur && b.slot < s + 3)) return hm(s);
   }
-  return "09:00";
+  return hm(win?.from ?? 0);
 }

@@ -137,3 +137,49 @@ const ghost = (disabled: boolean): React.CSSProperties => ({ cursor: disabled ? 
 export function StatusPill({ st }: { st: Appt["st"] }) {
   return <span style={{ alignSelf: "flex-start", whiteSpace: "nowrap", padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700, background: `var(--st-${st}-bg)`, color: `var(--st-${st}-fg)` }}>{STATUS_LABEL[st]}</span>;
 }
+
+/** Detalle de un bloqueo de horario (almuerzo, reunión…): ajustar su duración o quitarlo. */
+export function BlockDetail({ a, doctor, onResize, onClose, compact }: { a: Appt; doctor: string; onResize: (dur: number) => void; onClose?: () => void; compact?: boolean }) {
+  const [{ appts }] = agendaStore.useStore();
+  const [sure, setSure] = useState(false);
+  const same = appts.filter((x) => x.st === "bloqueo" && x.doc === a.doc && x.p === a.p && x.slot === a.slot && x.dur === a.dur && x.date >= a.date);
+
+  function remove(list: Appt[], msg: string) {
+    removeAppts(list.map((x) => x.id));
+    setSure(false);
+    onClose?.();
+    toast(msg, () => agendaStore.update((s) => ({ ...s, appts: [...s.appts, ...list] })));
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <b style={{ fontSize: 18 }}>Horario bloqueado</b>
+        {!compact && onClose && <button type="button" onClick={onClose} aria-label="Cerrar" style={{ cursor: "pointer", background: "transparent", border: 0, color: "inherit" }}><Icon name="x" /></button>}
+      </div>
+      <StatusPill st="bloqueo" />
+      <div><b style={{ fontSize: 20 }}>{a.p}</b><div className="tnum" style={{ color: "var(--ink-500)", fontSize: 14 }}>{labelShort(a.date)} · {hm(a.slot)}–{hm(a.slot + a.dur)} · {doctor}</div></div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }} role="group" aria-label="Duración del bloqueo">
+        <span style={{ fontSize: 14, fontWeight: 600 }}>Duración</span>
+        <button type="button" aria-label="Reducir 15 minutos" disabled={a.dur <= 1} onClick={() => onResize(a.dur - 1)} style={stepBtn(a.dur <= 1)}>−15</button>
+        <b className="tnum" style={{ minWidth: 58, textAlign: "center" }}>{a.dur * 15} min</b>
+        <button type="button" aria-label="Extender 15 minutos" onClick={() => onResize(a.dur + 1)} style={stepBtn(false)}>+15</button>
+      </div>
+      <div style={{ flex: 1 }} />
+      {sure ? (
+        <div role="alert" style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, borderRadius: 12, background: "var(--error-bg)" }}>
+          <b style={{ fontSize: 13, color: "var(--error-fg)" }}>¿Quitar este bloqueo? Ese horario volverá a estar disponible.</b>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button type="button" onClick={() => setSure(false)} style={ghost(false)}>No, volver</button>
+            <button type="button" onClick={() => remove([a], "Bloqueo quitado")} style={{ ...ghost(false), background: "var(--error-fg)", color: "#fff", boxShadow: "none" }}>Sí, quitar</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button type="button" onClick={() => setSure(true)} style={{ ...ghost(false), color: "var(--error-fg)" }}>Quitar bloqueo</button>
+          {same.length > 1 && <button type="button" onClick={() => remove(same, `${same.length} bloqueos quitados`)} style={{ ...ghost(false), color: "var(--error-fg)" }}>Quitar este y los {same.length - 1} siguientes iguales</button>}
+        </>
+      )}
+    </div>
+  );
+}

@@ -6,7 +6,7 @@ import { limaMinutesNow } from "./dates";
 export const DAY_START = 540;
 export const startMin = (a: Pick<Appt, "slot">) => DAY_START + a.slot * 15;
 export const endMin = (a: Pick<Appt, "slot" | "dur">) => DAY_START + (a.slot + a.dur) * 15;
-const CLOSED = new Set(["cancelada", "atendida", "no-show"]);
+const CLOSED = new Set(["cancelada", "atendida", "no-show", "bloqueo"]);
 export const isClosed = (a: Pick<Appt, "st">) => CLOSED.has(a.st);
 
 /** En curso: el doctor marcó el inicio (o el paciente está en sala) y aún no marcó el fin. */

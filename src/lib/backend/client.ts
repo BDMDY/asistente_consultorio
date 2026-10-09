@@ -14,6 +14,7 @@ export function errText(err: unknown): string {
   const e = err as { message?: string; code?: string } | null;
   const msg = e?.message ?? "";
   if (e?.code === "23P01" || msg.includes("appointments_no_overlap") || msg.includes("slot_taken")) return "Ese horario ya fue ocupado";
+  if (msg.includes("invalid_hours")) return "Fuera del horario de atención (día de descanso, cierre u hora no laborable)";
   if (e?.code === "42501" || /row-level security|permission denied/i.test(msg)) return "No tienes permiso para esta acción";
   if (msg.includes("Debe quedar al menos un administrador")) return "Debe quedar al menos un administrador activo";
   if (e?.code === "23505") return "Ya existe un registro con esos datos";

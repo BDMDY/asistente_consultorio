@@ -1,3 +1,5 @@
+import { getSchedule } from "./brand";
+import { closedReason, dayWindow } from "./schedule";
 import { addDays, dayNumber, dayOfMonth, fromDayNumber, isISODate, labelLong, labelShort, nextOpenDay, todayISO, weekday } from "./dates";
 
 /** La agenda trabaja en tramos de 15 min entre 09:00 y 17:00 (32 tramos). Domingos cerrado. */
@@ -5,7 +7,8 @@ export const SLOTS = 32;
 export const SLOT_MIN = 15;
 export const DAY_START_MIN = 9 * 60;
 
-export type ApptStatus = "pendiente" | "confirmada" | "en-sala" | "atendida" | "cancelada" | "no-show" | "reprogramada";
+/** `bloqueo` no es una cita: es un rango reservado en la agenda (almuerzo, reunión…) que impide agendar ahí. */
+export type ApptStatus = "pendiente" | "confirmada" | "en-sala" | "atendida" | "cancelada" | "no-show" | "reprogramada" | "bloqueo";
 
 export const STATUS_LABEL: Record<ApptStatus, string> = {
   pendiente: "Pendiente",
@@ -15,6 +18,7 @@ export const STATUS_LABEL: Record<ApptStatus, string> = {
   cancelada: "Cancelada",
   "no-show": "No-show",
   reprogramada: "Reprogramada",
+  bloqueo: "Bloqueado",
 };
 
 export interface Appt {
@@ -63,7 +67,17 @@ export function slotOf(time: string): number | null {
   return Number.isInteger(v) && v >= 0 && v < SLOTS ? v : null;
 }
 
-export const isClosedDay = (iso: string) => weekday(iso) === 0;
+/** Día sin atención según el horario configurado (descanso semanal o cierre especial). */
+export const isClosedDay = (iso: string) => !dayWindow(iso, getSchedule());
+
+/** Error si no se puede agendar a esa hora ese día ("" si está dentro del horario de atención). */
+export function hoursError(date: string, slot: number, dur: number): string {
+  const s = getSchedule();
+  const w = dayWindow(date, s);
+  if (!w) return closedReason(date, s);
+  if (slot < w.from || slot + dur > w.to) return `Fuera del horario de atención (${hm(w.from)}–${hm(w.to)})`;
+  return "";
+}
 
 type Slotted = Pick<Appt, "date" | "doc" | "slot" | "dur">;
 
@@ -85,8 +99,9 @@ export function clash(list: Appt[], a: Slotted, ignoreId?: number): Appt | null 
 /** Tramos de inicio libres para una cita de `dur` tramos. `step` 2 = cada 30 min (reserva web). */
 export function freeStarts(list: Appt[], date: string, doc: number, dur: number, opts: { step?: number; ignoreId?: number } = {}) {
   const out: number[] = [];
-  if (!isISODate(date) || isClosedDay(date)) return out;
-  for (let s = 0; s + dur <= SLOTS; s += opts.step ?? 1) {
+  const w = isISODate(date) ? dayWindow(date, getSchedule()) : null;
+  if (!w) return out;
+  for (let s = w.from; s + dur <= w.to; s += opts.step ?? 1) {
     if (!clash(list, { date, doc, slot: s, dur }, opts.ignoreId)) out.push(s);
   }
   return out;
@@ -94,7 +109,7 @@ export function freeStarts(list: Appt[], date: string, doc: number, dur: number,
 
 /** Disponibilidad pública: con `doc = null` ("sin preferencia") basta con que algún doctor esté libre. */
 export function isSlotTaken(list: Appt[], doctorIds: number[], date: string, doc: number | null, slot: number, dur: number) {
-  if (slot + dur > SLOTS) return true;
+  if (slot + dur > SLOTS || hoursError(date, slot, dur)) return true;
   const free = (d: number) => !clash(list, { date, doc: d, slot, dur });
   return doc === null ? !doctorIds.some(free) : !free(doc);
 }
@@ -146,6 +161,15 @@ export function generateSeries(
     }
     if (!hit) continue;
     found++;
+    const w = dayWindow(date, getSchedule());
+    if (!w) {
+      out.push({ date, slot: base.slot, status: "skip", note: closedReason(date, getSchedule()) });
+      continue;
+    }
+    if (base.slot < w.from || base.slot + base.dur > w.to) {
+      out.push({ date, slot: base.slot, status: "skip", note: `Fuera del horario (${hm(w.from)}–${hm(w.to)})` });
+      continue;
+    }
     const cand = { id: 0, date, doc: base.doc, slot: base.slot, dur: base.dur } as Appt;
     const conflict = clash(work, cand);
     if (!conflict) {
@@ -155,7 +179,7 @@ export function generateSeries(
     }
     if (rule.onClash === "move") {
       let s2: number | null = null;
-      for (let s = base.slot + 1; s + base.dur <= SLOTS; s++) {
+      for (let s = base.slot + 1; s + base.dur <= w.to; s++) {
         if (!clash(work, { date, doc: base.doc, slot: s, dur: base.dur })) {
           s2 = s;
           break;
@@ -178,9 +202,9 @@ export type RescheduleCheck = { ok: true } | { ok: false; error: string; conflic
 
 export function checkReschedule(list: Appt[], a: Appt, target: { date: string; slot: number | null; doc: number }, today = todayISO()): RescheduleCheck {
   if (!isISODate(target.date) || target.date < today) return { ok: false, error: "Elige una fecha válida (desde hoy)" };
-  if (isClosedDay(target.date)) return { ok: false, error: "Los domingos no hay atención" };
   if (target.slot === null) return { ok: false, error: "Hora entre 09:00 y 16:45, en tramos de 15 min" };
-  if (target.slot + a.dur > SLOTS) return { ok: false, error: "La cita terminaría después de las 17:00" };
+  const he = hoursError(target.date, target.slot, a.dur);
+  if (he) return { ok: false, error: he };
   const hit = clash(list, { date: target.date, doc: target.doc, slot: target.slot, dur: a.dur }, a.id);
   if (hit) return { ok: false, error: `Choca con ${hit.p} (${hm(hit.slot)}–${hm(hit.slot + hit.dur)})`, conflict: hit };
   if (target.date === a.date && target.slot === a.slot && target.doc === a.doc) return { ok: false, error: "Es el mismo horario de la cita actual" };

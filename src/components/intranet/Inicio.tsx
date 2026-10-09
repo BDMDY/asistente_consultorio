@@ -30,7 +30,7 @@ export default function Inicio() {
   const docs = useDoctors();
   const sedeActiva = resolveSede(sede, mod.sedes.map((z) => z.n));
 
-  const todays = appts.filter((a) => a.date === today && a.st !== "cancelada").sort((a, b) => a.slot - b.slot);
+  const todays = appts.filter((a) => a.date === today && a.st !== "cancelada" && a.st !== "bloqueo").sort((a, b) => a.slot - b.slot);
   const unconfirmed = todays.filter((a) => a.st === "pendiente").length;
   const occ = docs.map((d) => ({ name: d.name, pct: Math.round((todays.filter((a) => a.doc === d.id).reduce((n, a) => n + a.dur, 0) / SLOTS) * 100) }));
   const occAvg = occ.length ? Math.round(occ.reduce((n, o) => n + o.pct, 0) / occ.length) : 0;

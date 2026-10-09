@@ -3,20 +3,24 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isRemote } from "@/lib/backend/config";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
+import { hm } from "@/lib/agenda";
+import { agendaStore } from "@/lib/agenda-store";
+import { WEEKDAYS_LONG, labelLong, todayISO } from "@/lib/dates";
+import { type Schedule, dayWindow, scheduleOf } from "@/lib/schedule";
 import { nextAgenda } from "@/lib/doctors";
 import { type DiscountCamp, type DiscountCode, type Role, type Sede, type StaffUser, modStore, money0, saveMod, seedMod, uid, useMod } from "@/lib/mod";
 import { enqueue } from "@/lib/outbox";
 import { type PermRow, permsStore } from "@/lib/perms";
 import { toast } from "@/lib/toast";
-import { Actions, AreaField, ChipField, E, G, ModuleLayout, N, type Row, SheetSub, TextField } from "./kit";
+import { Actions, AreaField, ChipField, E, Field, G, ModuleLayout, N, type Row, SheetSub, TextField } from "./kit";
 import { LinkBtn } from "./Planes";
 
-const TABS = ["Marca y contacto", "Usuarios", "Sedes", "Notificaciones", "Descuentos", "Roles y permisos"];
-const CTA = ["Logo y colores", "Invitar usuario", "Nueva sede", "Restablecer", "Nuevo descuento", "Logo y colores"];
-const TAB_SUB = ["Datos del consultorio", "Equipo con acceso", "Sedes y horarios", "Avisos automáticos", "Códigos y campañas de descuento", "Qué módulos ve cada rol"];
+const TABS = ["Marca y contacto", "Usuarios", "Sedes", "Notificaciones", "Descuentos", "Roles y permisos", "Horario"];
+const CTA = ["Logo y colores", "Invitar usuario", "Nueva sede", "Restablecer", "Nuevo descuento", "Logo y colores", "Cierre especial"];
+const TAB_SUB = ["Datos del consultorio", "Equipo con acceso", "Sedes y horarios", "Avisos automáticos", "Códigos y campañas de descuento", "Qué módulos ve cada rol", "Días y horas de atención"];
 const ROLES: readonly Role[] = ["Administrador", "Doctor", "Asistente"];
 const BRAND_FIELDS: [keyof BrandConfig, string, boolean?][] = [
-  ["name", "Nombre comercial"], ["slogan", "Eslogan"], ["whatsapp", "WhatsApp"], ["phone", "Teléfono"], ["address", "Dirección", true], ["instagram", "Instagram"], ["hours", "Horario de atención", true],
+  ["name", "Nombre comercial"], ["slogan", "Eslogan"], ["whatsapp", "WhatsApp"], ["phone", "Teléfono"], ["address", "Dirección", true], ["instagram", "Instagram"],
 ];
 const NOTIF: [keyof ReturnType<typeof seedMod>["notif"], string, string][] = [
   ["wa24", "WhatsApp 24 h antes", "Recordatorio de cita"], ["wa2", "WhatsApp 2 h antes", "Recordatorio el mismo día"], ["mail", "Correo de confirmación", "Al reservar"], ["resumen", "Resumen diario al doctor", "Cada mañana 7:00"],
@@ -33,7 +37,14 @@ export function Configuracion() {
   const [sel, setSel] = useState<Sel>(null);
   const switchTab = (i: number) => { setTab(i); setSel(null); setQ(""); };
 
+  const sch = scheduleOf(brand.schedule);
+  const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
   const rows: Row[] = (() => {
+    if (tab === 6) return [
+      ...DAY_ORDER.map((i) => ({ id: `d:${i}`, t: cap(WEEKDAYS_LONG[i]), sub: sch.days[i].open ? `${hm(sch.days[i].from)}–${hm(sch.days[i].to)}` : "Día de descanso: no se crean citas", badge: sch.days[i].open ? "Abierto" : "Descanso", tone: sch.days[i].open ? G : N })),
+      ...sch.closures.slice().sort((a, b) => a.date.localeCompare(b.date)).map((c) => ({ id: `c:${c.id}`, t: c.label || "Cierre especial", sub: labelLong(c.date), badge: "Cierre", tone: E })),
+    ];
     if (tab === 0) return [
       ...BRAND_FIELDS.map(([k, l]) => ({ id: `b:${k}`, t: l, sub: String(brand[k] || "Sin completar"), badge: "Editar", tone: N })),
       { id: "lk:marca", t: "Logo, colores y fotos", sub: "Color primario, logo claro y oscuro, hero, equipo y galería", badge: "Abrir", tone: G },
@@ -51,6 +62,7 @@ export function Configuracion() {
 
   const onCta = () => {
     if (tab === 0 || tab === 5) return router.push("/intranet/marca");
+    if (tab === 6) return setSel({ mode: "new" });
     if (tab === 3) {
       const prev = modStore.get();
       saveMod({ ...prev, notif: seedMod().notif }, "Notificaciones restablecidas", prev);
@@ -67,6 +79,11 @@ export function Configuracion() {
     else if (tab === 4) { const c = d.desc.codes.find((x) => x.id === id), g = d.desc.camps.find((x) => x.id === id); title = "mode" in sel ? "Nuevo descuento" : (c?.code ?? g?.n ?? ""); panel = <DiscountForm key={id || "new"} code={c} camp={g} onDone={() => setSel(null)} />; }
     else if (tab === 3) { const k = id.slice(2) as keyof typeof d.notif; const n = NOTIF.find((x) => x[0] === k); if (n) { title = n[1]; panel = <NotifSheet n={n} on={d.notif[k]} onDone={() => setSel(null)} />; } }
     else if (tab === 5) { title = "Roles y permisos"; panel = <RolesSheet initial={id.slice(5) as Role} />; }
+    else if (tab === 6) {
+      if ("mode" in sel) { title = "Cierre especial"; panel = <ClosureForm onDone={() => setSel(null)} />; }
+      else if (id.startsWith("d:")) { const i = Number(id.slice(2)); title = cap(WEEKDAYS_LONG[i]); panel = <DayForm key={id} day={i} onDone={() => setSel(null)} />; }
+      else { const c = sch.closures.find((x) => `c:${x.id}` === id); if (c) { title = c.label || "Cierre especial"; panel = <ClosureForm key={id} rec={c} onDone={() => setSel(null)} />; } }
+    }
     else if (tab === 0) {
       if (id.startsWith("lk:")) { title = id === "lk:marca" ? "Logo, colores y fotos" : "Roles y permisos"; panel = id === "lk:marca" ? <><SheetSub sub="Color primario, logo claro y oscuro, foto principal, equipo, instalaciones y casos." badge="Configuración de marca" /><LinkBtn href="/intranet/marca" icon="palette">Configuración de marca</LinkBtn><LinkBtn href="/intranet/medios" icon="image-up">Medios del sitio (fotos y listas)</LinkBtn></> : <RolesSheet initial="Doctor" />; }
       else { const f = BRAND_FIELDS.find((x) => `b:${x[0]}` === id); if (f) { title = f[1]; panel = <BrandFieldForm key={id} k={f[0]} label={f[1]} area={f[2]} onDone={() => setSel(null)} />; } }
@@ -230,6 +247,84 @@ function RolesSheet({ initial }: { initial: Role }) {
         const on = !!p[col as 1 | 2 | 3];
         return { t: `${p[0]} · ${on ? "Permitido" : "Sin acceso"}`, icon: on ? ("check" as const) : ("lock" as const), run: () => toggle(i), tone: on ? G : undefined };
       })} />
+    </>
+  );
+}
+
+const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
+
+/** Citas futuras (no canceladas) que quedarían fuera del horario nuevo. */
+function outsideCount(next: Schedule): number {
+  const today = todayISO();
+  return agendaStore.get().appts.filter((a) => {
+    if (a.date < today || a.st === "cancelada" || a.st === "bloqueo") return false;
+    const w = dayWindow(a.date, next);
+    return !w || a.slot < w.from || a.slot + a.dur > w.to;
+  }).length;
+}
+
+function saveSchedule(next: Schedule, msg: string) {
+  const prev = brandStore.get();
+  brandStore.update((b) => ({ ...b, schedule: next }));
+  const n = outsideCount(next);
+  toast(n ? `${msg} · ${n} cita(s) futuras quedan fuera del horario: revísalas en la agenda` : msg, () => brandStore.set(prev));
+}
+
+function DayForm({ day, onDone }: { day: number; onDone: () => void }) {
+  const brand = useBrand();
+  const sch = scheduleOf(brand.schedule);
+  const cur = sch.days[day];
+  const [open, setOpen] = useState<"Abierto" | "Descanso">(cur.open ? "Abierto" : "Descanso");
+  const [from, setFrom] = useState(cur.from);
+  const [to, setTo] = useState(cur.to);
+  const sel: React.CSSProperties = { height: 48, borderRadius: 12, border: 0, boxShadow: "inset 0 0 0 1px var(--line)", padding: "0 14px", fontSize: 15, background: "var(--surface)", color: "inherit", fontFamily: "inherit", width: "100%" };
+  const bad = open === "Abierto" && to <= from;
+  const apply = (days: number[]) => {
+    if (bad) return toast("La hora de cierre debe ser posterior a la de apertura");
+    const next: Schedule = { ...sch, days: sch.days.map((d, i) => (days.includes(i) ? { open: open === "Abierto", from, to } : d)) };
+    saveSchedule(next, days.length > 1 ? "Horario actualizado para varios días" : "Horario actualizado");
+    onDone();
+  };
+  return (
+    <>
+      <SheetSub sub="Fuera de este horario no se pueden crear citas, ni en la agenda ni en la reserva web." />
+      <ChipField label="Estado" value={open} options={["Abierto", "Descanso"] as const} onChange={setOpen} />
+      {open === "Abierto" && (
+        <>
+          <Field label="Abre"><select aria-label="Abre" style={sel} value={from} onChange={(e) => setFrom(+e.target.value)}>{Array.from({ length: 32 }, (_, k) => <option key={k} value={k}>{hm(k)}</option>)}</select></Field>
+          <Field label="Cierra"><select aria-label="Cierra" style={sel} value={to} onChange={(e) => setTo(+e.target.value)}>{Array.from({ length: 32 }, (_, k) => <option key={k + 1} value={k + 1}>{hm(k + 1)}</option>)}</select></Field>
+          {bad && <div role="alert" style={{ color: "var(--error-fg)", fontSize: 13, fontWeight: 600 }}>La hora de cierre debe ser posterior a la de apertura.</div>}
+        </>
+      )}
+      <Actions items={[
+        { t: "Guardar", kind: "p", icon: "save", run: () => apply([day]) },
+        { t: day === 6 || day === 0 ? "Aplicar a sábado y domingo" : "Aplicar a lunes–viernes", icon: "check", run: () => apply(day === 6 || day === 0 ? [6, 0] : [1, 2, 3, 4, 5]) },
+      ]} />
+    </>
+  );
+}
+
+function ClosureForm({ rec, onDone }: { rec?: { id: string; date: string; label: string }; onDone: () => void }) {
+  const brand = useBrand();
+  const sch = scheduleOf(brand.schedule);
+  const [date, setDate] = useState(rec?.date ?? "");
+  const [label, setLabel] = useState(rec?.label ?? "");
+  const save = () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Elige la fecha");
+    if (sch.closures.some((c) => c.date === date && c.id !== rec?.id)) return toast("Ya hay un cierre en esa fecha");
+    const item = { id: rec?.id ?? uid(), date, label: label.trim() };
+    saveSchedule({ ...sch, closures: rec ? sch.closures.map((c) => (c.id === rec.id ? item : c)) : [...sch.closures, item] }, rec ? "Cierre actualizado" : "Cierre especial agregado");
+    onDone();
+  };
+  return (
+    <>
+      <SheetSub sub="Feriados, vacaciones u otros días en que la clínica no atiende. Ese día no se podrán crear citas." />
+      <TextField label="Fecha (AAAA-MM-DD)" type="date" value={date} onChange={setDate} />
+      <TextField label="Motivo (opcional)" value={label} onChange={setLabel} />
+      <Actions items={[
+        { t: rec ? "Guardar cambios" : "Agregar cierre", kind: "p", icon: "save", run: save },
+        ...(rec ? [{ t: "Quitar cierre", kind: "x" as const, icon: "trash-2" as const, run: () => { saveSchedule({ ...sch, closures: sch.closures.filter((c) => c.id !== rec.id) }, "Cierre quitado"); onDone(); } }] : []),
+      ]} />
     </>
   );
 }
