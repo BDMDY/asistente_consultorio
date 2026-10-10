@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useDoctors } from "@/lib/doctors";
-import { DEFAULT_MEDIA, HERO_ANIMS, HERO_SECS_MAX, HERO_SECS_MIN, heroSlideSecs, type HeroSlide, MAX_HERO_SLIDES, isVideoUrl, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
+import { DEFAULT_MEDIA, HERO_ANIMS, HERO_SECS_MAX, HERO_SECS_MIN, heroSlideSecs, type HeroSlide, type SiteBanner, bannerHref, MAX_HERO_SLIDES, isVideoUrl, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
 import { loadImage } from "@/lib/image";
 import { checkVideoFile, isHostedVideo, removeHostedVideo, uploadHeroVideo } from "@/lib/backend/storage";
 import { toast } from "@/lib/toast";
@@ -98,12 +98,20 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
           ))}
         </>)}
 
-      {section("Cifras del sitio", null, null, m.stats.map((d) => (
+      {section("Banner del sitio", null, null, <BannerEditor banner={m.banner} />)}
+
+      {section("Cifras del sitio", null, null, <>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, fontWeight: 600 }}>
+          <input type="checkbox" checked={!!m.banner.showStats} onChange={(e) => commit((x) => ({ banner: { ...x.banner, showStats: e.target.checked } }))} />
+          Mostrar la franja de cifras en el sitio (por defecto va oculta)
+        </label>
+        {m.stats.map((d) => (
         <div key={d.id} style={row}>
           <input value={d.n} onChange={(e) => setItem("stats", d.id, { n: e.target.value })} aria-label="Cifra" style={{ ...inp, width: 90, height: 34, fontSize: 14, fontWeight: 700 }} />
           <input value={d.l} onChange={(e) => setItem("stats", d.id, { l: e.target.value })} aria-label="Descripción" style={{ ...inp, flex: 1, height: 34, padding: "0 10px" }} />
         </div>
-      )))}
+        ))}
+      </>)}
 
       {section("Testimonios", m.quotes.length, addBtn("+ Agregar testimonio", () => commit((x) => ({ quotes: [...x.quotes, { id: nextId(x.quotes), t: "", a: "" }] }))),
         <>
@@ -253,6 +261,36 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
         <button type="button" disabled={full} onClick={() => add({ kind: "anim", anim: HERO_ANIMS[slides.filter((x) => x.kind === "anim").length % HERO_ANIMS.length][0] })} style={addStyle(full)}>+ Animación</button>
       </div>
       {full && <div style={{ fontSize: 12, color: "var(--ink-500)" }}>Máximo {MAX_HERO_SLIDES} diapositivas.</div>}
+    </>
+  );
+}
+
+/** Banner del sitio: imagen ancha (y una para móvil), enlace y texto alternativo. Reemplaza a la franja de cifras. */
+function BannerEditor({ banner }: { banner: SiteBanner }) {
+  const set = (p: Partial<SiteBanner>) => commit((x) => ({ banner: { ...x.banner, ...p } }));
+  const del = (k: "img" | "imgMobile") => commit((x) => { const b = { ...x.banner }; delete b[k]; return { banner: b }; });
+  const bad = !!banner.link?.trim() && !bannerHref(banner.link);
+  return (
+    <>
+      <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
+        Aparece a todo el ancho después de los servicios. Imagen de computadora recomendada: 1600 × 500 px. La imagen para móvil es opcional (por ejemplo 800 × 800 px): si no la subes, se usa la misma.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8 }}>
+        {([["img", "Banner (computadora)", 1600], ["imgMobile", "Banner (móvil)", 900]] as const).map(([k, label, max]) => (
+          <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
+            <Pick src={banner[k]} label={label} h={88} icon="upload" max={max} onPick={(u) => set({ [k]: u })} />
+            <button type="button" onClick={() => del(k)} style={{ cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--error-fg)", visibility: banner[k] ? "visible" : "hidden", background: "transparent", border: 0, textAlign: "left", padding: 0 }}>Quitar</button>
+          </div>
+        ))}
+      </div>
+      <input aria-label="Enlace del banner" value={banner.link ?? ""} onChange={(e) => set({ link: e.target.value })} placeholder="Enlace al hacer clic (opcional): https://… o /reserva" style={{ ...inp, height: 34, padding: "0 10px", border: bad ? "2px solid var(--error-fg)" : inp.border }} />
+      {bad && <div role="alert" style={{ fontSize: 12, color: "var(--error-fg)" }}>El enlace debe empezar con https:// o con / (una página del sitio).</div>}
+      <input aria-label="Texto del banner (para accesibilidad)" value={banner.alt ?? ""} onChange={(e) => set({ alt: e.target.value })} placeholder="Texto del banner (lo leen los lectores de pantalla)" style={{ ...inp, height: 34, padding: "0 10px" }} />
+      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, fontWeight: 600 }}>
+        <input type="checkbox" checked={banner.on !== false} onChange={(e) => set({ on: e.target.checked })} />
+        Mostrar el banner en el sitio
+      </label>
     </>
   );
 }

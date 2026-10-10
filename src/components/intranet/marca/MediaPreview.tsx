@@ -33,6 +33,7 @@ export default function MediaPreview() {
           </div>
           <div style={{ height: 240, borderRadius: 16, overflow: "hidden", background: "repeating-linear-gradient(135deg,var(--brand-100) 0 12px,var(--brand-50) 12px 24px)", ...bgi(heroSlides(m).find((x) => x.kind === "image")?.src) }} />
         </div>
+        {m.banner.on !== false && m.banner.img && <div style={{ padding: "24px 32px 0" }}><div style={{ height: 120, borderRadius: 16, backgroundImage: `url("${m.banner.img}")`, backgroundSize: "cover", backgroundPosition: "center" }} role="img" aria-label={m.banner.alt || "Banner"} /></div>}
         {webServices(m).length > 0 && (
           <div style={{ padding: "28px 32px 8px", display: "flex", flexDirection: "column", gap: 12, color: "var(--ink-900)" }}>
             <b style={{ fontSize: 20 }}>{b.servicesTitle}</b>

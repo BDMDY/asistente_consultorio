@@ -6,7 +6,7 @@ import HeroCarousel from "./HeroCarousel";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { socialUrl, useBrand } from "@/lib/brand";
 import { useDoctors } from "@/lib/doctors";
-import { heroSlides, webServices, useMedia } from "@/lib/media";
+import { bannerHref, heroSlides, webServices, useMedia } from "@/lib/media";
 import MapEmbed from "./MapEmbed";
 import s from "@/app/(public)/landing.module.css";
 
@@ -98,14 +98,31 @@ export default function Landing() {
         </section>
       )}
 
-      <div className={s.stats}>
-        {media.stats.map((st) => (
-          <div key={st.id}>
-            <div className={`${s.statN} tnum`}>{st.n}</div>
-            <div className={s.statL}>{st.l}</div>
-          </div>
-        ))}
-      </div>
+      {media.banner.on !== false && media.banner.img && (() => {
+        const b = media.banner, href = bannerHref(b.link);
+        const pic = (
+          <picture>
+            {b.imgMobile && <source media="(max-width: 760px)" srcSet={b.imgMobile} />}
+            <img className={s.bannerImg} src={b.img} alt={b.alt ?? ""} loading="lazy" />
+          </picture>
+        );
+        return (
+          <section className={s.banner} aria-label={b.alt || "Banner"}>
+            {href ? <a href={href} {...(/^https?:/i.test(href) ? { target: "_blank", rel: "noopener noreferrer" } : {})} aria-label={b.alt || "Ver más"}>{pic}</a> : pic}
+          </section>
+        );
+      })()}
+
+      {media.banner.showStats && media.stats.length > 0 && (
+        <div className={s.stats}>
+          {media.stats.map((st) => (
+            <div key={st.id}>
+              <div className={`${s.statN} tnum`}>{st.n}</div>
+              <div className={s.statL}>{st.l}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {doctors.length > 0 && (
         <section id="equipo" className={s.section}>

@@ -30,7 +30,13 @@ export const MAX_HERO_SLIDES = 6;
 /** ¿Es un enlace de video que el navegador puede reproducir (https, .mp4/.webm/.ogg)? */
 export const isVideoUrl = (u: string) => /^https:\/\/[^\s]+\.(mp4|webm|ogg)(\?[^\s]*)?$/i.test(u.trim());
 
+/** Banner del sitio (reemplaza a la franja de cifras): imagen ancha, imagen opcional para móvil y enlace opcional. */
+export interface SiteBanner { on?: boolean; img?: string; imgMobile?: string; /** enlace: https://… o una ruta del sitio (/reserva) */ link?: string; alt?: string; /** mostrar además la franja de cifras (apagada por defecto) */ showStats?: boolean }
+/** Enlace permitido para el banner: https o una ruta interna; cualquier otra cosa se descarta. */
+export const bannerHref = (v: string | undefined) => { const t = (v ?? "").trim(); return /^https?:\/\//i.test(t) || /^\/(?!\/)/.test(t) ? t : ""; };
+
 export interface Media {
+  banner: SiteBanner;
   /** diapositivas del hero (carrusel); vacío = la foto hero o un fondo de color */
   hero: HeroSlide[];
   stats: Stat[];
@@ -43,6 +49,7 @@ export interface Media {
 }
 
 export const DEFAULT_MEDIA: Media = {
+  banner: {},
   hero: [],
   stats: [
     { id: 1, n: "12+", l: "años de experiencia" },
@@ -76,6 +83,7 @@ export const mediaStore = defineStore<Partial<Media>>("da-media-v2", () => ({}),
 export function resolveMedia(p: Partial<Media>): Media {
   return {
     hero: p.hero ?? [],
+    banner: p.banner ?? {},
     stats: p.stats ?? DEFAULT_MEDIA.stats,
     quotes: p.quotes ?? DEFAULT_MEDIA.quotes,
     img: p.img ?? {},

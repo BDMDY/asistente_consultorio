@@ -114,3 +114,14 @@ describe("enlaces de redes sociales", () => {
     expect(socialUrl("instagram", "javascript:alert(1)")).toBeNull();
   });
 });
+
+describe("banner del sitio", () => {
+  it("solo acepta enlaces https o rutas internas", async () => {
+    const { bannerHref } = await import("./media");
+    expect(bannerHref("https://promo.com/x")).toBe("https://promo.com/x");
+    expect(bannerHref("/reserva")).toBe("/reserva");
+    expect(bannerHref("//evil.com")).toBe("");
+    expect(bannerHref("javascript:alert(1)")).toBe("");
+    expect(bannerHref("")).toBe("");
+  });
+});
