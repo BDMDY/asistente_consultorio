@@ -125,6 +125,10 @@ export async function actMine(token: string, a: MineAction): Promise<string | nu
   return null;
 }
 
+/** Demasiados intentos fallidos: el servidor bloquea la consulta 15 minutos. */
+export const RATE_LIMITED = "rate_limited";
+const tooMany = (e: { message?: string }) => (e.message?.includes(RATE_LIMITED) ? new Error(RATE_LIMITED) : e);
+
 // ───────── Consultar mis citas ─────────
 export interface FoundAppt { ref: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doc: number }
 
@@ -139,7 +143,7 @@ export async function lookupAppts(dni: string, phone: string): Promise<FoundAppt
       .map((a) => ({ ref: String(a.id), date: a.date, slot: a.slot, dur: a.dur, service: a.s, status: a.st, doc: a.doc }));
   }
   const { data, error } = await getClient().rpc("public_lookup", { p_slug: CLINIC_SLUG, p_dni: dni, p_phone: phone });
-  if (error) throw error;
+  if (error) throw tooMany(error);
   return (data as { token: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doctor_id: number }[]).map((r) => ({ ref: r.token, date: r.date, slot: r.slot, dur: r.dur, service: r.service, status: r.status, doc: r.doctor_id }));
 }
 
@@ -168,7 +172,7 @@ export async function lookupPortal(dni: string, phone: string, birth?: string): 
     };
   }
   const { data, error } = await getClient().rpc("public_portal", { p_slug: CLINIC_SLUG, p_dni: dni, p_phone: phone, p_birth: birth || null });
-  if (error) throw error;
+  if (error) throw tooMany(error);
   if (!data) return null;
   const d = data as { name: string; verified: boolean; hasBirth: boolean; appts: { id: number; ref: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doctor_id: number }[]; payments: { id: number; no: string; appt_id: number | null; concept: string; amount: number; method: string; at: string }[]; notes: { id: number; date: string; text: string; created_at?: string }[]; plan: PortalData["plan"] };
   return {

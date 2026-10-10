@@ -6,7 +6,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Icon from "@/components/ui/Icon";
 import { STATUS_LABEL } from "@/lib/agenda";
 import { limaHM } from "@/lib/attention";
-import { lookupPortal } from "@/lib/backend/public-api";
+import { RATE_LIMITED, lookupPortal } from "@/lib/backend/public-api";
 import { useBrand } from "@/lib/brand";
 import { labelLong, todayISO } from "@/lib/dates";
 import { useDoctors } from "@/lib/doctors";
@@ -48,8 +48,8 @@ export default function Clientes() {
       setNone(!r);
       setData(r);
       if (r) setCreds({ dni, phone });
-    } catch {
-      setError("No pudimos consultar tus datos. Intenta de nuevo en unos minutos.");
+    } catch (e) {
+      setError(e instanceof Error && e.message === RATE_LIMITED ? "Demasiados intentos con esos datos. Por seguridad, espera 15 minutos antes de volver a intentar o llama a la clínica." : "No pudimos consultar tus datos. Intenta de nuevo en unos minutos.");
     }
     setBusy(false);
   }
@@ -178,6 +178,7 @@ export default function Clientes() {
                     <span style={{ fontSize: 14, color: "var(--ink-500)", lineHeight: 1.5 }}>Por tu seguridad, confirma tu fecha de nacimiento para ver tus diagnósticos y tratamientos.</span>
                     <input type="date" aria-label="Fecha de nacimiento" value={f.birth} onChange={(e) => setF({ ...f, birth: e.target.value })} style={{ ...field, border: birthTried && !f.birth ? "2px solid var(--error-fg)" : "1px solid var(--line)" }} />
                     {birthTried && creds && f.birth && !busy && <span role="alert" style={{ color: "var(--error-fg)", fontSize: 13 }}>La fecha no coincide con la registrada en la clínica.</span>}
+                    {error && <div role="alert" style={{ color: "var(--error-fg)", fontWeight: 600, fontSize: 14 }}>{error}</div>}
                     <button type="submit" disabled={busy} style={{ cursor: "pointer", minHeight: 46, borderRadius: 12, border: 0, background: "var(--grad-btn)", color: "#fff", fontWeight: 700, fontFamily: "inherit" }}>Ver mis resultados</button>
                   </>
                 ) : (
