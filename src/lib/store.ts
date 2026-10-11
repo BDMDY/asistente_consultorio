@@ -110,6 +110,11 @@ function defineRemoteStore<T>(remote: { name: string; empty: () => T }) {
     notify();
   };
   const reset = () => hydrate(remote.empty());
+  /** Datos iniciales del servidor: servidor y navegador arrancan con lo mismo (sin parpadeo de datos de ejemplo). */
+  const seed = (next: T) => {
+    serverVal = next;
+    val = next;
+  };
 
   function set(next: T) {
     const prev = get();
@@ -128,6 +133,6 @@ function defineRemoteStore<T>(remote: { name: string; empty: () => T }) {
     const stableUpdate = useCallback(update, []);
     return [value, stableSet, stableUpdate];
   }
-  registerStore(remote.name, { hydrate: hydrate as (v: unknown) => void, reset });
+  registerStore(remote.name, { hydrate: hydrate as (v: unknown) => void, reset, seed: seed as (v: unknown) => void });
   return { get, set, update, reset, subscribe, useStore, hydrate };
 }

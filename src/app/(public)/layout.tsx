@@ -1,9 +1,10 @@
 import ConsentBanner from "@/components/public/ConsentBanner";
+import PublicGate from "@/components/public/PublicGate";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      {children}
+      <PublicGate>{children}</PublicGate>
       <ConsentBanner />
     </>
   );

@@ -14,7 +14,7 @@ export interface RemoteSpec<T> {
   fromPublic?: (site: PublicSite) => T;
 }
 
-interface StoreHandle { hydrate: (v: unknown) => void; reset: () => void }
+interface StoreHandle { hydrate: (v: unknown) => void; reset: () => void; seed?: (v: unknown) => void }
 
 const specs = new Map<string, RemoteSpec<unknown>>();
 const stores = new Map<string, StoreHandle>();
@@ -25,6 +25,8 @@ let ctx: Ctx | null = null;
 
 export const defineSpec = <T,>(name: string, spec: RemoteSpec<T>) => void specs.set(name, spec as RemoteSpec<unknown>);
 let lastSite: PublicSite | null = null;
+/** Último sitio público conocido (no se borra al iniciar sesión). */
+let publicCache: PublicSite | null = null;
 
 /**
  * Registra un store. Los stores viven en módulos que se cargan por pantalla: uno que se registra después de iniciar
@@ -34,11 +36,33 @@ export function registerStore(name: string, handle: StoreHandle) {
   stores.set(name, handle);
   const spec = specs.get(name);
   if (ctx) void refresh(name);
-  else if (lastSite && spec?.fromPublic) handle.hydrate(spec.fromPublic(lastSite));
+  else if (lastSite && spec?.fromPublic) (handle.seed ?? handle.hydrate)(spec.fromPublic(lastSite));
+}
+
+// ───────── Sitio público listo ─────────
+let siteReady = false;
+const readyListeners = new Set<() => void>();
+const markReady = () => {
+  if (siteReady) return;
+  siteReady = true;
+  readyListeners.forEach((l) => l());
+};
+/** ¿Ya hay datos reales del sitio (marca y medios)? Mientras no, el sitio público muestra una pantalla neutra en vez de los datos de ejemplo. */
+export const useSiteReadyStore = {
+  subscribe: (cb: () => void) => { readyListeners.add(cb); return () => void readyListeners.delete(cb); },
+  get: () => siteReady,
+};
+
+/** Siembra los stores con el sitio traído por el servidor (antes del primer pintado). */
+export function seedPublic(site: PublicSite) {
+  lastSite = site;
+  publicCache = site;
+  for (const [name, spec] of specs) if (spec.fromPublic) { const h = stores.get(name); (h?.seed ?? h?.hydrate)?.(spec.fromPublic(site)); }
+  markReady();
 }
 export const setCtx = (c: Ctx | null) => {
   ctx = c;
-  if (c) lastSite = null;
+  if (c) { lastSite = null; markReady(); }
 };
 export const getCtx = () => ctx;
 
@@ -64,7 +88,12 @@ export const refreshAll = async () => {
 
 /** Recarga todo si pasaron al menos `gapMs` desde la última carga completa (al cambiar de módulo o volver a la pestaña). */
 export const refreshIfStale = (gapMs = 2000) => (ctx && Date.now() - lastAll >= gapMs ? refreshAll() : Promise.resolve());
-export const resetAll = () => stores.forEach((s) => s.reset());
+/** Vacía los stores; los que salen del sitio público conservan marca y medios (así no reaparecen los datos de ejemplo al entrar o salir). */
+export const resetAll = () => stores.forEach((s, name) => {
+  const spec = specs.get(name);
+  if (publicCache && spec?.fromPublic) s.hydrate(spec.fromPublic(publicCache));
+  else s.reset();
+});
 
 /** Encola el guardado de un cambio (en orden por store). Si falla, avisa y vuelve al estado del servidor. */
 export function queueSave(name: string, prev: unknown, next: unknown) {
@@ -98,10 +127,12 @@ export function queueSave(name: string, prev: unknown, next: unknown) {
 /** Carga el sitio público (marca y medios) para visitantes sin sesión. */
 export async function loadPublic(db: SupabaseClient, slug: string) {
   const { data, error } = await db.rpc("public_site", { p_slug: slug });
-  if (error || !data) return;
+  if (error || !data) return markReady();
   const site = data as PublicSite;
   lastSite = site;
+  publicCache = site;
   for (const [name, spec] of specs) if (spec.fromPublic) stores.get(name)?.hydrate(spec.fromPublic(site));
+  markReady();
 }
 
 // ───────── Tiempo real ─────────

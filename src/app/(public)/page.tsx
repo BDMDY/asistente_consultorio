@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
 import Landing from "@/components/public/Landing";
 
-export const metadata: Metadata = { title: "Inicio" };
-
+// Sin título propio: la portada usa el nombre de la clínica (definido en el layout).
 export default function Page() {
   return <Landing />;
 }

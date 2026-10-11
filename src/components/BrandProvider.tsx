@@ -1,7 +1,8 @@
 "use client";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { useBrand } from "@/lib/brand";
+import { isRemote } from "@/lib/backend/config";
+import { brandStore, useBrand } from "@/lib/brand";
 import { useMedia } from "@/lib/media";
 import { themeStore } from "@/lib/theme";
 
@@ -19,6 +20,11 @@ export default function BrandProvider() {
   }, [theme]);
 
   // Favicon de la empresa (si subió uno); si no, queda el predeterminado.
+  // Si el servidor no pudo traer la marca (título genérico), el título de la pestaña pasa al nombre de la clínica al cargar.
+  useEffect(() => {
+    if (isRemote && brandStore.get().name && (document.title === "Cargando…" || document.title === "DentAssist")) document.title = brand.name;
+  }, [brand.name]);
+
   // Favicon de la empresa: se cambia el atributo del <link rel="icon"> que ya existe (sin quitar ni insertar nodos que Next
   // administra; hacerlo rompe la navegación). Al quitarlo se restaura el predeterminado.
   const pathname = usePathname();
