@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { sessionStore } from "../session";
 import { getClient } from "./client";
 import { CLINIC_SLUG, isRemote } from "./config";
+import { startReceiptPool, stopReceiptPool } from "./receipts";
 import { loadPublic, refreshAll, refreshIfStale, resetAll, setCtx, startRealtime, stopRealtime } from "./sync";
 import { registerSpecs } from "./specs";
 
@@ -36,6 +37,7 @@ async function enter(session: SbSession | null) {
     readyFor = null;
     stopRealtime(db);
     setCtx(null);
+    stopReceiptPool();
     resetAll();
     sessionStore.set(null);
     set({ status: "anon" });
@@ -48,6 +50,7 @@ async function enter(session: SbSession | null) {
   const row = data?.[0] as { id: string; clinic_id: string } | undefined;
   if (error || !row) {
     setCtx(null);
+    stopReceiptPool();
     resetAll();
     sessionStore.set(null);
     set({ status: "denied", email: session.user.email });
@@ -60,6 +63,7 @@ async function enter(session: SbSession | null) {
   sessionStore.set({ userId: row.id, email: session.user.email ?? "" });
   readyFor = session.user.id;
   startRealtime(ctx);
+  startReceiptPool(db);
   set({ status: "ready", email: session.user.email });
 }
 

@@ -1,5 +1,6 @@
 "use client";
 import { newId } from "./ids";
+import { takeNumber } from "./receipt-pool";
 import { defineStore } from "./store";
 
 export const PAY_METHODS = ["Efectivo", "Yape", "Plin", "Tarjeta", "Transferencia"] as const;
@@ -41,7 +42,14 @@ export function addPayment(p: Omit<Payment, "id" | "no" | "at">): Payment {
 
 /** Número de comprobante para un nuevo cobro: el de la cita si ya tiene uno; si no, el siguiente de la serie. */
 export const receiptNoFor = (list: Payment[], apptId?: number) =>
-  (apptId !== undefined ? list.find((x) => x.apptId === apptId)?.no : undefined) ?? "B001-" + String(list.length + 124).padStart(6, "0");
+  (apptId !== undefined ? list.find((x) => x.apptId === apptId)?.no : undefined) ?? formatReceiptNo(takeNumber() ?? nextReceiptNumber(list));
+
+const SERIES = "B001-";
+export const formatReceiptNo = (n: number) => SERIES + String(n).padStart(6, "0");
+/** Mayor correlativo emitido (123 si no hay ninguno). */
+export const lastReceiptNumber = (list: Pick<Payment, "no">[]) => list.reduce((m, p) => Math.max(m, Number(/(\d+)$/.exec(p.no)?.[1] ?? 0)), 123);
+/** Siguiente correlativo local: no se repite aunque se borren cobros. */
+export const nextReceiptNumber = (list: Pick<Payment, "no">[]) => lastReceiptNumber(list) + 1;
 
 /** Cobro de varios tratamientos en una misma sesión: un comprobante por cita, con una línea por tratamiento (también los cobros posteriores de esa cita). */
 export function addPayments(lines: { concept: string; amount: number; itemId?: string }[], common: Omit<Payment, "id" | "no" | "at" | "concept" | "amount" | "itemId">): Payment[] {

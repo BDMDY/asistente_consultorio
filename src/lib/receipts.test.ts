@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { apptByCode, apptCode, sessionGroup, sessionReceiptHtml } from "./receipts";
 import type { Appt } from "./agenda";
-import { type Payment, receiptNoFor } from "./payments";
+import { type Payment, nextReceiptNumber, receiptNoFor } from "./payments";
+import { addToPool, clearPool } from "./receipt-pool";
 
 const pay = (id: number, no: string, amount: number, method: Payment["method"], extra: Partial<Payment> = {}): Payment => ({ id, no, patient: "Ana", concept: "Limpieza", amount, method, date: "", at: `2026-10-12T15:0${id}:00Z`, apptId: 7, ...extra });
 
@@ -35,5 +36,19 @@ describe("un comprobante por cita", () => {
     expect(receiptNoFor(list, 501)).toBe("B001-000124");
     expect(receiptNoFor(list, 503)).toBe("B001-000126");
     expect(receiptNoFor(list)).toBe("B001-000126");
+  });
+});
+
+describe("correlativo de comprobantes", () => {
+  it("no se repite aunque se borren cobros y respeta los números reservados en el servidor", () => {
+    const list = [pay(1, "B001-000124", 10, "Yape", { apptId: 1 }), pay(2, "B001-000127", 5, "Yape", { apptId: 2 })];
+    expect(nextReceiptNumber(list)).toBe(128);
+    expect(receiptNoFor(list)).toBe("B001-000128");
+    expect(receiptNoFor([])).toBe("B001-000124");
+    addToPool(200, 2);
+    expect(receiptNoFor(list)).toBe("B001-000200");
+    expect(receiptNoFor(list)).toBe("B001-000201");
+    expect(receiptNoFor(list)).toBe("B001-000128");
+    clearPool();
   });
 });
