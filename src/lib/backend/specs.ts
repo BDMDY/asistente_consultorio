@@ -166,7 +166,10 @@ export function registerSpecs() {
     save: async (prev, next, c) => {
       const { users: pu, ...pd } = prev;
       const { users: nu, ...nd } = next;
-      if (JSON.stringify(pd) !== JSON.stringify(nd)) await writeDoc(c, "mod", nd);
+      // Solo se envían las secciones que cambiaron y se fusionan en el servidor: dos personas editando secciones distintas no se pisan.
+      const patch: Record<string, unknown> = {};
+      for (const k of Object.keys(nd) as (keyof typeof nd)[]) if (JSON.stringify(pd[k]) !== JSON.stringify(nd[k])) patch[k] = nd[k];
+      if (Object.keys(patch).length) ok(await c.db.rpc("merge_clinic_doc", { p_clinic: c.clinicId, p_key: "mod", p_patch: patch }));
       const { upsert, remove } = diffById(pu, nu, (u) => u.id);
       if (upsert.length) ok(await c.db.from("staff").upsert(upsert.map((u) => staffToRow(c.clinicId, u)), { onConflict: "id" }));
       if (remove.length) ok(await c.db.from("staff").delete().eq("clinic_id", c.clinicId).in("id", remove));
