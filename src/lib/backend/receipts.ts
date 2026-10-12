@@ -1,6 +1,6 @@
 "use client";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { addToPool, clearPool, poolSize, setRefill } from "../receipt-pool";
+import { addToPool, clearPool, poolSize, setRefill, setPoolKey } from "../receipt-pool";
 
 const BLOCK = 5;
 let busy = false;
@@ -20,7 +20,8 @@ async function refill(db: SupabaseClient) {
 }
 
 /** Activa la reserva de números para esta sesión. */
-export function startReceiptPool(db: SupabaseClient) {
+export function startReceiptPool(db: SupabaseClient, userId: string) {
+  setPoolKey("da-receipt-pool:" + userId);
   setRefill(() => void refill(db));
   void refill(db);
 }

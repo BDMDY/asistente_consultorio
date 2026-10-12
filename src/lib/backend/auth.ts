@@ -63,7 +63,7 @@ async function enter(session: SbSession | null) {
   sessionStore.set({ userId: row.id, email: session.user.email ?? "" });
   readyFor = session.user.id;
   startRealtime(ctx);
-  startReceiptPool(db);
+  startReceiptPool(db, session.user.id);
   set({ status: "ready", email: session.user.email });
 }
 
