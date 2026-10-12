@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { type Msg, type MsgSeg, type MsgStatus, modStore, saveMod, uid, useMod } from "@/lib/mod";
-import { enqueue, outboxStore } from "@/lib/outbox";
+import { type OutboxItem, enqueue, outboxStore } from "@/lib/outbox";
 import { LINKS, SEG_DEFAULT, SEG_LABEL, type SegType, demoPool, linkUrl, segCount, segLabel, segWarning } from "@/lib/segments";
 import { toast } from "@/lib/toast";
 import { Actions, AreaField, ChipField, E, G, ListField, ModuleLayout, N, type Row, SheetSub, TextField, W } from "./kit";
@@ -16,30 +16,73 @@ const RANGE_LABELS: Record<Exclude<SegType, "Todos">, [string, string?]> = {
 const POOL = demoPool();
 const segOf = (m: Msg): MsgSeg => m.seg ?? (m.aud === "Pacientes con cita" ? { t: "Citas", a: 0, b: 2 } : { t: "Todos", a: 0, b: 0 });
 
+type Cat = "invitaciones" | "citas" | "campanas" | "cobros";
+const CATS: [Cat, string, OutboxItem["kind"][]][] = [
+  ["invitaciones", "Invitaciones", ["invitacion"]],
+  ["citas", "Avisos de citas", ["cancelacion", "reprogramacion", "recordatorio", "demora"]],
+  ["campanas", "Campañas", ["campana"]],
+  ["cobros", "Cobros y pedidos", ["cobranza", "comprobante", "pedido"]],
+];
+const KIND_LABEL: Record<OutboxItem["kind"], string> = { cancelacion: "Cancelación", recordatorio: "Recordatorio", reprogramacion: "Reprogramación", campana: "Campaña", cobranza: "Cobranza", comprobante: "Comprobante", pedido: "Pedido a proveedor", invitacion: "Invitación al equipo", demora: "Aviso de demora" };
+const catOf = (k: OutboxItem["kind"]) => CATS.find((c) => c[2].includes(k))?.[0] ?? "citas";
+const when = (iso: string) => new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
 export function Mensajes() {
   const { data: d } = useMod();
   const [outbox] = outboxStore.useStore();
   const month = new Date().toISOString().slice(0, 7);
   const sentMonth = outbox.filter((o) => o.status === "enviado" && o.at.startsWith(month)).length;
-  const queued = outbox.filter((o) => o.status === "en-cola").length;
+  const queuedBy = (c: Cat) => outbox.filter((o) => o.status === "en-cola" && catOf(o.kind) === c).length;
+  const [view, setView] = useState<"camp" | "cola">("camp");
   const [chip, setChip] = useState(0);
+  const [qchip, setQchip] = useState(0);
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<Sel>(null);
   const cat = (m: Msg) => (m.st === "activa" ? 1 : m.st === "borrador" ? 2 : 0);
-  const rows: Row[] = d.msg
-    .filter((m) => !chip || cat(m) === chip)
-    .filter((m) => !q.trim() || m.n.toLowerCase().includes(q.trim().toLowerCase()))
-    .map((m) => ({
-      id: m.id, t: m.n,
-      sub: `${segLabel(segOf(m))}${m.link && m.link !== "Sin enlace" ? ` · enlace: ${m.link.toLowerCase()}` : ""}${m.sent ? ` · ${m.sent} en cola` : ""}`,
-      badge: m.st === "activa" ? "Activa" : m.st === "pausada" ? "Pausada" : "Borrador", tone: m.st === "activa" ? G : m.st === "pausada" ? W : N,
-    }));
-  const cur = sel && "id" in sel ? d.msg.find((m) => m.id === sel.id) : undefined;
+  const cola = view === "cola";
+  const rows: Row[] = cola
+    ? [...outbox]
+        .filter((o) => !qchip || catOf(o.kind) === CATS[qchip - 1][0])
+        .filter((o) => !q.trim() || `${o.patient} ${o.text}`.toLowerCase().includes(q.trim().toLowerCase()))
+        .sort((a, b) => b.at.localeCompare(a.at))
+        .map((o) => ({ id: "q" + o.id, t: `${KIND_LABEL[o.kind]} · ${o.patient}`, sub: `${o.channel === "whatsapp" ? "WhatsApp" : "Correo"} · ${when(o.at)}`, badge: o.status === "enviado" ? "Enviado" : "En cola", tone: o.status === "enviado" ? G : W }))
+    : d.msg
+        .filter((m) => !chip || cat(m) === chip)
+        .filter((m) => !q.trim() || m.n.toLowerCase().includes(q.trim().toLowerCase()))
+        .map((m) => ({
+          id: m.id, t: m.n,
+          sub: `${segLabel(segOf(m))}${m.link && m.link !== "Sin enlace" ? ` · enlace: ${m.link.toLowerCase()}` : ""}${m.sent ? ` · ${m.sent} en cola` : ""}`,
+          badge: m.st === "activa" ? "Activa" : m.st === "pausada" ? "Pausada" : "Borrador", tone: m.st === "activa" ? G : m.st === "pausada" ? W : N,
+        }));
+  const curQ = cola && sel && "id" in sel ? outbox.find((o) => "q" + o.id === sel.id) : undefined;
+  const cur = !cola && sel && "id" in sel ? d.msg.find((m) => m.id === sel.id) : undefined;
+  const kpis = cola
+    ? [...CATS.map(([c, l]) => ({ l: `${l} en cola`, v: String(queuedBy(c)) })), { l: "Enviados (mes)", v: String(sentMonth) }]
+    : [{ l: "Campañas activas", v: String(d.msg.filter((m) => m.st === "activa").length) }, { l: "Campañas en cola", v: String(queuedBy("campanas")) }, { l: "Enviados (mes)", v: String(sentMonth) }];
+  const toggle = { label: cola ? "Ver campañas" : `Cola de envíos (${outbox.filter((o) => o.status === "en-cola").length})`, icon: (cola ? "arrow-left" : "send") as "arrow-left" | "send", onClick: () => { setView(cola ? "camp" : "cola"); setSel(null); setQ(""); } };
   return (
-    <ModuleLayout title="Mensajes y campañas" sub="WhatsApp y correo" kpis={[{ l: "Enviados (mes)", v: String(sentMonth) }, { l: "Avisos en cola", v: String(queued) }, { l: "Campañas activas", v: String(d.msg.filter((m) => m.st === "activa").length) }]}
-      chips={FILTERS} chip={chip} onChip={setChip} query={q} onQuery={setQ} cta="Nueva campaña" onCta={() => setSel({ mode: "new" })} rows={rows}
-      onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={sel && "mode" in sel ? "Nueva campaña" : (cur?.n ?? "")}
-      panel={sel && "mode" in sel ? <CampaignForm key="new" onDone={() => setSel(null)} /> : cur ? <CampaignForm key={cur.id} rec={cur} onDone={() => setSel(null)} /> : null} />
+    <ModuleLayout title={cola ? "Cola de envíos" : "Mensajes y campañas"} sub={cola ? "Pendientes de WhatsApp y correo" : "WhatsApp y correo"} kpis={kpis}
+      chips={cola ? ["Todos", ...CATS.map((c) => c[1])] : FILTERS} chip={cola ? qchip : chip} onChip={cola ? setQchip : setChip} query={q} onQuery={setQ} cta="Nueva campaña" onCta={() => { setView("camp"); setSel({ mode: "new" }); }} extra={toggle} rows={rows}
+      onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={curQ ? KIND_LABEL[curQ.kind] : sel && "mode" in sel ? "Nueva campaña" : (cur?.n ?? "")}
+      panel={curQ ? <QueueDetail key={curQ.id} item={curQ} onDone={() => setSel(null)} /> : sel && "mode" in sel ? <CampaignForm key="new" onDone={() => setSel(null)} /> : cur ? <CampaignForm key={cur.id} rec={cur} onDone={() => setSel(null)} /> : null} />
+  );
+}
+
+function QueueDetail({ item, onDone }: { item: OutboxItem; onDone: () => void }) {
+  const line = (l: string, v: string) => <div style={{ display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontSize: 12, color: "var(--ink-500)", fontWeight: 600 }}>{l}</span><span style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{v}</span></div>;
+  return (
+    <>
+      {line("Tipo", KIND_LABEL[item.kind])}
+      {line("Destinatario", item.patient)}
+      {line("Canal", item.channel === "whatsapp" ? "WhatsApp" : "Correo")}
+      {line("Registrado", when(item.at))}
+      {line("Mensaje", item.text)}
+      <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Los avisos quedan registrados aquí hasta conectar el envío automático. Mientras tanto puedes marcarlos como enviados si los mandaste a mano, o descartarlos.</div>
+      <Actions items={[
+        ...(item.status === "en-cola" ? [{ t: "Marcar como enviado", kind: "p" as const, icon: "check" as const, run: () => { outboxStore.update((l) => l.map((o) => (o.id === item.id ? { ...o, status: "enviado" as const } : o))); toast("Marcado como enviado"); onDone(); } }] : []),
+        { t: "Descartar de la cola", kind: "x" as const, icon: "trash-2" as const, run: () => { outboxStore.update((l) => l.filter((o) => o.id !== item.id)); toast("Descartado"); onDone(); } },
+      ]} />
+    </>
   );
 }
 
