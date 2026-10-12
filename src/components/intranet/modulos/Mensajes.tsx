@@ -36,7 +36,7 @@ export function Mensajes() {
     }));
   const cur = sel && "id" in sel ? d.msg.find((m) => m.id === sel.id) : undefined;
   return (
-    <ModuleLayout title="Mensajes y campañas" sub="WhatsApp y correo" kpis={[{ l: "Enviados (mes)", v: String(sentMonth) }, { l: "En cola", v: String(queued) }, { l: "Campañas activas", v: String(d.msg.filter((m) => m.st === "activa").length) }]}
+    <ModuleLayout title="Mensajes y campañas" sub="WhatsApp y correo" kpis={[{ l: "Enviados (mes)", v: String(sentMonth) }, { l: "Avisos en cola", v: String(queued) }, { l: "Campañas activas", v: String(d.msg.filter((m) => m.st === "activa").length) }]}
       chips={FILTERS} chip={chip} onChip={setChip} query={q} onQuery={setQ} cta="Nueva campaña" onCta={() => setSel({ mode: "new" })} rows={rows}
       onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={sel && "mode" in sel ? "Nueva campaña" : (cur?.n ?? "")}
       panel={sel && "mode" in sel ? <CampaignForm key="new" onDone={() => setSel(null)} /> : cur ? <CampaignForm key={cur.id} rec={cur} onDone={() => setSel(null)} /> : null} />
