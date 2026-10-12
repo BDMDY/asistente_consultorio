@@ -1,5 +1,6 @@
 "use client";
 import { useMemo } from "react";
+import { isRemote } from "./backend/config";
 import { defineStore } from "./store";
 
 export interface Stat { id: number; n: string; l: string }
@@ -86,17 +87,18 @@ export const DEFAULT_MEDIA: Media = {
 export const mediaStore = defineStore<Partial<Media>>("da-media-v2", () => ({}), { remote: { name: "media", empty: () => ({}) } });
 
 export function resolveMedia(p: Partial<Media>): Media {
+  const D: Pick<Media, "stats" | "quotes" | "docs" | "facs" | "cases" | "services"> = isRemote ? { stats: [], quotes: [], docs: [], facs: [], cases: [], services: [] } : DEFAULT_MEDIA; // una clínica real empieza sin cifras, testimonios, fotos, casos ni servicios de ejemplo
   return {
     hero: p.hero ?? [],
     banner: p.banner ?? {},
     proof: p.proof ?? {},
-    stats: p.stats ?? DEFAULT_MEDIA.stats,
-    quotes: p.quotes ?? DEFAULT_MEDIA.quotes,
+    stats: p.stats ?? D.stats,
+    quotes: p.quotes ?? D.quotes,
     img: p.img ?? {},
-    docs: p.docs ?? DEFAULT_MEDIA.docs,
-    facs: p.facs ?? DEFAULT_MEDIA.facs,
-    cases: p.cases ?? DEFAULT_MEDIA.cases,
-    services: withCodes(p.services ?? DEFAULT_MEDIA.services),
+    docs: p.docs ?? D.docs,
+    facs: p.facs ?? D.facs,
+    cases: p.cases ?? D.cases,
+    services: withCodes(p.services ?? D.services),
   };
 }
 

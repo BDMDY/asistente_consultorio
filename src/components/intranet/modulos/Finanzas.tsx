@@ -99,7 +99,7 @@ function PaymentDetail({ p, onDone }: { p: Payment; onDone: () => void }) {
     if (group && group.lines.length) { if (!openSessionReceipt(group, { clinic: brand.name, doctor: doc })) toast("Permite ventanas emergentes para ver el comprobante"); return; }
     const w = window.open("", "_blank");
     if (!w) return toast("Permite ventanas emergentes para ver el comprobante");
-    w.document.write(`<title>Comprobante ${esc(p.no)}</title><body style="font-family:sans-serif;padding:24px"><h2>${esc(brand.name)}</h2><p>Comprobante ${esc(p.no)} · ${esc(when)}${p.apptId ? ` · ${apptCode(p.apptId)}` : ""}</p><p>${esc(p.patient)}</p>${live.map((x) => `<p>${esc(x.concept)} · <b>${money0(x.amount)}</b> · ${esc(x.method)}</p>`).join("")}<p>Total <b>${money0(total)}</b>${methods ? ` · Pagado con ${esc(methods)}` : ""}</p><p style="color:#777;font-size:12px">Comprobante de pago (demo)</p></body>`);
+    w.document.write(`<title>Comprobante ${esc(p.no)}</title><body style="font-family:sans-serif;padding:24px"><h2>${esc(brand.name)}</h2><p>Comprobante ${esc(p.no)} · ${esc(when)}${p.apptId ? ` · ${apptCode(p.apptId)}` : ""}</p><p>${esc(p.patient)}</p>${live.map((x) => `<p>${esc(x.concept)} · <b>${money0(x.amount)}</b> · ${esc(x.method)}</p>`).join("")}<p>Total <b>${money0(total)}</b>${methods ? ` · Pagado con ${esc(methods)}` : ""}</p><p style="color:#777;font-size:12px">Documento interno de pago · no es comprobante electrónico (SUNAT)</p></body>`);
     w.document.close();
   }
   const voidAll = (v: boolean) => (v ? live : lines.filter((x) => x.voided)).forEach((x) => setVoided(x, v));

@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { type BrandVars, deriveAccent, deriveBrand } from "./color";
+import { isRemote } from "./backend/config";
 import { type Schedule, scheduleOf, scheduleSummary } from "./schedule";
 import { defineStore } from "./store";
 
@@ -48,6 +49,9 @@ export const DEFAULT_BRAND: BrandConfig = {
 const HEAD_FONTS = ["'Plus Jakarta Sans',sans-serif", "'Lora',serif", "'Source Serif 4',serif"];
 const BODY_FONTS = ["'Plus Jakarta Sans',sans-serif", "'Inter',sans-serif", "'DM Sans',sans-serif"];
 
+/** En modo remoto (clínica real) nada de contacto ni de ubicación viene de ejemplo: solo se muestra lo que la clínica configure. */
+export const REMOTE_BRAND: BrandConfig = { ...DEFAULT_BRAND, name: "", kicker: "", address: "", phone: "", whatsapp: "", email: "", instagram: "", facebook: "", hours: "" };
+
 export const brandStore = defineStore<Partial<BrandConfig>>("da-brand-v1", () => ({}), { remote: { name: "brand", empty: () => ({}) } });
 
 export interface ResolvedBrand extends BrandConfig {
@@ -59,15 +63,15 @@ export interface ResolvedBrand extends BrandConfig {
 }
 
 export function resolveBrand(partial: Partial<BrandConfig>): ResolvedBrand {
-  const b: BrandConfig = { ...DEFAULT_BRAND, ...partial };
+  const b: BrandConfig = { ...(isRemote ? REMOTE_BRAND : DEFAULT_BRAND), ...partial };
   const vars: BrandVars = b.hex.toUpperCase() === DEFAULT_BRAND.hex ? {} : deriveBrand(b.hex);
   if (b.accent && b.accent.toUpperCase() !== DEFAULT_BRAND.accent) Object.assign(vars, deriveAccent(b.accent));
   return {
     ...b,
     hours: b.schedule ? scheduleSummary(scheduleOf(b.schedule)) : b.hours,
     vars,
-    waLink: "https://wa.me/" + String(b.whatsapp || "").replace(/\D/g, ""),
-    telLink: "tel:" + String(b.phone || "").replace(/[^\d+]/g, ""),
+    waLink: String(b.whatsapp || "").replace(/\D/g, "") ? "https://wa.me/" + String(b.whatsapp).replace(/\D/g, "") : "",
+    telLink: String(b.phone || "").replace(/[^\d+]/g, "") ? "tel:" + String(b.phone).replace(/[^\d+]/g, "") : "",
     head: HEAD_FONTS[b.f] ?? HEAD_FONTS[0],
     body: BODY_FONTS[b.f] ?? BODY_FONTS[0],
   };

@@ -17,6 +17,7 @@ export function errText(err: unknown): string {
   if (msg.includes("invalid_hours")) return "Fuera del horario de atención (día de descanso, cierre u hora no laborable)";
   if (e?.code === "42501" || /row-level security|permission denied/i.test(msg)) return "No tienes permiso para esta acción";
   if (msg.includes("Debe quedar al menos un administrador")) return "Debe quedar al menos un administrador activo";
+  if (msg.includes("rate_limited")) return "Demasiados intentos desde este dispositivo o con estos datos. Espera unos minutos o llama a la clínica";
   if (msg.includes("receipt_no_taken")) return "Ese número de comprobante ya lo usó otra cita. Vuelve a registrar el cobro";
   if (e?.code === "23505") return "Ya existe un registro con esos datos";
   if (/fetch|network/i.test(msg)) return "Sin conexión con el servidor";

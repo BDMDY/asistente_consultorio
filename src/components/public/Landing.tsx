@@ -64,14 +64,16 @@ export default function Landing() {
 
       <section className={s.hero}>
         <div className={s.heroCopy}>
-          <div className={s.kicker}>{brand.kicker}</div>
+          {brand.kicker && <div className={s.kicker}>{brand.kicker}</div>}
           <h1 className={s.h1}>{brand.slogan}</h1>
           <p className={s.sub}>{brand.heroSub}</p>
           <div className={s.heroBtns}>
             <Link href="/reserva" className={s.btnPrimary}>Reservar cita</Link>
-            <a href={brand.waLink} className={s.btnGhost} target="_blank" rel="noopener noreferrer">
-              <Icon name="message-circle" />WhatsApp
-            </a>
+            {brand.waLink && (
+              <a href={brand.waLink} className={s.btnGhost} target="_blank" rel="noopener noreferrer">
+                <Icon name="message-circle" />WhatsApp
+              </a>
+            )}
           </div>
           <Link href="/clientes" className={s.heroLink}>¿Ya eres cliente? Revisa tu historial aquí</Link>
           <div className={s.rating}>
@@ -205,16 +207,16 @@ export default function Landing() {
       </section>
 
       <section id="ubicacion" className={s.loc}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {(brand.address || brand.hours || brand.telLink || brand.waLink) && <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <h2 className={s.h2s}>Ubicación y contacto</h2>
-          <MapEmbed address={brand.address} />
+          {brand.address && <MapEmbed address={brand.address} />}
           <div className={s.locInfo}>
-            <span><Icon name="map-pin" size={16} /> {brand.address}</span>
-            <span className="tnum"><Icon name="clock" size={16} /> {brand.hours}</span>
-            <a href={brand.telLink} className="tnum"><Icon name="phone" size={16} /> {brand.phone}</a>
-            <a href={brand.waLink} className="tnum"><Icon name="message-circle" size={16} /> {brand.whatsapp}</a>
+            {brand.address && <span><Icon name="map-pin" size={16} /> {brand.address}</span>}
+            {brand.hours && <span className="tnum"><Icon name="clock" size={16} /> {brand.hours}</span>}
+            {brand.telLink && <a href={brand.telLink} className="tnum"><Icon name="phone" size={16} /> {brand.phone}</a>}
+            {brand.waLink && <a href={brand.waLink} className="tnum"><Icon name="message-circle" size={16} /> {brand.whatsapp}</a>}
           </div>
-        </div>
+        </div>}
         <div id="faq" className={s.faq}>
           <h2 className={s.h2s} style={{ marginBottom: 6 }}>Preguntas frecuentes</h2>
           {FAQ.map(([q, a], i) => (
@@ -232,7 +234,7 @@ export default function Landing() {
       <footer className={s.footer}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <BrandMark onDark />
-          <span>{brand.address}</span>
+          {brand.address && <span>{brand.address}</span>}
         </div>
         <div className={s.footerR}>
           <span style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
@@ -250,9 +252,11 @@ export default function Landing() {
         </div>
       </footer>
 
-      <a href={brand.waLink} className={s.wa} aria-label="Escribir por WhatsApp" target="_blank" rel="noopener noreferrer">
-        <Icon name="message-circle" size={28} />
-      </a>
+      {brand.waLink && (
+        <a href={brand.waLink} className={s.wa} aria-label="Escribir por WhatsApp" target="_blank" rel="noopener noreferrer">
+          <Icon name="message-circle" size={28} />
+        </a>
+      )}
     </div>
   );
 }

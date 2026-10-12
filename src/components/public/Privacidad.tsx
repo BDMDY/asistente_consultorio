@@ -7,7 +7,7 @@ export default function Privacidad() {
   const brand = useBrand();
   const n = brand.name;
   const sections: [string, string][] = [
-    ["1. Responsable del banco de datos", `${n} (domicilio: ${brand.address}) es titular del banco de datos personales de pacientes y responsable de su tratamiento, conforme a la Ley N.° 29733 y su Reglamento (D.S. N.° 003-2013-JUS).`],
+    ["1. Responsable del banco de datos", `${n}${brand.address ? ` (domicilio: ${brand.address})` : ""} es titular del banco de datos personales de pacientes y responsable de su tratamiento, conforme a la Ley N.° 29733 y su Reglamento (D.S. N.° 003-2013-JUS).`],
     ["2. Datos que recopilamos", "Nombre completo, DNI, número de celular, correo electrónico (opcional), motivo de la cita y, durante la atención, datos de salud necesarios para su historia clínica. Los datos de salud son datos sensibles y se tratan con medidas reforzadas de seguridad."],
     ["3. Finalidad del tratamiento", "Gestionar tu reserva y recordatorios de cita, brindar atención odontológica, elaborar y conservar tu historia clínica, emitir comprobantes de pago y, solo si lo autorizas, enviarte comunicaciones sobre promociones o campañas de salud."],
     ["4. Base legal y consentimiento", "Tratamos tus datos con tu consentimiento previo, libre, expreso e informado, que otorgas al marcar la casilla en el formulario de reserva. Puedes revocarlo en cualquier momento sin efectos retroactivos."],
@@ -37,7 +37,7 @@ export default function Privacidad() {
         ))}
         <div style={{ padding: 20, borderRadius: 16, background: "var(--grad-hero)", boxShadow: "inset 0 0 0 1px var(--brand-100)", display: "flex", flexDirection: "column", gap: 6, fontSize: 15 }}>
           <b>Ejerce tus derechos</b>
-          <span>Escríbenos a <a href={`mailto:${brand.email}`}>{brand.email}</a> o por <a href={brand.waLink}>WhatsApp</a>. Responderemos en un plazo máximo de 20 días hábiles.</span>
+          <span>Escríbenos{brand.email && <> a <a href={`mailto:${brand.email}`}>{brand.email}</a></>}{brand.email && brand.waLink && " o"}{brand.waLink && <> por <a href={brand.waLink}>WhatsApp</a></>}. Responderemos en un plazo máximo de 20 días hábiles.</span>
         </div>
       </main>
     </div>

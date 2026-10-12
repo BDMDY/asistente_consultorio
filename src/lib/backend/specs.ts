@@ -11,7 +11,7 @@ import {
   type Row, apptToRow, diffById, fileToRow, flatten, groupByPatient, noteToRow, outboxToRow, patientToRow, paymentToRow,
   rowToAppt, rowToFile, rowToNote, rowToOutbox, rowToPatient, rowToPayment,
 } from "./rows";
-import { type Ctx, defineSpec } from "./sync";
+import { type Ctx, type PublicSite, defineSpec } from "./sync";
 
 const PAGE = 1000;
 
@@ -58,12 +58,12 @@ async function writeDoc(c: Ctx, key: string, value: unknown) {
 }
 
 /** Documento de empresa: brand, media, perms. */
-function docSpec<T>(key: string, empty: () => T, publicKey?: "brand" | "media"): void {
+function docSpec<T>(key: string, empty: () => T, publicKey?: "brand" | "media", merge?: (site: PublicSite) => Partial<T>): void {
   defineSpec<T>(key, {
     tables: ["clinic_docs"],
     load: async (c) => ((await readDoc(c, key)) as T | undefined) ?? empty(),
     save: (_prev, next, c) => writeDoc(c, key, next),
-    ...(publicKey ? { fromPublic: (site) => (site[publicKey] as T | null) ?? empty() } : {}),
+    ...(publicKey ? { fromPublic: (site) => ({ ...(merge?.(site) ?? {}), ...((site[publicKey] as T | null) ?? empty()) }) as T } : {}),
   });
 }
 
@@ -149,7 +149,8 @@ export function registerSpecs() {
     fromPublic: (site) => ((site.doctors as { id: number; nom: string; cmp: string; titulo?: string }[] | undefined) ?? []).map((d) => ({ id: Number(d.id), nom: d.nom, cmp: d.cmp ?? "", titulo: d.titulo ?? "" })),
   });
 
-  docSpec<Record<string, unknown>>("brand", () => ({}), "brand");
+  // el nombre de la clínica (registro) sirve de respaldo mientras la marca no tenga nombre
+  docSpec<Record<string, unknown>>("brand", () => ({}), "brand", (site) => (site.clinic?.name ? { name: site.clinic.name } : {}));
   docSpec<Record<string, unknown>>("media", () => ({}), "media");
   docSpec<PermRow[]>("perms", seedPerms);
 

@@ -78,7 +78,7 @@ ${a ? `<tr><td><b>Servicio de la cita</b></td><td>${esc(a.s)}</td></tr>` : ""}</
 <table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;border-bottom:2px solid #10241B"><th>Fecha y hora</th><th>Comprobante</th><th>Tratamiento aplicado</th><th style="text-align:right">Costo unitario</th><th>Método</th><th style="text-align:right">Monto cobrado</th></tr></thead><tbody>${rows}</tbody>
 <tfoot><tr style="border-top:2px solid #10241B"><td colspan="5"><b>Total pagado en la cita</b></td><td style="text-align:right"><b>${money(g.total)}</b></td></tr></tfoot></table>
 <p style="font-size:13px;color:#555">Pagado con: ${g.byMethod.map(([m, v]) => `${esc(m)} ${money(v)}`).join(" · ") || "—"} · ${g.receipts.length} comprobante${g.receipts.length === 1 ? "" : "s"} (${g.receipts.map(esc).join(", ")})</p>
-${voided}<p style="color:#888;font-size:12px">Comprobante de pago (demo). Código de cita ${esc(g.code)}.</p></body>`;
+${voided}<p style="color:#888;font-size:12px">Documento interno de pago · no es comprobante electrónico (SUNAT). Código de cita ${esc(g.code)}.</p></body>`;
 }
 
 

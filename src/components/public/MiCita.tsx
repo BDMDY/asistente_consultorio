@@ -112,7 +112,7 @@ export default function MiCita({ id }: { id: string }) {
   const past = d < 0 && !closed;
   const count = a.st === "cancelada" ? "Cita cancelada" : a.st === "atendida" ? "Cita atendida" : past ? "Cita vencida" : d === 0 ? "Es hoy" : d === 1 ? "Falta 1 día" : `Faltan ${d} días`;
   const docName = docs.find((x) => x.id === a.doc)?.name ?? docs[0]?.name ?? "";
-  const rows: [string, IconName][] = [[a.s, "smile"], [docName, "user"], [brand.address, "map-pin"], [`Paciente: ${a.p}`, "id-card"], [`Código de cita: ${apptCode(a.id)}`, "id-card"]];
+  const rows: [string, IconName][] = [[a.s, "smile"], [docName, "user"], ...(brand.address ? [[brand.address, "map-pin"] as [string, IconName]] : []), [`Paciente: ${a.p}`, "id-card"], [`Código de cita: ${apptCode(a.id)}`, "id-card"]];
   const canAct = !closed && !past;
   const canConfirm = a.st === "pendiente" || a.st === "reprogramada";
   const canRebook = a.st === "cancelada" || past;

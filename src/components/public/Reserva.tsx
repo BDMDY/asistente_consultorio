@@ -130,7 +130,7 @@ export default function Reserva() {
   const input = (border: string): React.CSSProperties => ({ height: 50, borderRadius: 12, border, padding: "0 14px", fontSize: 16, background: "var(--surface)", color: "inherit" });
   const bookedDoc = booked ? docs.find((x) => x.id === booked.doc) : undefined;
   const summary: [string, IconName][] = svc && d.date && d.slot !== null && booked
-    ? [[svc.name, "smile"], [bookedDoc?.name ?? "", "user"], [`${labelLong(d.date)} · ${hm(d.slot)}`, "calendar"], [brand.address, "map-pin"]]
+    ? [[svc.name, "smile"], [bookedDoc?.name ?? "", "user"], [`${labelLong(d.date)} · ${hm(d.slot)}`, "calendar"], ...(brand.address ? [[brand.address, "map-pin"] as [string, IconName]] : [])]
     : [];
 
   return (
@@ -158,6 +158,7 @@ export default function Reserva() {
 
         {d.step === 0 && (
           <>
+            {services.length === 0 && <div role="status" style={{ padding: 14, borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontWeight: 600, fontSize: 14 }}>Por ahora no hay servicios disponibles para reservar en línea. Escríbenos y te ayudamos.</div>}
             {services.map((o) => (
               <button key={o.id} type="button" style={choiceStyle(d.svcId === o.id)} onClick={() => patch({ svcId: o.id, slot: null })}>
                 <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--brand-50)", color: "var(--brand-text)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={ICONS[media.services.indexOf(o) % 5]} /></span>

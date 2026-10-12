@@ -438,7 +438,7 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
           <>
             <div style={{ borderRadius: 14, boxShadow: "inset 0 0 0 1px var(--line)", padding: 18, display: "flex", flexDirection: "column", gap: 6, fontSize: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}><b>{brand.name}</b><span className="tnum" style={{ color: "var(--ink-500)" }}>{receipt.pays[0].no}</span></div>
-              <span style={{ color: "var(--ink-500)" }}>Comprobante de pago (demo) · {receipt.pays[0].date} · {receipt.pays[0].patient}</span>
+              <span style={{ color: "var(--ink-500)" }}>Comprobante interno de pago · {receipt.pays[0].date} · {receipt.pays[0].patient}</span>
               <div style={{ borderTop: "1px dashed var(--line)", margin: "8px 0" }} />
               {receipt.pays.map((p) => <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><span>{p.concept}</span><b className="tnum">{money(p.amount)}</b></div>)}
               <div style={{ borderTop: "1px dashed var(--line)", margin: "8px 0" }} />
