@@ -12,7 +12,7 @@ import { toast } from "@/lib/toast";
 const inp: React.CSSProperties = { borderRadius: 8, border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--surface)", color: "inherit", minWidth: 0, boxSizing: "border-box" };
 const nextId = (l: { id: number }[]) => Math.max(0, ...l.map((x) => x.id)) + 1;
 
-type ListKey = "services" | "stats" | "quotes" | "docs" | "facs" | "cases";
+type ListKey = "services" | "stats" | "quotes" | "faq" | "docs" | "facs" | "cases";
 const commit = (fn: (m: Media) => Partial<Media>) => mediaStore.update((p) => ({ ...p, ...fn(resolveMedia(p)) }));
 function setItem<K extends ListKey>(key: K, id: number, patch: Partial<Media[K][number]>) {
   commit((m) => ({ [key]: (m[key] as { id: number }[]).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
@@ -136,6 +136,20 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
                 <input value={d.a} onChange={(e) => setItem("quotes", d.id, { a: e.target.value })} placeholder="Nombre · tratamiento" aria-label="Autor" style={{ ...inp, height: 30, fontSize: 12, padding: "0 10px" }} />
               </div>
               {trash(() => delItem("quotes", d.id), "Quitar testimonio")}
+            </div>
+          ))}
+        </>)}
+
+      {section("Preguntas frecuentes", m.faq.length, addBtn("+ Agregar pregunta", () => commit((x) => ({ faq: [...x.faq, { id: nextId(x.faq), q: "", a: "" }] }))),
+        <>
+          {m.faq.length === 0 && empty("Sin preguntas: la sección se oculta en el sitio. Escribe solo lo que la clínica realmente ofrece (pagos, emergencias, duración…).")}
+          {m.faq.map((d) => (
+            <div key={d.id} style={{ ...row, alignItems: "flex-start" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                <input value={d.q} onChange={(e) => setItem("faq", d.id, { q: e.target.value })} placeholder="Pregunta" aria-label="Pregunta" style={{ ...inp, height: 34, padding: "0 10px", fontWeight: 600 }} />
+                <textarea value={d.a} onChange={(e) => setItem("faq", d.id, { a: e.target.value })} placeholder="Respuesta" aria-label="Respuesta" rows={2} style={{ ...inp, padding: "6px 10px", resize: "vertical", fontFamily: "inherit" }} />
+              </div>
+              {trash(() => delItem("faq", d.id), "Quitar pregunta")}
             </div>
           ))}
         </>)}

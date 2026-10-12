@@ -263,7 +263,7 @@ export default function Reserva() {
               <span style={{ width: 76, height: 76, borderRadius: "50%", background: "var(--grad-accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="check" size={40} /></span>
               <b style={{ fontSize: 26 }}>¡Cita reservada!</b>
               <span style={{ fontSize: 14, fontWeight: 600, color: "var(--brand-text)" }}>{booked.existing ? `¡Qué gusto verte de nuevo, ${booked.name.split(" ")[0]}! Encontramos tu ficha.` : `Te registramos como paciente, ${booked.name.split(" ")[0]}.`}</span>
-              <span style={{ fontSize: 14, color: "var(--ink-500)" }}>Te enviaremos el enlace por WhatsApp al {d.f.phone}.</span>
+              <span style={{ fontSize: 14, color: "var(--ink-500)" }}>Guarda tu cita: puedes consultarla o reprogramarla en cualquier momento desde «Ver mi cita» o desde «Clientes» con tu DNI y celular.</span>
             </div>
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-md)", display: "flex", flexDirection: "column", gap: 10, fontSize: 15 }}>
               {summary.map(([t, i]) => (

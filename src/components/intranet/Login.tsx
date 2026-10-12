@@ -78,13 +78,13 @@ export default function Login() {
             <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 14, fontWeight: 600 }}>Contraseña
               <input type="password" autoComplete="current-password" placeholder="Tu contraseña" value={f.pass} onChange={(e) => setF({ ...f, pass: e.target.value })} style={input()} />
             </label>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", justifyContent: isRemote ? "space-between" : "flex-end", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              {isRemote && <Link href="/intranet/codigo" style={{ ...link, display: "inline-flex", alignItems: "center" }}>Tengo un código de acceso</Link>}
               <button type="button" style={link} onClick={() => { setF({ ...f, rec: f.email }); setView("recover"); }}>Recuperar contraseña</button>
             </div>
             {error && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>{error}</div>}
             {isRemote && auth.status === "denied" && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>Tu cuenta aún no está asociada a una clínica. Pide a tu administrador que te registre con este correo. Si eres quien configura la clínica por primera vez, <Link href="/intranet/registro" style={{ color: "var(--brand-text)" }}>crea la clínica aquí</Link>.</div>}
             <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? "Ingresando…" : "Iniciar sesión"}</button>
-            {isRemote && <Link href="/intranet/codigo" style={{ ...link, textAlign: "center" }}>Tengo un código de acceso</Link>}
             <button type="button" onClick={() => toast("El acceso con Google se activa al conectar la autenticación")} style={{ ...primary, background: "var(--surface)", color: "inherit", boxShadow: "inset 0 0 0 1px var(--line)", fontWeight: 600, gap: 8 }}>
               <GoogleG />Entrar con Google
             </button>

@@ -18,12 +18,6 @@ const NAV = [
   ["Ubicación", "#ubicacion"],
   ["Preguntas", "#faq"],
 ] as const;
-const FAQ = [
-  ["¿Atienden emergencias?", "Sí. Escríbenos por WhatsApp y te damos el primer horario disponible el mismo día."],
-  ["¿Qué medios de pago aceptan?", "Efectivo, tarjetas, Yape y Plin. Emitimos boleta o factura."],
-  ["¿Cómo reprogramo mi cita?", 'Desde el enlace "Mi cita" que recibes por WhatsApp, sin necesidad de llamar.'],
-  ["¿Cuánto dura la primera consulta?", "Entre 30 y 45 minutos, según el servicio elegido."],
-] as const;
 const STEPS = ["Elige el servicio", "Elige doctor (opcional)", "Elige día y hora libres", "Ingresa tus datos", "Recibe tu confirmación"];
 
 const bg = (url?: string) => (url ? { backgroundImage: `url("${url}")` } : undefined);
@@ -34,6 +28,8 @@ export default function Landing() {
   const doctors = useDoctors();
   const [menu, setMenu] = useState(false);
   const [faq, setFaq] = useState(0);
+  const hasFaq = media.faq.some((f) => f.q.trim() && f.a.trim());
+  const nav = NAV.filter(([, h]) => (h === "#faq" ? hasFaq : h === "#equipo" ? doctors.length > 0 : h === "#casos" ? media.cases.length > 0 : true));
 
 
   return (
@@ -41,7 +37,7 @@ export default function Landing() {
       <header className={s.header}>
         <BrandMark />
         <nav className={s.nav} aria-label="Secciones">
-          {NAV.map(([t, h]) => (
+          {nav.map(([t, h]) => (
             <a key={h} href={h}>{t}</a>
           ))}
         </nav>
@@ -55,7 +51,7 @@ export default function Landing() {
         </div>
       </header>
       <nav className={`${s.mobileMenu} ${menu ? s.open : ""}`} aria-label="Menú móvil">
-        {NAV.map(([t, h]) => (
+        {nav.map(([t, h]) => (
           <a key={h} href={h} onClick={() => setMenu(false)}>{t}</a>
         ))}
         <Link href="/clientes" onClick={() => setMenu(false)}>Clientes · mis citas y comprobantes</Link>
@@ -217,9 +213,9 @@ export default function Landing() {
             {brand.waLink && <a href={brand.waLink} className="tnum"><Icon name="message-circle" size={16} /> {brand.whatsapp}</a>}
           </div>
         </div>}
-        <div id="faq" className={s.faq}>
+        {hasFaq && <div id="faq" className={s.faq}>
           <h2 className={s.h2s} style={{ marginBottom: 6 }}>Preguntas frecuentes</h2>
-          {FAQ.map(([q, a], i) => (
+          {media.faq.filter((f) => f.q.trim() && f.a.trim()).map(({ q, a }, i) => (
             <div key={q} className={s.faqItem}>
               <button type="button" className={s.faqQ} aria-expanded={faq === i} onClick={() => setFaq(faq === i ? -1 : i)}>
                 {q}
@@ -228,7 +224,7 @@ export default function Landing() {
               {faq === i && <div className={s.faqA}>{a}</div>}
             </div>
           ))}
-        </div>
+        </div>}
       </section>
 
       <footer className={s.footer}>

@@ -5,6 +5,7 @@ import { defineStore } from "./store";
 
 export interface Stat { id: number; n: string; l: string }
 export interface Quote { id: number; t: string; a: string }
+export interface Faq { id: number; q: string; a: string }
 /** Doctor tal como lo ven la agenda, la reserva y el sitio: el nombre y el COP salen del usuario registrado (Configuración → Usuarios). */
 export interface Doctor { id: number; name: string; /** nombre completo con tratamiento (historia clínica) */ full: string; spec: string; cop: string; photo: string }
 /** Perfil público de un doctor registrado, enlazado por su número de agenda: lo que el usuario no tiene (título, especialidad y foto). */
@@ -46,6 +47,8 @@ export interface Media {
   hero: HeroSlide[];
   stats: Stat[];
   quotes: Quote[];
+  /** preguntas frecuentes que escribe la clínica; sin ninguna, la sección se oculta */
+  faq: Faq[];
   img: MediaImages;
   docs: DoctorProfile[];
   facs: Facility[];
@@ -67,6 +70,10 @@ export const DEFAULT_MEDIA: Media = {
     { id: 1, t: "Me explicaron todo el tratamiento y reservé desde mi celular. Excelente atención.", a: "Lucía R. · Ortodoncia" },
     { id: 2, t: "Puntuales, limpios y muy amables con mi hijo. Lo recomiendo.", a: "Marco T. · Odontopediatría" },
   ],
+  faq: [
+    { id: 1, q: "¿Atienden emergencias?", a: "Escríbenos por WhatsApp y te indicamos el primer horario disponible." },
+    { id: 2, q: "¿Cómo reprogramo mi cita?", a: "Desde «Clientes» o el enlace de tu cita, sin necesidad de llamar." },
+  ],
   img: {},
   docs: [
     { id: 1, title: "Dra.", spec: "Ortodoncista", photo: "" },
@@ -87,13 +94,14 @@ export const DEFAULT_MEDIA: Media = {
 export const mediaStore = defineStore<Partial<Media>>("da-media-v2", () => ({}), { remote: { name: "media", empty: () => ({}) } });
 
 export function resolveMedia(p: Partial<Media>): Media {
-  const D: Pick<Media, "stats" | "quotes" | "docs" | "facs" | "cases" | "services"> = isRemote ? { stats: [], quotes: [], docs: [], facs: [], cases: [], services: [] } : DEFAULT_MEDIA; // una clínica real empieza sin cifras, testimonios, fotos, casos ni servicios de ejemplo
+  const D: Pick<Media, "stats" | "quotes" | "faq" | "docs" | "facs" | "cases" | "services"> = isRemote ? { stats: [], quotes: [], faq: [], docs: [], facs: [], cases: [], services: [] } : DEFAULT_MEDIA; // una clínica real empieza sin cifras, testimonios, fotos, casos ni servicios de ejemplo
   return {
     hero: p.hero ?? [],
     banner: p.banner ?? {},
     proof: p.proof ?? {},
     stats: p.stats ?? D.stats,
     quotes: p.quotes ?? D.quotes,
+    faq: p.faq ?? D.faq,
     img: p.img ?? {},
     docs: p.docs ?? D.docs,
     facs: p.facs ?? D.facs,
