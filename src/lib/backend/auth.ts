@@ -138,3 +138,25 @@ export async function inviteStaff(email: string): Promise<"ok" | "linked" | "reg
   }
   return "fail";
 }
+
+/** El administrador genera un código de acceso de un solo uso (72 h) para una persona del personal. */
+export async function createStaffCode(staffId: string): Promise<{ code?: string; error?: string }> {
+  const { data, error } = await getClient().rpc("create_staff_code", { p_staff: staffId });
+  if (error) return { error: error.message };
+  return { code: String(data) };
+}
+
+/** Registro con código: crea la cuenta del personal y abre sesión. */
+export async function redeemStaffCode(a: { email: string; dni: string; code: string; password: string }): Promise<string> {
+  const { data, error } = await getClient().functions.invoke("redeem-staff-code", { body: a });
+  if (error || !(data as { ok?: boolean } | null)?.ok) {
+    let code = "", detail = "";
+    try { const b = (await (error as { context?: Response } | null)?.context?.json()) as { error?: string; detail?: string } | undefined; code = b?.error ?? ""; detail = b?.detail ?? ""; } catch { /* sin detalle */ }
+    if (code === "invalid") return "Los datos no coinciden o el código venció. Pide uno nuevo a tu administrador";
+    if (code === "already_registered") return "Ese correo ya tiene cuenta: entra con tu contraseña o usa «Recuperar contraseña»";
+    if (code === "weak_password") return authMessage(detail);
+    return "No se pudo completar el registro. Intenta de nuevo";
+  }
+  const err = await signInWithPassword(a.email.trim(), a.password);
+  return err ? "Cuenta creada. Ahora inicia sesión con tu correo y contraseña" : "";
+}

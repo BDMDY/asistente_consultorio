@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isRemote } from "@/lib/backend/config";
-import { inviteStaff } from "@/lib/backend/auth";
+import { createStaffCode, inviteStaff } from "@/lib/backend/auth";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
 import { hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
@@ -115,6 +115,8 @@ const isEmail = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
 
 function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
   const { data: d } = useMod();
+  const brand = useBrand();
+  const [code, setCode] = useState("");
   const [f, setF] = useState({ nom: rec?.nom ?? "", dni: rec?.dni ?? "", rol: (rec?.rol ?? "Asistente") as Role, cmp: rec?.cmp ?? "", titulo: rec?.titulo ?? "", mail: rec?.mail ?? "", tel: rec?.tel ?? "", on: rec ? (rec.on ? "Activo" : "Suspendido") : "Activo" });
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const o = { ...f, nom: f.nom.trim(), dni: f.dni.trim(), mail: f.mail.trim(), tel: f.tel.trim(), cmp: f.rol === "Doctor" ? f.cmp.trim() : "" };
@@ -134,6 +136,13 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
     else if (isRemote) { commit([item, ...d.users], `Usuario registrado · enviando invitación a ${o.mail}…`); void invite(o.mail); }
     else { enqueue({ kind: "invitacion", channel: "correo", patient: o.mail, text: `Invitación al equipo (${o.rol})` }); commit([item, ...d.users], `Usuario registrado · invitación en cola para ${o.mail}`); }
   }
+  async function genCode() {
+    if (!rec) return;
+    const r = await createStaffCode(rec.id);
+    if (r.code) setCode(r.code);
+    else toast(/ya tiene acceso/i.test(r.error ?? "") ? `${rec.nom} ya tiene acceso` : /suspendido/i.test(r.error ?? "") ? "El usuario está suspendido" : "No se pudo generar el código");
+  }
+  const codeMsg = code ? `Hola ${rec?.nom.split(" ")[0] ?? ""}, te dimos acceso a la intranet de ${brand.name}. Entra a ${typeof window === "undefined" ? "" : window.location.origin}/intranet/codigo e ingresa tu correo (${rec?.mail}), tu DNI y este código: ${code}. Vale 72 horas.` : "";
   async function invite(mail: string) {
     const r = await inviteStaff(mail);
     toast(r === "ok" ? `Invitación enviada a ${mail}` : r === "linked" ? `${mail} ya tiene acceso` : r === "registered" ? `${mail} ya tiene cuenta: puede entrar con «Ya tengo cuenta» en el registro` : r === "notauth" ? `Supabase no permite enviar a ${mail} con su correo integrado (solo a miembros de la organización). Configura un SMTP propio para invitar a cualquier correo` : r === "limit" ? "Límite de correos alcanzado. Espera unos minutos y usa «Reenviar invitación»" : `No se pudo enviar la invitación a ${mail}. Usa «Reenviar invitación»`);
@@ -152,9 +161,20 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
         { t: rec ? "Guardar cambios" : "Guardar e invitar", kind: "p", icon: rec ? "save" : "send", run: save },
         ...(rec ? [
           { t: "Reenviar invitación", icon: "send" as const, run: () => { if (isRemote) { void invite(rec.mail); onDone(); return; } enqueue({ kind: "invitacion", channel: "correo", patient: rec.mail, text: "Reenvío de invitación" }); onDone(); toast(`Invitación en cola para ${rec.mail}`); } },
+          ...(isRemote ? [{ t: "Generar código de acceso", icon: "key-round" as const, run: () => void genCode() }] : []),
           { t: "Eliminar usuario", kind: "x" as const, icon: "trash-2" as const, run: () => (rec.rol === "Administrador" && admins <= 1 ? toast("Debe quedar al menos un administrador") : commit(d.users.filter((u) => u.id !== rec.id), "Usuario eliminado")) },
         ] : []),
       ]} />
+      {code && (
+        <div style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 13, color: "var(--ink-500)" }}>Código de acceso (se muestra una sola vez, vale 72 horas)</div>
+          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: ".15em" }}>{code}</div>
+          <Actions items={[
+            { t: "Copiar mensaje", icon: "save", run: () => { void navigator.clipboard?.writeText(codeMsg); toast("Mensaje copiado"); } },
+            { t: "Enviar por WhatsApp", icon: "send", run: () => window.open(`https://wa.me/51${rec?.tel ?? ""}?text=${encodeURIComponent(codeMsg)}`, "_blank", "noopener") },
+          ]} />
+        </div>
+      )}
     </>
   );
 }
