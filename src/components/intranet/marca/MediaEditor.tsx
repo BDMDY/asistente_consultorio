@@ -10,6 +10,13 @@ import { isRemote } from "@/lib/backend/config";
 import { toast } from "@/lib/toast";
 
 const inp: React.CSSProperties = { borderRadius: 8, border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--surface)", color: "inherit", minWidth: 0, boxSizing: "border-box" };
+const SIZE_HINT: Record<string, string> = {
+  logoL: "800 × 250 px · PNG transparente · para fondo claro",
+  logoD: "800 × 250 px · PNG transparente · para fondo oscuro",
+  favicon: "128 × 128 px · PNG cuadrado, símbolo simple",
+  hero: "1000 × 750 px · horizontal 4:3",
+  login: "1000 × 1000 px · cuadrada · solo en computadora",
+};
 const nextId = (l: { id: number }[]) => Math.max(0, ...l.map((x) => x.id)) + 1;
 
 type ListKey = "services" | "stats" | "quotes" | "faq" | "docs" | "facs" | "cases";
@@ -57,6 +64,7 @@ const section = (title: string, count: number | null, add: React.ReactNode, chil
     {children}
   </div>
 );
+const hint = (t: string) => <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}><b>Medidas:</b> {t}</div>;
 const row: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center", padding: 8, borderRadius: 12, boxShadow: "inset 0 0 0 1px var(--line)" };
 
 /** Editor de logos, fotos y listas del sitio público. Las secciones sin elementos se ocultan en el sitio. */
@@ -76,6 +84,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
           {singles.map(([k, label, fit, bg, logo]) => (
             <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
+              <div style={{ fontSize: 11, color: "var(--ink-500)", lineHeight: 1.4, minHeight: 48 }}>{SIZE_HINT[k]}</div>
               <Pick src={m.img[k]} label={label} h={72} icon="upload" fit={fit} bg={bg} logoMode={logo} max={k === "favicon" ? 128 : undefined} onPick={(u) => setImg(k, u)} />
               <button type="button" onClick={() => delImg(k)} style={{ cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--error-fg)", visibility: m.img[k] ? "visible" : "hidden", background: "transparent", border: 0, textAlign: "left", padding: 0 }}>Quitar</button>
             </div>
@@ -156,6 +165,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
 
       {section("Equipo", doctors.length, null,
         <>
+          {hint("Foto de cada doctor: 600 × 520 px, con el rostro centrado. Se muestra en un recuadro de unos 260 × 220 px.")}
           <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
             El equipo sale de los usuarios con perfil <b>Doctor</b> (nombre y colegiatura incluidos) y es el mismo de la agenda y la reserva. Para agregar o quitar doctores ve a <Link href="/intranet/modulos/configuracion" style={{ color: "var(--brand-text)", fontWeight: 700 }}>Configuración → Usuarios</Link>. Aquí completas cómo se presentan en el sitio.
           </div>
@@ -182,6 +192,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
 
       {section("Instalaciones", m.facs.length, addBtn("+ Agregar foto", () => commit((x) => ({ facs: [...x.facs, { id: nextId(x.facs), cap: "", photo: "" }] }))),
         <>
+          {hint("Fotos horizontales 3:2, de 900 × 600 px. Cada una se ve de unos 300 × 200 px.")}
           {m.facs.length === 0 && empty("Sin fotos: la sección se oculta en el sitio.")}
           {m.facs.map((d) => (
             <div key={d.id} style={{ ...row, gap: 10 }}>
@@ -194,6 +205,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
 
       {section("Casos antes / después", m.cases.length, addBtn("+ Agregar caso", () => commit((x) => ({ cases: [...x.cases, { id: nextId(x.cases), label: "", before: "", after: "" }] }))),
         <>
+          {hint("Dos fotos de 600 × 600 px (cuadradas) con el mismo encuadre y distancia, para que se puedan comparar.")}
           {m.cases.length === 0 && empty("Sin casos: la galería se oculta en el sitio.")}
           {m.cases.map((d) => (
             <div key={d.id} style={row}>
@@ -250,6 +262,7 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
       <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
         Con una sola diapositiva se muestra fija; con varias pasan solas según los «Segundos» de cada una (vacío = 6,5 s; 14 s en video; de 2 a 60) y se pausan al pasar el mouse. Los videos van en bucle y sin sonido: usa «+ Video» para subir un archivo <b>MP4</b> o <b>WebM</b> (de 5 a 15 s; ideal menos de 2 MB, máximo 10 MB) o «+ Video por enlace» si ya lo tienes alojado. Sin diapositivas se usa la «Foto hero» de Identidad.
       </div>
+      {hint("Fotos: 1000 × 750 px (horizontal 4:3). Videos: 1280 × 960 px (4:3), MP4 o WebM, idealmente de menos de 2 MB. Deja lo importante al centro: los bordes pueden recortarse.")}
       {slides.length === 0 && empty("Sin diapositivas: se usa la foto hero o un fondo de color.")}
       {slides.map((sl, k) => (
         <div key={sl.id} style={row}>
@@ -300,7 +313,7 @@ function BannerEditor({ banner }: { banner: SiteBanner }) {
   return (
     <>
       <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
-        Aparece a todo el ancho después de los servicios. Imagen de computadora recomendada: 1600 × 500 px. La imagen para móvil es opcional (por ejemplo 800 × 800 px): si no la subes, se usa la misma.
+        Aparece a todo el ancho después de los servicios. Imagen de computadora recomendada: 1600 × 500 px. La imagen para móvil es opcional (900 × 600 px): si no la subes, se usa la misma.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8 }}>
         {([["img", "Banner (computadora)", 1600], ["imgMobile", "Banner (móvil)", 900]] as const).map(([k, label, max]) => (
