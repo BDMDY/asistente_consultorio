@@ -66,7 +66,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
   const setImg = (k: keyof MediaImages, url: string) => commit((x) => ({ img: { ...x.img, [k]: url } }));
   const delImg = (k: keyof MediaImages) => commit((x) => { const n = { ...x.img }; delete n[k]; return { img: n }; });
   const singles: [keyof MediaImages, string, "contain" | "cover", string, boolean][] = [
-    ["logoL", "Logo claro", "contain", "var(--brand-50)", true], ["logoD", "Logo oscuro", "contain", "var(--brand-950)", true], ["favicon", "Favicon", "contain", "var(--brand-50)", true], ["hero", "Foto hero", "cover", "var(--brand-50)", false],
+    ["logoL", "Logo claro", "contain", "var(--brand-50)", true], ["logoD", "Logo oscuro", "contain", "var(--brand-950)", true], ["favicon", "Favicon", "contain", "var(--brand-50)", true], ["hero", "Foto hero", "cover", "var(--brand-50)", false], ["login", "Imagen del acceso", "cover", "var(--brand-50)", false],
   ];
 
   return (

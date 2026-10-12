@@ -14,7 +14,7 @@ export interface Facility { id: number; cap: string; photo: string }
 export interface BeforeAfter { id: number; label: string; before: string; after: string }
 /** Catálogo único: lo editan el módulo Servicios y Medios de marca; lo usan landing, reserva y agenda. */
 export interface Service { id: number; name: string; /** código para organizar el catálogo (ej. TRT-012) */ code?: string; desc: string; price: string; /** sesiones del tratamiento: el precio es el total y cada sesión vale precio ÷ sesiones (1 si falta) */ sessions?: number; /** pago inicial (S/), parte del precio total que se cobra al empezar; las sesiones valen (precio − inicial) ÷ sesiones */ initial?: number; /** minutos */ dur?: number; /** false = oculto en reserva y agenda */ on?: boolean; /** false = solo uso interno: no se muestra en el sitio ni en la reserva web (sí en agenda, planes y cobros) */ web?: boolean }
-export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string }
+export interface MediaImages { logoL?: string; logoD?: string; hero?: string; favicon?: string; /** imagen del panel derecho de la pantalla de acceso del personal */ login?: string }
 
 /** Diapositiva del hero: foto, video en bucle (enlace .mp4/.webm) o animación incluida. */
 export interface HeroSlide { id: number; kind: "image" | "video" | "anim"; /** foto (data URL) o enlace del video */ src?: string; anim?: "ondas" | "burbujas" | "destellos"; /** segundos que se muestra antes de pasar a la siguiente (por defecto 6,5 s; 14 s en video) */ secs?: number }

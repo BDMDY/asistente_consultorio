@@ -8,6 +8,7 @@ import Icon from "@/components/ui/Icon";
 import { sendReset, signInWithPassword, useAuth } from "@/lib/backend/auth";
 import { isRemote } from "@/lib/backend/config";
 import { useMounted } from "@/lib/hooks";
+import { useMedia } from "@/lib/media";
 import { isEmail, sessionStore, signIn } from "@/lib/session";
 import { toast } from "@/lib/toast";
 import Toaster from "./Toaster";
@@ -23,6 +24,7 @@ export default function Login() {
   const router = useRouter();
   const mounted = useMounted();
   const auth = useAuth();
+  const media = useMedia();
   const [session] = sessionStore.useStore();
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<View>("login");
@@ -118,7 +120,7 @@ export default function Login() {
           </div>
         )}
       </div>
-      <div className="da-login-art" aria-hidden="true" style={{ margin: 24, borderRadius: 24, background: "repeating-linear-gradient(135deg,var(--brand-100) 0 14px,var(--brand-50) 14px 28px)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-text)", fontWeight: 600, fontSize: 14 }}>foto / ilustración de marca</div>
+      <div className="da-login-art" aria-hidden="true" style={{ margin: 24, borderRadius: 24, background: media.img.login ? `center / cover no-repeat url("${media.img.login}")` : "var(--grad-hero)", boxShadow: "inset 0 0 0 1px var(--line)" }} />
       <Toaster />
     </div>
   );
