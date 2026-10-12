@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { type Msg, type MsgSeg, type MsgStatus, modStore, saveMod, uid, useMod } from "@/lib/mod";
-import { enqueue } from "@/lib/outbox";
+import { enqueue, outboxStore } from "@/lib/outbox";
 import { LINKS, SEG_DEFAULT, SEG_LABEL, type SegType, demoPool, linkUrl, segCount, segLabel, segWarning } from "@/lib/segments";
 import { toast } from "@/lib/toast";
 import { Actions, AreaField, ChipField, E, G, ListField, ModuleLayout, N, type Row, SheetSub, TextField, W } from "./kit";
@@ -18,6 +18,10 @@ const segOf = (m: Msg): MsgSeg => m.seg ?? (m.aud === "Pacientes con cita" ? { t
 
 export function Mensajes() {
   const { data: d } = useMod();
+  const [outbox] = outboxStore.useStore();
+  const month = new Date().toISOString().slice(0, 7);
+  const sentMonth = outbox.filter((o) => o.status === "enviado" && o.at.startsWith(month)).length;
+  const queued = outbox.filter((o) => o.status === "en-cola").length;
   const [chip, setChip] = useState(0);
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<Sel>(null);
@@ -27,12 +31,12 @@ export function Mensajes() {
     .filter((m) => !q.trim() || m.n.toLowerCase().includes(q.trim().toLowerCase()))
     .map((m) => ({
       id: m.id, t: m.n,
-      sub: `${segLabel(segOf(m))}${m.link && m.link !== "Sin enlace" ? ` · enlace: ${m.link.toLowerCase()}` : ""}${m.sent ? ` · ${m.sent} envíos` : ""}`,
+      sub: `${segLabel(segOf(m))}${m.link && m.link !== "Sin enlace" ? ` · enlace: ${m.link.toLowerCase()}` : ""}${m.sent ? ` · ${m.sent} en cola` : ""}`,
       badge: m.st === "activa" ? "Activa" : m.st === "pausada" ? "Pausada" : "Borrador", tone: m.st === "activa" ? G : m.st === "pausada" ? W : N,
     }));
   const cur = sel && "id" in sel ? d.msg.find((m) => m.id === sel.id) : undefined;
   return (
-    <ModuleLayout title="Mensajes y campañas" sub="WhatsApp y correo" kpis={[{ l: "Enviados (mes)", v: String(412 + d.sent) }, { l: "Campañas activas", v: String(d.msg.filter((m) => m.st === "activa").length) }]}
+    <ModuleLayout title="Mensajes y campañas" sub="WhatsApp y correo" kpis={[{ l: "Enviados (mes)", v: String(sentMonth) }, { l: "En cola", v: String(queued) }, { l: "Campañas activas", v: String(d.msg.filter((m) => m.st === "activa").length) }]}
       chips={FILTERS} chip={chip} onChip={setChip} query={q} onQuery={setQ} cta="Nueva campaña" onCta={() => setSel({ mode: "new" })} rows={rows}
       onOpen={(id) => setSel({ id })} onClose={() => setSel(null)} panelTitle={sel && "mode" in sel ? "Nueva campaña" : (cur?.n ?? "")}
       panel={sel && "mode" in sel ? <CampaignForm key="new" onDone={() => setSel(null)} /> : cur ? <CampaignForm key={cur.id} rec={cur} onDone={() => setSel(null)} /> : null} />
