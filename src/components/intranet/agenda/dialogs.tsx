@@ -488,7 +488,7 @@ export function ContactDialog({ next, delayMin, mode: initialMode, sheet, onClos
   function send() {
     const intl = phone.length === 9 ? "51" + phone : phone;
     if (intl) window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
-    enqueue({ kind: "demora", channel: "whatsapp", patient: next.p, apptId: next.id, text });
+    enqueue({ kind: "demora", channel: "whatsapp", patient: next.p, phone, apptId: next.id, text }, intl ? "enviado" : "en-cola");
     toast(intl ? `Aviso listo en WhatsApp para ${next.p}` : `Aviso registrado para ${next.p} (sin teléfono: envíalo manualmente)`);
     onClose();
     if (mode === "reprogramar") onResched();

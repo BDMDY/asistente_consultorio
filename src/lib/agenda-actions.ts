@@ -32,7 +32,7 @@ export const CANCEL_REASONS = ["Lo pidió el paciente", "No contestó", "Reprogr
 
 export function cancelAppt(a: Appt, o: { reason: number; notify: boolean }) {
   patchAppt(a.id, { st: "cancelada", notes: [a.notes, `Cancelada: ${CANCEL_REASONS[o.reason]}`].filter(Boolean).join(" · ") });
-  if (o.notify) enqueue({ kind: "cancelacion", channel: "whatsapp", patient: a.p, apptId: a.id, text: `Tu cita del ${apptWhenShort(a)} fue cancelada. Puedes reservar otra cuando quieras.` });
+  if (o.notify) enqueue({ kind: "cancelacion", channel: "whatsapp", patient: a.p, phone: a.phone, apptId: a.id, text: `Tu cita del ${apptWhenShort(a)} fue cancelada. Puedes reservar otra cuando quieras.` });
   return () => patchAppt(a.id, { st: a.st, notes: a.notes });
 }
 
@@ -46,7 +46,7 @@ export function reactivateAppt(a: Appt): { error: string } | { undo: () => void 
 
 export function rescheduleAppt(a: Appt, to: { date: string; slot: number; doc: number }) {
   patchAppt(a.id, { ...to, st: "reprogramada" });
-  enqueue({ kind: "reprogramacion", channel: "whatsapp", patient: a.p, apptId: a.id, text: `Tu cita se reprogramó para el ${apptWhenShort({ date: to.date, slot: to.slot })}.` });
+  enqueue({ kind: "reprogramacion", channel: "whatsapp", patient: a.p, phone: a.phone, apptId: a.id, text: `Tu cita se reprogramó para el ${apptWhenShort({ date: to.date, slot: to.slot })}.` });
 }
 
 export function chargeAppt(a: Appt, amount: number, method: PayMethod) {

@@ -8,7 +8,7 @@ import { MONTHS_LONG, labelLong, labelShort } from "@/lib/dates";
 import { paymentsInRange, setVoided, sumLive, totalsByMethod } from "@/lib/finance";
 import { useToday } from "@/lib/hooks";
 import { type FinItem, modStore, money0, saveMod, uid, useMod } from "@/lib/mod";
-import { enqueue } from "@/lib/outbox";
+import { sendWhatsApp } from "@/lib/outbox";
 import { patientOf, patientsStore } from "@/lib/patients";
 import { openSessionReceipt } from "@/lib/receipts-open";
 import { apptCode, sessionGroup } from "@/lib/receipts";
@@ -121,7 +121,7 @@ function PaymentDetail({ p, onDone }: { p: Payment; onDone: () => void }) {
       </div>
       <Actions items={[
         { t: group ? `Ver comprobante de la cita · ${money0(group.total)}` : "Ver comprobante", kind: "p", icon: "file-text", run: receipt },
-        { t: "Enviar por WhatsApp", icon: "send", run: () => { enqueue({ kind: "comprobante", channel: "whatsapp", patient: p.patient, text: `Comprobante ${p.no}: ${live.map((x) => x.concept).join(", ")} · ${money0(total)}` }); onDone(); toast("Comprobante en cola · se enviará por WhatsApp al conectar la integración"); } },
+        { t: "Enviar por WhatsApp", icon: "send", run: () => { const ok = sendWhatsApp({ kind: "comprobante", patient: p.patient, text: `Comprobante ${p.no}: ${live.map((x) => x.concept).join(", ")} · ${money0(total)}` }); onDone(); toast(ok ? "Chat de WhatsApp abierto con el comprobante" : "Sin celular en la ficha: quedó en Mensajes → Cola de envíos"); } },
         live.length === 0
           ? { t: "Restablecer comprobante", icon: "rotate-ccw", run: () => { voidAll(false); toast("Comprobante restablecido"); onDone(); } }
           : { t: lines.length > 1 ? "Anular comprobante" : "Anular cobro", kind: "x", icon: "ban", run: () => { voidAll(true); toast("Comprobante anulado · ya no cuenta en finanzas ni en reportes", () => lines.forEach((x) => setVoided(x, false))); onDone(); } },
@@ -204,7 +204,7 @@ function Charge({ rec, onDone }: { rec: FinItem; onDone: () => void }) {
           <DiscountSummary base={base0} total={r.total} amt={r.amt} label={r.label} err={r.err} />
           <Actions items={[
             { t: `Registrar pago · ${money0(r.total)}`, kind: "p", icon: "banknote", run: () => (r.err ? toast(r.err) : (() => { const sp = split(rec.c); const pay = addPayment({ patient: rec.pac ?? sp.pac, concept: (rec.con ?? sp.con) + (r.t ? ` (desc. ${r.label} −${money0(r.amt)})` : ""), amount: r.total, method: m, date: "" }); patch({ st: "pagado", m, a: r.total, payId: pay.id, ...(r.t ? { base: base0, disc: { t: r.t, label: r.label, amt: r.amt } } : {}) }, "Pago registrado · figura en Finanzas y en Reportes" + (r.t ? ` · descuento ${r.label}` : ""), consumeCode(d.desc, r)); })()) },
-            { t: "Recordar por WhatsApp", icon: "message-circle", run: () => { enqueue({ kind: "cobranza", channel: "whatsapp", patient: rec.c, text: `Recordatorio de pago: ${rec.c} · ${money0(rec.a)}` }); onDone(); toast("Recordatorio en cola · se enviará por WhatsApp al conectar la integración"); } },
+            { t: "Recordar por WhatsApp", icon: "message-circle", run: () => { const ok = sendWhatsApp({ kind: "cobranza", patient: rec.pac ?? split(rec.c).pac, text: `Recordatorio de pago: ${rec.c} · ${money0(rec.a)}` }); onDone(); toast(ok ? "Chat de WhatsApp abierto con el recordatorio" : "Sin celular en la ficha: quedó en Mensajes → Cola de envíos"); } },
             { t: "Anular", kind: "x", icon: "ban", run: () => patch({ st: "anulado" }, "Registro anulado") },
           ]} />
         </>
@@ -212,7 +212,7 @@ function Charge({ rec, onDone }: { rec: FinItem; onDone: () => void }) {
       {rec.st === "pagado" && (
         <Actions items={[
           { t: "Ver comprobante", kind: "p", icon: "file-text", run: receipt },
-          { t: "Enviar por WhatsApp", icon: "send", run: () => { enqueue({ kind: "comprobante", channel: "whatsapp", patient: rec.c, text: `Comprobante: ${rec.c} · ${money0(rec.a)}` }); onDone(); toast("Comprobante en cola · se enviará por WhatsApp al conectar la integración"); } },
+          { t: "Enviar por WhatsApp", icon: "send", run: () => { const ok = sendWhatsApp({ kind: "comprobante", patient: rec.pac ?? split(rec.c).pac, text: `Comprobante: ${rec.c} · ${money0(rec.a)}` }); onDone(); toast(ok ? "Chat de WhatsApp abierto con el comprobante" : "Sin celular en la ficha: quedó en Mensajes → Cola de envíos"); } },
           { t: "Anular cobro", kind: "x", icon: "ban", run: () => patch({ st: "anulado" }, "Cobro anulado") },
         ]} />
       )}

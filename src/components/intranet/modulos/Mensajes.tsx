@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { type Msg, type MsgSeg, type MsgStatus, modStore, saveMod, uid, useMod } from "@/lib/mod";
-import { type OutboxItem, enqueue, outboxStore } from "@/lib/outbox";
+import { type OutboxItem, enqueue, outboxStore, waNumber, waUrl } from "@/lib/outbox";
 import { LINKS, SEG_DEFAULT, SEG_LABEL, type SegType, demoPool, linkUrl, segCount, segLabel, segWarning } from "@/lib/segments";
 import { toast } from "@/lib/toast";
 import { Actions, AreaField, ChipField, E, G, ListField, ModuleLayout, N, type Row, SheetSub, TextField, W } from "./kit";
@@ -69,7 +69,11 @@ export function Mensajes() {
 }
 
 function QueueDetail({ item, onDone }: { item: OutboxItem; onDone: () => void }) {
+  const [phone, setPhone] = useState(item.phone ?? "");
+  const wa = item.channel === "whatsapp" && item.kind !== "campana"; // una campaña es una audiencia, no un solo chat
+  const url = waUrl(phone, item.text);
   const line = (l: string, v: string) => <div style={{ display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontSize: 12, color: "var(--ink-500)", fontWeight: 600 }}>{l}</span><span style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{v}</span></div>;
+  const mark = (extra: Partial<OutboxItem> = {}) => outboxStore.update((l) => l.map((o) => (o.id === item.id ? { ...o, ...extra, status: "enviado" as const } : o)));
   return (
     <>
       {line("Tipo", KIND_LABEL[item.kind])}
@@ -77,9 +81,18 @@ function QueueDetail({ item, onDone }: { item: OutboxItem; onDone: () => void })
       {line("Canal", item.channel === "whatsapp" ? "WhatsApp" : "Correo")}
       {line("Registrado", when(item.at))}
       {line("Mensaje", item.text)}
-      <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Los avisos quedan registrados aquí hasta conectar el envío automático. Mientras tanto puedes marcarlos como enviados si los mandaste a mano, o descartarlos.</div>
+      {wa && item.status === "en-cola" && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--ink-500)", fontWeight: 600 }}>
+          Celular de WhatsApp{waNumber(phone) ? "" : " (9 dígitos)"}
+          <input value={phone} inputMode="tel" onChange={(e) => setPhone(e.target.value.replace(/[^\d+ ]/g, ""))} placeholder="9XX XXX XXX" style={{ height: 44, borderRadius: 10, border: "1px solid var(--line)", padding: "0 12px", fontSize: 15, background: "var(--surface)", color: "inherit" }} />
+        </label>
+      )}
+      <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
+        {wa ? "«Enviar por WhatsApp» abre el chat con el mensaje ya escrito; solo toca Enviar. El envío totalmente automático se activa al conectar la API de WhatsApp." : item.kind === "campana" ? "Las campañas se envían a toda la audiencia al conectar la API de WhatsApp. Aún no se pueden enviar desde aquí." : "Los correos automáticos se activan al conectar un servicio de correo. Puedes marcarlo como enviado si lo mandaste a mano."}
+      </div>
       <Actions items={[
-        ...(item.status === "en-cola" ? [{ t: "Marcar como enviado", kind: "p" as const, icon: "check" as const, run: () => { outboxStore.update((l) => l.map((o) => (o.id === item.id ? { ...o, status: "enviado" as const } : o))); toast("Marcado como enviado"); onDone(); } }] : []),
+        ...(item.status === "en-cola" && wa ? [{ t: "Enviar por WhatsApp", kind: "p" as const, icon: "send" as const, run: () => { if (!url) return toast("Escribe un celular válido de 9 dígitos"); window.open(url, "_blank", "noopener,noreferrer"); mark({ phone: waNumber(phone) }); toast("Chat abierto · marcado como enviado"); onDone(); } }] : []),
+        ...(item.status === "en-cola" ? [{ t: "Marcar como enviado", icon: "check" as const, run: () => { mark(); toast("Marcado como enviado"); onDone(); } }] : []),
         { t: "Descartar de la cola", kind: "x" as const, icon: "trash-2" as const, run: () => { outboxStore.update((l) => l.filter((o) => o.id !== item.id)); toast("Descartado"); onDone(); } },
       ]} />
     </>
