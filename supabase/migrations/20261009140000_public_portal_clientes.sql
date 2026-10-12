@@ -40,6 +40,7 @@ begin
       select coalesce(jsonb_agg(jsonb_build_object('id', n.id, 'date', n.date, 'text', n.text, 'created_at', n.created_at) order by n.date desc, n.id desc), '[]'::jsonb)
         into notes from public.clinical_notes n where n.clinic_id = c and n.patient_id = pid;
       select coalesce(r.value -> 'items', '[]'::jsonb) into plan from public.patient_records r where r.clinic_id = c and r.patient_id = pid and r.kind = 'plan';
+      plan := coalesce(plan, '[]'::jsonb);
     end if;
   end if;
 

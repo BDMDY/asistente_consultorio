@@ -177,9 +177,9 @@ export async function lookupPortal(dni: string, phone: string, birth?: string): 
   const d = data as { name: string; verified: boolean; hasBirth: boolean; appts: { id: number; ref: string; date: string; slot: number; dur: number; service: string; status: Appt["st"]; doctor_id: number }[]; payments: { id: number; no: string; appt_id: number | null; concept: string; amount: number; method: string; at: string }[]; notes: { id: number; date: string; text: string; created_at?: string }[]; plan: PortalData["plan"] };
   return {
     name: d.name, verified: d.verified, hasBirth: d.hasBirth,
-    appts: d.appts.map((a) => ({ id: Number(a.id), ref: a.ref, date: a.date, slot: a.slot, dur: a.dur, service: a.service, status: a.status, doc: a.doctor_id })),
-    payments: d.payments.map((p) => ({ id: Number(p.id), no: p.no, ...(p.appt_id != null ? { apptId: Number(p.appt_id) } : {}), concept: p.concept, amount: Number(p.amount), method: p.method, at: p.at })),
-    notes: d.notes.map((n) => ({ id: Number(n.id), date: n.date, text: n.text, ...(n.created_at ? { at: n.created_at } : {}) })),
-    plan: d.plan,
+    appts: (d.appts ?? []).map((a) => ({ id: Number(a.id), ref: a.ref, date: a.date, slot: a.slot, dur: a.dur, service: a.service, status: a.status, doc: a.doctor_id })),
+    payments: (d.payments ?? []).map((p) => ({ id: Number(p.id), no: p.no, ...(p.appt_id != null ? { apptId: Number(p.appt_id) } : {}), concept: p.concept, amount: Number(p.amount), method: p.method, at: p.at })),
+    notes: (d.notes ?? []).map((n) => ({ id: Number(n.id), date: n.date, text: n.text, ...(n.created_at ? { at: n.created_at } : {}) })),
+    plan: d.plan ?? [],
   };
 }
