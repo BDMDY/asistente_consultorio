@@ -1,14 +1,17 @@
-// ENVÍO AUTOMÁTICO DE WHATSAPP (WhatsApp Cloud API de Meta) — preparado, NO desplegado todavía.
+// ENVÍO AUTOMÁTICO DE WHATSAPP con YCloud (proveedor oficial de WhatsApp Business) — preparado, NO desplegado todavía.
 //
 // Qué hace: toma de la cola (`outbox`) los avisos de WhatsApp pendientes que tengan celular, los envía con
-// una plantilla aprobada por Meta y los marca como enviados.
+// una plantilla aprobada y los marca como enviados.
 //
 // Para activarlo hace falta:
-//  1. Cuenta de Meta Business verificada y un número exclusivo en WhatsApp Business (Cloud API).
-//  2. Una plantilla aprobada por Meta por tipo de aviso (ver TEMPLATES), con 1 variable en el cuerpo ({{1}} = el texto del aviso).
-//  3. Secretos de la función: WHATSAPP_TOKEN, WHATSAPP_PHONE_ID, CRON_SECRET
-//     (y opcional WHATSAPP_TEMPLATES con un JSON {"cancelacion":"nombre_plantilla", ...} para cambiar los nombres).
+//  1. Cuenta en YCloud con el número de la clínica conectado a WhatsApp Business (YCloud guía el alta con Meta).
+//  2. Una plantilla aprobada por tipo de aviso (ver TEMPLATES), con 1 variable en el cuerpo ({{1}} = el texto del aviso).
+//  3. Secretos de la función: YCLOUD_API_KEY, YCLOUD_FROM (número de la clínica, formato +51987654321) y CRON_SECRET
+//     (opcional WHATSAPP_TEMPLATES con un JSON {"cancelacion":"nombre_plantilla", ...} para cambiar los nombres).
 //  4. Desplegar con verify_jwt=false y llamarla con el encabezado `x-cron-secret` desde un cron (por ejemplo cada 5 min).
+//
+// OJO: el formato de la petición (endpoint sendDirectly, X-API-Key, plantilla con components) sigue la API de YCloud
+// pero no se pudo probar sin credenciales: verificar contra https://docs.ycloud.com antes de activarlo.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const TEMPLATES: Record<string, string> = {
@@ -23,8 +26,8 @@ const TEMPLATES: Record<string, string> = {
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
-  const token = Deno.env.get("WHATSAPP_TOKEN"), phoneId = Deno.env.get("WHATSAPP_PHONE_ID"), secret = Deno.env.get("CRON_SECRET");
-  if (!token || !phoneId || !secret) return json({ error: "not_configured" }, 503);
+  const apiKey = Deno.env.get("YCLOUD_API_KEY"), from = Deno.env.get("YCLOUD_FROM"), secret = Deno.env.get("CRON_SECRET");
+  if (!apiKey || !from || !secret) return json({ error: "not_configured" }, 503);
   if (req.headers.get("x-cron-secret") !== secret) return json({ error: "unauthorized" }, 401);
 
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -37,11 +40,11 @@ Deno.serve(async (req) => {
     const template = TEMPLATES[r.kind];
     const to = String(r.phone).replace(/\D/g, "");
     if (!template || to.length < 11) { failed++; continue; }
-    const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+    const res = await fetch("https://api.ycloud.com/v2/whatsapp/messages/sendDirectly", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
-        messaging_product: "whatsapp", to, type: "template",
+        from, to: "+" + to, type: "template",
         template: { name: template, language: { code: "es" }, components: [{ type: "body", parameters: [{ type: "text", text: String(r.text).slice(0, 1000) }] }] },
       }),
     });
