@@ -5,7 +5,8 @@ import Icon, { type IconName } from "@/components/ui/Icon";
 import { useDoctors } from "@/lib/doctors";
 import { DEFAULT_MEDIA, HERO_ANIMS, HERO_SECS_MAX, HERO_SECS_MIN, heroSlideSecs, type HeroSlide, type SiteBanner, bannerHref, MAX_HERO_SLIDES, isVideoUrl, type DoctorProfile, type Media, type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
 import { loadImage } from "@/lib/image";
-import { checkVideoFile, isHostedVideo, removeHostedVideo, uploadHeroVideo } from "@/lib/backend/storage";
+import { checkVideoFile, countInlineImages, hostAllImages, hostImage, isHostedVideo, removeHostedVideo, uploadHeroVideo } from "@/lib/backend/storage";
+import { isRemote } from "@/lib/backend/config";
 import { toast } from "@/lib/toast";
 
 const inp: React.CSSProperties = { borderRadius: 8, border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--surface)", color: "inherit", minWidth: 0, boxSizing: "border-box" };
@@ -28,7 +29,9 @@ function Pick({ src, label, w, h, round, icon, fit = "cover", logoMode, max, onP
     if (!f) return;
     const r = await loadImage(f, { logo: logoMode, max });
     if (!r.ok) return toast(r.error);
-    onPick(r.dataUrl);
+    const url = await hostImage(r.dataUrl, "foto");
+    if (src && isHostedVideo(src)) void removeHostedVideo(src);
+    onPick(url);
     toast("Imagen cargada");
   }
   return (
@@ -97,6 +100,8 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
             </div>
           ))}
         </>)}
+
+      {isRemote && <MoveImages />}
 
       {section("Prueba social del hero", null, null, <>
         <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Línea bajo el botón «Reservar cita»: <b>★ calificación · pacientes · horario</b>. Solo se muestra lo que escribas aquí (el horario siempre). Usa datos reales; déjalo vacío si prefieres no mostrarlo.</div>
@@ -222,7 +227,7 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
     if (!f) return;
     const r = await loadImage(f, {});
     if (!r.ok) return toast(r.error);
-    add({ kind: "image", src: r.dataUrl });
+    add({ kind: "image", src: await hostImage(r.dataUrl, "hero") });
   }
   const small: React.CSSProperties = { cursor: "pointer", width: 28, height: 28, borderRadius: 8, border: 0, background: "var(--brand-50)", color: "var(--brand-800)", fontWeight: 800, fontFamily: "inherit" };
   const addStyle = (off: boolean): React.CSSProperties => ({ cursor: off ? "not-allowed" : "pointer", padding: "7px 12px", borderRadius: 10, background: "var(--brand-50)", color: "var(--brand-800)", fontWeight: 700, fontSize: 12, border: 0, fontFamily: "inherit", opacity: off ? 0.5 : 1 });
@@ -300,5 +305,27 @@ function BannerEditor({ banner }: { banner: SiteBanner }) {
         Mostrar el banner en el sitio
       </label>
     </>
+  );
+}
+
+/** Aviso para mover al almacenamiento las fotos que quedaron dentro del documento (hacen pesada la primera carga del sitio). */
+function MoveImages() {
+  const [busy, setBusy] = useState(false);
+  const [raw] = mediaStore.useStore();
+  const n = countInlineImages(raw);
+  if (n === 0) return null;
+  async function run() {
+    setBusy(true);
+    const { value, moved } = await hostAllImages(mediaStore.get());
+    setBusy(false);
+    if (!moved) return toast("No se pudieron mover las imágenes (¿tienes rol de administrador y conexión?)");
+    mediaStore.set(value);
+    toast(`${moved} ${moved === 1 ? "imagen movida" : "imágenes movidas"} al almacenamiento · el sitio cargará más rápido`);
+  }
+  return (
+    <div role="note" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "10px 12px", borderRadius: 12, background: "var(--warning-bg)", color: "var(--warning-fg)", fontSize: 13, lineHeight: 1.45 }}>
+      <span style={{ flex: 1, minWidth: 220 }}><b>{n} {n === 1 ? "imagen está" : "imágenes están"} guardada{n === 1 ? "" : "s"} dentro del documento del sitio</b>, lo que hace más pesada cada carga. Muévelas al almacenamiento para que solo viaje un enlace.</span>
+      <button type="button" disabled={busy} onClick={run} style={{ cursor: "pointer", border: 0, borderRadius: 10, padding: "9px 14px", minHeight: 40, fontWeight: 700, fontSize: 13, background: "var(--surface)", color: "var(--ink-900)", fontFamily: "inherit" }}>{busy ? "Moviendo…" : "Mover imágenes"}</button>
+    </div>
   );
 }

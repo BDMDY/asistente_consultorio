@@ -4,6 +4,7 @@ import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
 import { BRAND_STEPS, contrast } from "@/lib/color";
+import { hostImage } from "@/lib/backend/storage";
 import { loadImage } from "@/lib/image";
 import { type MediaImages, mediaStore, resolveMedia, useMedia } from "@/lib/media";
 import { toast } from "@/lib/toast";
@@ -45,7 +46,8 @@ function Drop({ label, k, dark }: { label: string; k: keyof MediaImages; dark?: 
     if (!f) return;
     const r = await loadImage(f, { logo: true, ...(k === "favicon" ? { max: 128 } : {}) });
     if (!r.ok) return toast(r.error);
-    mediaStore.update((p) => ({ ...p, img: { ...resolveMedia(p).img, [k]: r.dataUrl } }));
+    const url = k === "favicon" ? r.dataUrl : await hostImage(r.dataUrl, k);
+    mediaStore.update((p) => ({ ...p, img: { ...resolveMedia(p).img, [k]: url } }));
     toast("Imagen cargada");
   }
   return (

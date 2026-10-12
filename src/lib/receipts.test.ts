@@ -52,3 +52,14 @@ describe("correlativo de comprobantes", () => {
     clearPool();
   });
 });
+
+describe("imágenes del sitio", () => {
+  it("cuenta solo las imágenes incrustadas grandes", async () => {
+    const { countInlineImages, isDataImage } = await import("./backend/storage");
+    const big = "data:image/jpeg;base64," + "A".repeat(9000);
+    const small = "data:image/png;base64,AAAA";
+    expect(isDataImage(big)).toBe(true);
+    expect(countInlineImages({ img: { hero: big, favicon: small, logoL: "https://x/y.png" }, docs: [{ photo: big }, { photo: "" }], hero: [{ src: big }] })).toBe(3);
+    expect(countInlineImages({})).toBe(0);
+  });
+});

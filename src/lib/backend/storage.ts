@@ -57,3 +57,57 @@ export async function removeHostedVideo(url: string): Promise<void> {
 }
 
 export const isHostedVideo = (url: string) => url.includes(MARK);
+
+// ───────── Imágenes del sitio ─────────
+/** Imágenes más pequeñas que esto (favicon, íconos) se dejan dentro del documento. */
+const INLINE_MAX = 8000;
+const IMG_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/svg+xml": "svg" };
+
+export const isDataImage = (v: unknown): v is string => typeof v === "string" && v.startsWith("data:image/");
+
+/**
+ * Sube una imagen (data URL) al almacenamiento de la clínica y devuelve su enlace público. Así el sitio y la marca guardan un
+ * enlace corto en vez de la foto completa dentro del documento (que viajaba en cada página). Si no hay conexión, la imagen
+ * es pequeña o la subida falla, devuelve la misma data URL y todo sigue funcionando.
+ */
+export async function hostImage(dataUrl: string, kind = "img"): Promise<string> {
+  const c = getCtx();
+  if (!isRemote || !c || !isDataImage(dataUrl) || dataUrl.length <= INLINE_MAX) return dataUrl;
+  try {
+    const mime = /^data:([^;,]+)/.exec(dataUrl)?.[1] ?? "image/jpeg";
+    const ext = IMG_EXT[mime];
+    if (!ext) return dataUrl;
+    const blob = await (await fetch(dataUrl)).blob();
+    const path = `${c.clinicId}/img/${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const db = getClient();
+    const { error } = await db.storage.from(BUCKET).upload(path, blob, { contentType: mime, cacheControl: "31536000", upsert: false });
+    if (error) return dataUrl;
+    return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
+/** Cuántas imágenes del documento siguen incrustadas (candidatas a mover al almacenamiento). */
+export function countInlineImages(node: unknown): number {
+  if (isDataImage(node)) return node.length > INLINE_MAX ? 1 : 0;
+  if (Array.isArray(node)) return node.reduce((n: number, x) => n + countInlineImages(x), 0);
+  if (node && typeof node === "object") return Object.values(node).reduce((n: number, x) => n + countInlineImages(x), 0);
+  return 0;
+}
+
+/** Copia del documento con todas las imágenes incrustadas subidas al almacenamiento. */
+export async function hostAllImages<T>(node: T, kind = "img"): Promise<{ value: T; moved: number }> {
+  let moved = 0;
+  const walk = async (n: unknown): Promise<unknown> => {
+    if (isDataImage(n)) {
+      const u = await hostImage(n, kind);
+      if (u !== n) moved++;
+      return u;
+    }
+    if (Array.isArray(n)) return Promise.all(n.map(walk));
+    if (n && typeof n === "object") return Object.fromEntries(await Promise.all(Object.entries(n).map(async ([k, v]) => [k, await walk(v)])));
+    return n;
+  };
+  return { value: (await walk(node)) as T, moved };
+}
