@@ -75,8 +75,9 @@ export default function Landing() {
           </div>
           <Link href="/clientes" className={s.heroLink}>¿Ya eres cliente? Revisa tu historial aquí</Link>
           <div className={s.rating}>
-            <Icon name="star" style={{ color: "var(--accent-500)" }} />
-            <b style={{ color: "var(--ink-900)" }}>{media.stats[2]?.n}</b> · {media.stats[1]?.n} pacientes · {brand.hours}
+            {media.proof.rating?.trim() && <><Icon name="star" style={{ color: "var(--accent-500)" }} /><b style={{ color: "var(--ink-900)" }}>{media.proof.rating.trim()}</b> · </>}
+            {media.proof.patients?.trim() && <>{media.proof.patients.trim()} pacientes · </>}
+            {brand.hours}
           </div>
         </div>
         <HeroCarousel slides={heroSlides(media)} label={brand.name} />

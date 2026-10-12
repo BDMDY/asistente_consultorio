@@ -35,8 +35,12 @@ export interface SiteBanner { on?: boolean; img?: string; imgMobile?: string; /*
 /** Enlace permitido para el banner: https o una ruta interna; cualquier otra cosa se descarta. */
 export const bannerHref = (v: string | undefined) => { const t = (v ?? "").trim(); return /^https?:\/\//i.test(t) || /^\/(?!\/)/.test(t) ? t : ""; };
 
+/** Datos bajo el botón de reservar del hero: solo se muestra lo que la clínica escriba (nada por defecto). */
+export interface SocialProof { rating?: string; patients?: string }
+
 export interface Media {
   banner: SiteBanner;
+  proof: SocialProof;
   /** diapositivas del hero (carrusel); vacío = la foto hero o un fondo de color */
   hero: HeroSlide[];
   stats: Stat[];
@@ -50,6 +54,7 @@ export interface Media {
 
 export const DEFAULT_MEDIA: Media = {
   banner: {},
+  proof: {},
   hero: [],
   stats: [
     { id: 1, n: "12+", l: "años de experiencia" },
@@ -84,6 +89,7 @@ export function resolveMedia(p: Partial<Media>): Media {
   return {
     hero: p.hero ?? [],
     banner: p.banner ?? {},
+    proof: p.proof ?? {},
     stats: p.stats ?? DEFAULT_MEDIA.stats,
     quotes: p.quotes ?? DEFAULT_MEDIA.quotes,
     img: p.img ?? {},

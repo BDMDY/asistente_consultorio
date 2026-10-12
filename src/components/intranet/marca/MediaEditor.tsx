@@ -98,12 +98,20 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
           ))}
         </>)}
 
+      {section("Prueba social del hero", null, null, <>
+        <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Línea bajo el botón «Reservar cita»: <b>★ calificación · pacientes · horario</b>. Solo se muestra lo que escribas aquí (el horario siempre). Usa datos reales; déjalo vacío si prefieres no mostrarlo.</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <input aria-label="Calificación (ej. 4.9)" value={m.proof.rating ?? ""} onChange={(ev) => commit((x) => ({ proof: { ...x.proof, rating: ev.target.value } }))} placeholder="Calificación (ej. 4.9)" style={{ ...inp, height: 34, padding: "0 10px" }} />
+          <input aria-label="Pacientes atendidos (ej. 1,200+)" value={m.proof.patients ?? ""} onChange={(ev) => commit((x) => ({ proof: { ...x.proof, patients: ev.target.value } }))} placeholder="Pacientes (ej. 1,200+)" style={{ ...inp, height: 34, padding: "0 10px" }} />
+        </div>
+      </>)}
+
       {section("Banner del sitio", null, null, <BannerEditor banner={m.banner} />)}
 
       {section("Cifras del sitio", null, null, <>
         <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, fontWeight: 600 }}>
           <input type="checkbox" checked={!!m.banner.showStats} onChange={(e) => commit((x) => ({ banner: { ...x.banner, showStats: e.target.checked } }))} />
-          Mostrar la franja de cifras en el sitio (por defecto va oculta)
+          Mostrar la franja de cifras en el sitio (por defecto va oculta; son cifras de ejemplo, cámbialas por las reales)
         </label>
         {m.stats.map((d) => (
         <div key={d.id} style={row}>
