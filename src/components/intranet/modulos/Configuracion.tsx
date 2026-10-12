@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isRemote } from "@/lib/backend/config";
+import { inviteStaff } from "@/lib/backend/auth";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
 import { hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
@@ -130,7 +131,12 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
     const item: StaffUser = { id: rec?.id ?? uid(), nom: o.nom, dni: o.dni, cmp: o.cmp, mail: o.mail, tel: o.tel, rol: o.rol, on: f.on === "Activo", ...(o.rol === "Doctor" && f.titulo ? { titulo: f.titulo } : {}), ...(agenda ? { agenda } : {}) };
     if (rec && o.rol === "Doctor" && !agenda && !isRemote) item.agenda = nextAgenda(d.users);
     if (rec) commit(d.users.map((u) => (u.id === rec.id ? item : u)), "Usuario actualizado");
+    else if (isRemote) { commit([item, ...d.users], `Usuario registrado · enviando invitación a ${o.mail}…`); void invite(o.mail); }
     else { enqueue({ kind: "invitacion", channel: "correo", patient: o.mail, text: `Invitación al equipo (${o.rol})` }); commit([item, ...d.users], `Usuario registrado · invitación en cola para ${o.mail}`); }
+  }
+  async function invite(mail: string) {
+    const r = await inviteStaff(mail);
+    toast(r === "ok" ? `Invitación enviada a ${mail}` : r === "linked" ? `${mail} ya tiene acceso` : r === "registered" ? `${mail} ya tiene cuenta: puede entrar con «Ya tengo cuenta» en el registro` : r === "limit" ? "Límite de correos alcanzado. Espera unos minutos y usa «Reenviar invitación»" : `No se pudo enviar la invitación a ${mail}. Usa «Reenviar invitación»`);
   }
   return (
     <>
@@ -145,7 +151,7 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
       <Actions items={[
         { t: rec ? "Guardar cambios" : "Guardar e invitar", kind: "p", icon: rec ? "save" : "send", run: save },
         ...(rec ? [
-          { t: "Reenviar invitación", icon: "send" as const, run: () => { enqueue({ kind: "invitacion", channel: "correo", patient: rec.mail, text: "Reenvío de invitación" }); onDone(); toast(`Invitación en cola para ${rec.mail}`); } },
+          { t: "Reenviar invitación", icon: "send" as const, run: () => { if (isRemote) { void invite(rec.mail); onDone(); return; } enqueue({ kind: "invitacion", channel: "correo", patient: rec.mail, text: "Reenvío de invitación" }); onDone(); toast(`Invitación en cola para ${rec.mail}`); } },
           { t: "Eliminar usuario", kind: "x" as const, icon: "trash-2" as const, run: () => (rec.rol === "Administrador" && admins <= 1 ? toast("Debe quedar al menos un administrador") : commit(d.users.filter((u) => u.id !== rec.id), "Usuario eliminado")) },
         ] : []),
       ]} />

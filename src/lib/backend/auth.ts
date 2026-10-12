@@ -120,3 +120,20 @@ export function authMessage(m: string): string {
   if (/registered/i.test(m)) return "Ese correo ya tiene cuenta: usa «Ya tengo cuenta»";
   return m;
 }
+
+/** Envía la invitación por correo a una persona del personal. Reintenta mientras su ficha termina de guardarse. */
+export async function inviteStaff(email: string): Promise<"ok" | "linked" | "registered" | "limit" | "fail"> {
+  const db = getClient();
+  for (let i = 0; i < 5; i++) {
+    const { data, error } = await db.functions.invoke("invite-staff", { body: { email, redirectTo: window.location.origin + "/intranet/nueva-clave" } });
+    if (!error && (data as { ok?: boolean } | null)?.ok) return "ok";
+    let code = "";
+    try { code = ((await (error as { context?: Response } | null)?.context?.json()) as { error?: string } | undefined)?.error ?? ""; } catch { /* sin detalle */ }
+    if (code === "not_staff" && i < 4) { await new Promise((r) => setTimeout(r, 1500)); continue; }
+    if (code === "already_linked") return "linked";
+    if (code === "already_registered") return "registered";
+    if (code === "rate_limited") return "limit";
+    return "fail";
+  }
+  return "fail";
+}
