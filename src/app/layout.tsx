@@ -25,7 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: name, template: `%s · ${name}` },
     description: brand.heroSub || brand.slogan || undefined,
-    icons: { icon: media.img?.favicon || letterFavicon(name, color) },
+    icons: { icon: media.img?.favicon || letterFavicon(name, color), apple: "/pwa-icon/180" },
+    appleWebApp: { capable: true, title: name, statusBarStyle: "default" },
     openGraph: { title: name, description: brand.heroSub || brand.slogan || undefined, siteName: name },
   };
 }

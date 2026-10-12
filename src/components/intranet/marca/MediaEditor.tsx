@@ -13,7 +13,7 @@ const inp: React.CSSProperties = { borderRadius: 8, border: "1px solid var(--lin
 const SIZE_HINT: Record<string, string> = {
   logoL: "800 × 250 px · PNG transparente · para fondo claro",
   logoD: "800 × 250 px · PNG transparente · para fondo oscuro",
-  favicon: "128 × 128 px · PNG cuadrado, símbolo simple",
+  favicon: "512 × 512 px · PNG cuadrado · también es el ícono de la app",
   hero: "1000 × 750 px · horizontal 4:3",
   login: "1000 × 1000 px · cuadrada · solo en computadora",
 };
@@ -85,7 +85,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
             <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
               <div style={{ fontSize: 11, color: "var(--ink-500)", lineHeight: 1.4, minHeight: 48 }}>{SIZE_HINT[k]}</div>
-              <Pick src={m.img[k]} label={label} h={72} icon="upload" fit={fit} bg={bg} logoMode={logo} max={k === "favicon" ? 128 : undefined} onPick={(u) => setImg(k, u)} />
+              <Pick src={m.img[k]} label={label} h={72} icon="upload" fit={fit} bg={bg} logoMode={logo} max={k === "favicon" ? 512 : undefined} onPick={(u) => setImg(k, u)} />
               <button type="button" onClick={() => delImg(k)} style={{ cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--error-fg)", visibility: m.img[k] ? "visible" : "hidden", background: "transparent", border: 0, textAlign: "left", padding: 0 }}>Quitar</button>
             </div>
           ))}
