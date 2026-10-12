@@ -146,20 +146,21 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
   };
   // Uso de materiales: lo liquidado en las atenciones del periodo (por fecha de liquidación, hora de Lima).
   const uses = (i.mats ?? []).filter((m) => inRange(limaDateOf(m.at), range)).sort((x, y) => x.at.localeCompare(y.at));
-  const matAgg = new Map<string, { n: string; u: string; qty: number; appts: Set<number> }>();
+  const matAgg = new Map<string, { n: string; u: string; qty: number; cost: number; appts: Set<number> }>();
   for (const m of uses) for (const l of m.lines) {
-    const cur = matAgg.get(l.invId) ?? { n: l.n, u: l.u, qty: 0, appts: new Set<number>() };
+    const cur = matAgg.get(l.invId) ?? { n: l.n, u: l.u, qty: 0, cost: 0, appts: new Set<number>() };
     cur.qty = round2(cur.qty + l.qty);
+    cur.cost = round2(cur.cost + l.qty * (l.cost ?? 0));
     cur.appts.add(m.apptId);
     matAgg.set(l.invId, cur);
   }
   const matRows = [...matAgg.entries()].sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([id, v]): Cell[] => {
     const stock = i.inv?.find((x) => x.id === id);
-    return [v.n, v.u, v.appts.size, v.qty, stock ? stock.qty : "—"];
+    return [v.n, v.u, v.appts.size, v.qty, stock ? stock.qty : "—", v.cost];
   });
   const matDetail = uses.flatMap((m) => m.lines.map((l): Cell[] => {
     const a = i.appts.find((x) => x.id === m.apptId);
-    return [limaDateOf(m.at), horaDe(m.at), apptCode(m.apptId), m.patient, a ? docName(a.doc) : "—", m.service, l.n, l.qty, l.u];
+    return [limaDateOf(m.at), horaDe(m.at), apptCode(m.apptId), m.patient, a ? docName(a.doc) : "—", m.service, l.n, l.qty, l.u, round2(l.qty * (l.cost ?? 0))];
   }));
 
   // Servicios por día: una fila por día y servicio
@@ -281,8 +282,8 @@ export function buildReports(i: { today: string; period: Period; custom?: Range;
       },
       {
         id: "mat", title: "Uso de materiales", sub: "Materiales liquidados en las atenciones del periodo, por producto, y su stock actual",
-        summary: { columns: ["Material", "Unidad", "Atenciones", "Cantidad usada", "Stock actual"], rows: matRows, total: ["Total", "", new Set(uses.map((m) => m.apptId)).size, "", ""] },
-        detail: { title: "Liquidaciones de materiales", table: { columns: ["Fecha", "Hora", "Código de cita", "Paciente", "Doctor", "Tratamiento", "Material", "Cantidad", "Unidad"], rows: matDetail } },
+        summary: { columns: ["Material", "Unidad", "Atenciones", "Cantidad usada", "Stock actual", "Costo (S/)"], rows: matRows, total: ["Total", "", new Set(uses.map((m) => m.apptId)).size, "", "", round2(matRows.reduce((n, r) => n + Number(r[5]), 0))], money: [5] },
+        detail: { title: "Liquidaciones de materiales", table: { columns: ["Fecha", "Hora", "Código de cita", "Paciente", "Doctor", "Tratamiento", "Material", "Cantidad", "Unidad", "Costo (S/)"], rows: matDetail, money: [9] } },
       },
       {
         id: "ses", title: "Pagos por sesión", sub: "Cobros agrupados por cita (código CIT-…): tratamientos, comprobantes, métodos y total de cada sesión",

@@ -16,7 +16,7 @@ export function BulkMaterials({ onDone }: { onDone: () => void }) {
     const { default: writeXlsxFile } = await import("write-excel-file/browser");
     const head = MAT_TEMPLATE.head.map((value) => ({ value, fontWeight: "bold" as const, backgroundColor: "#E6F4EF" }));
     const data = [head, ...MAT_TEMPLATE.rows.map((r) => r.map((value) => (typeof value === "number" ? { value, type: Number } : { value: String(value) })))];
-    const blob = await writeXlsxFile([{ data, sheet: "Materiales", columns: [{ width: 18 }, { width: 40 }, { width: 12 }, { width: 12 }, { width: 24 }, { width: 24 }] }]).toBlob();
+    const blob = await writeXlsxFile([{ data, sheet: "Materiales", columns: [{ width: 18 }, { width: 40 }, { width: 12 }, { width: 12 }, { width: 24 }, { width: 24 }, { width: 30 }] }]).toBlob();
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "plantilla-materiales.xlsx";

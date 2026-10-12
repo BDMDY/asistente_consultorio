@@ -30,7 +30,7 @@ export function liquidateMaterials(o: { apptId: number; patient: string; service
     const l = used.find((x) => x.invId === i.id);
     return l ? { ...i, qty: Math.round((i.qty - l.qty) * 100) / 100 } : i;
   });
-  const rec: MatUse = { id: uid(), apptId: o.apptId, at: new Date().toISOString(), patient: o.patient, service: o.service, lines: used.map((l) => { const it = prev.inv.find((i) => i.id === l.invId)!; return { invId: it.id, n: it.n, u: it.u, qty: l.qty }; }) };
+  const rec: MatUse = { id: uid(), apptId: o.apptId, at: new Date().toISOString(), patient: o.patient, service: o.service, lines: used.map((l) => { const it = prev.inv.find((i) => i.id === l.invId)!; return { invId: it.id, n: it.n, u: it.u, qty: l.qty, ...(it.cost ? { cost: it.cost } : {}) }; }) };
   modStore.set({ ...prev, inv, mats: [rec, ...(prev.mats ?? [])] });
   return { low: inv.filter((i) => used.some((l) => l.invId === i.id) && i.qty < i.min).map((i) => i.n) };
 }

@@ -40,7 +40,7 @@ export function Inventario() {
 }
 
 function NewProduct({ onDone }: { onDone: () => void }) {
-  const [f, setF] = useState({ n: "", u: "unid." as (typeof UNITS)[number], qty: "0", min: "5", venc: "" });
+  const [f, setF] = useState({ n: "", u: "unid." as (typeof UNITS)[number], qty: "0", min: "5", venc: "", cost: "" });
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   return (
     <>
@@ -49,10 +49,11 @@ function NewProduct({ onDone }: { onDone: () => void }) {
       <TextField label={`Cantidad inicial (${f.u})`} value={f.qty} num onChange={(v) => set({ qty: v })} />
       <TextField label={`Stock mínimo (${f.u})`} value={f.min} num onChange={(v) => set({ min: v })} />
       <TextField label="Vencimiento (opcional)" type="date" value={f.venc} onChange={(v) => set({ venc: v })} />
+      <TextField label="Costo por unidad (S/, opcional)" value={f.cost} num onChange={(v) => set({ cost: v })} />
       <Actions items={[{ t: "Guardar producto", kind: "p", icon: "check", run: () => {
         if (!f.n.trim()) return toast("Indica el nombre");
         const prev = modStore.get();
-        saveMod({ ...prev, inv: [{ id: uid(), code: nextMatCode(prev.inv), n: f.n.trim(), u: f.u, qty: Number(f.qty) || 0, min: Number(f.min) || 5, venc: f.venc }, ...prev.inv] }, "Producto agregado", prev);
+        saveMod({ ...prev, inv: [{ id: uid(), code: nextMatCode(prev.inv), n: f.n.trim(), u: f.u, qty: Number(f.qty) || 0, min: Number(f.min) || 5, venc: f.venc, ...(Number(f.cost) > 0 ? { cost: Number(f.cost) } : {}) }, ...prev.inv] }, "Producto agregado", prev);
         onDone();
       } }]} />
     </>
@@ -60,7 +61,7 @@ function NewProduct({ onDone }: { onDone: () => void }) {
 }
 
 function Product({ rec, soonFn, onDone }: { rec: InvItem; soonFn: (v: string) => boolean; onDone: () => void }) {
-  const [f, setF] = useState({ delta: "1", min: String(rec.min), u: rec.u as (typeof UNITS)[number] });
+  const [f, setF] = useState({ delta: "1", min: String(rec.min), u: rec.u as (typeof UNITS)[number], cost: rec.cost ? String(rec.cost) : "" });
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const dl = Math.max(1, Number(f.delta) || 1);
   const low = rec.qty < rec.min, soon = soonFn(rec.venc);
@@ -70,7 +71,7 @@ function Product({ rec, soonFn, onDone }: { rec: InvItem; soonFn: (v: string) =>
     saveMod({ ...prev, inv: prev.inv.map((i) => (i.id === rec.id ? { ...i, ...p } : i)) }, msg, prev);
     onDone();
   };
-  const base = { min: Number(f.min) || rec.min, u: f.u };
+  const base = { min: Number(f.min) || rec.min, u: f.u, cost: Number(f.cost) > 0 ? Number(f.cost) : undefined };
   return (
     <>
       <SheetSub sub={`Stock ${rec.qty} ${rec.u} · mínimo ${rec.min} ${rec.u}${rec.venc ? ` · vence ${rec.venc}` : ""}`} badge={low ? "Bajo" : soon ? "Por vencer" : "OK"} tone={low ? E : soon ? W : G} />
@@ -83,10 +84,11 @@ function Product({ rec, soonFn, onDone }: { rec: InvItem; soonFn: (v: string) =>
       <TextField label={`Cantidad del movimiento (${f.u})`} value={f.delta} num onChange={(v) => set({ delta: v })} />
       <TextField label={`Stock mínimo (${f.u})`} value={f.min} num onChange={(v) => set({ min: v })} />
       <ChipField label="Unidad de medida" value={f.u} options={UNITS} onChange={(u) => set({ u })} />
+      <TextField label="Costo por unidad (S/, opcional)" value={f.cost} num onChange={(v) => set({ cost: v })} />
       <Actions items={[
         { t: `Registrar entrada (+${dl})`, kind: "p", icon: "arrow-down-to-line", run: () => patch({ ...base, qty: rec.qty + dl }, `Entrada registrada · stock ${rec.qty + dl} ${f.u}`) },
         { t: `Registrar salida (−${dl})`, icon: "arrow-up-from-line", run: () => (dl > rec.qty ? toast(`No hay tanto stock (${rec.qty})`) : patch({ ...base, qty: rec.qty - dl }, `Salida registrada · stock ${rec.qty - dl} ${f.u}`)) },
-        { t: "Guardar mínimo y unidad", icon: "save", run: () => patch(base, "Producto actualizado") },
+        { t: "Guardar mínimo, unidad y costo", icon: "save", run: () => patch(base, "Producto actualizado") },
         { t: "Pedir a proveedor", icon: "send", run: () => { enqueue({ kind: "pedido", channel: "whatsapp", patient: "Proveedor", text: `Pedido de reposición: ${rec.n}` }); onDone(); toast(`Pedido de ${rec.n} en cola · se enviará por WhatsApp al conectar la integración`); } },
         { t: "Eliminar producto", kind: "x", icon: "trash-2", run: () => { const prev = modStore.get(); saveMod({ ...prev, inv: prev.inv.filter((i) => i.id !== rec.id) }, "Producto eliminado", prev); onDone(); } },
       ]} />

@@ -8,6 +8,7 @@ export interface BulkMatRow {
   qty: number;
   min?: number;
   venc?: string;
+  cost?: number;
   notes: string[];
   action: "nuevo" | "actualizar";
   targetId?: string;
@@ -17,7 +18,7 @@ export interface BulkMatResult { rows: BulkMatRow[]; errors: string[] }
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const text = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
 
-type Field = "code" | "name" | "unit" | "qty" | "min" | "venc";
+type Field = "code" | "name" | "unit" | "qty" | "min" | "venc" | "cost";
 const HEAD: [Field, RegExp][] = [
   ["code", /^(codigo|cod\b|code)/],
   ["name", /^(producto|material|insumo|articulo|nombre|descripcion)/],
@@ -25,6 +26,7 @@ const HEAD: [Field, RegExp][] = [
   ["qty", /^(cantidad|stock|existencia|saldo|inicial)/],
   ["min", /^(minimo|stock minimo|stock min|reposicion)/],
   ["venc", /^(venc|caduc|fecha de venc)/],
+  ["cost", /^(costo|precio|valor)/],
 ];
 
 /** Número con coma o punto decimal; null si no es un número válido (≥ 0). */
@@ -61,7 +63,7 @@ export function parseMaterialSheet(sheet: unknown[][], current: InvItem[]): Bulk
   sheet[hi].forEach((c, i) => {
     const h = norm(text(c));
     // «stock mínimo» debe ir a la columna de mínimo, no a la de cantidad
-    const order: Field[] = ["code", "name", "unit", "min", "qty", "venc"];
+    const order: Field[] = ["code", "name", "unit", "min", "qty", "venc", "cost"];
     for (const f of order) { const re = HEAD.find((x) => x[0] === f)![1]; if (col[f] === undefined && re.test(h)) { col[f] = i; break; } }
   });
   if (col.qty === undefined) errors.push("No encontré la columna «Cantidad»: los productos nuevos empiezan en 0.");
@@ -83,13 +85,14 @@ export function parseMaterialSheet(sheet: unknown[][], current: InvItem[]): Bulk
     const mRaw = get("min");
     const min = parseQty(mRaw);
     if (min === null && text(mRaw)) notes.push(`Mínimo «${text(mRaw)}» no es un número: se ignora`);
+    const cost = parseQty(get("cost")) ?? undefined;
     const vRaw = get("venc");
     const venc = parseVenc(vRaw);
     if (venc === null && text(vRaw) && !(vRaw instanceof Date)) notes.push(`Vencimiento «${text(vRaw)}» no se entiende (usa AAAA-MM-DD o DD/MM/AAAA)`);
     const code = text(get("code")).toUpperCase();
     const target = (code && byCode.get(code)) || byName.get(norm(name));
     const key = target ? "id" + target.id : "n" + norm(name);
-    const row: BulkMatRow = { line: i + 1, code, name, unit: text(get("unit")) || "unid.", qty, ...(min !== null ? { min } : {}), ...(venc ? { venc } : {}), notes, action: target ? "actualizar" : "nuevo", ...(target ? { targetId: target.id } : {}) };
+    const row: BulkMatRow = { line: i + 1, code, name, unit: text(get("unit")) || "unid.", qty, ...(min !== null ? { min } : {}), ...(venc ? { venc } : {}), ...(cost ? { cost } : {}), notes, action: target ? "actualizar" : "nuevo", ...(target ? { targetId: target.id } : {}) };
     if (seen.has(key)) { rows[seen.get(key)!] = row; errors.push(`«${name}» aparece repetido (fila ${i + 1}): se usa la última.`); continue; }
     seen.set(key, rows.length);
     rows.push(row);
@@ -109,12 +112,13 @@ export function applyMaterials(current: InvItem[], rows: BulkMatRow[], mode: "su
       it.qty = Math.round((mode === "sumar" ? it.qty + r.qty : r.qty) * 100) / 100;
       if (r.min !== undefined) it.min = r.min;
       if (r.venc) it.venc = r.venc;
+      if (r.cost) it.cost = r.cost;
       if (r.unit && r.unit !== "unid.") it.u = r.unit;
       if (!it.code) it.code = r.code || nextMatCode(inv);
       updated++;
     } else {
       const taken = inv.some((x) => x.code?.toUpperCase() === r.code);
-      inv.unshift({ id: newId(), code: r.code && !taken ? r.code : nextMatCode(inv), n: r.name, u: r.unit, qty: r.qty, min: r.min ?? 5, venc: r.venc ?? "" });
+      inv.unshift({ id: newId(), code: r.code && !taken ? r.code : nextMatCode(inv), n: r.name, u: r.unit, qty: r.qty, min: r.min ?? 5, venc: r.venc ?? "", ...(r.cost ? { cost: r.cost } : {}) });
       created++;
     }
   }
@@ -122,8 +126,8 @@ export function applyMaterials(current: InvItem[], rows: BulkMatRow[], mode: "su
 }
 
 export const MAT_TEMPLATE: { head: string[]; rows: (string | number)[][] } = {
-  head: ["Código (opcional)", "Producto", "Unidad", "Cantidad", "Stock mínimo (opcional)", "Vencimiento (opcional)"],
-  rows: [["", "Resina A2", "g", 30, 10, ""], ["", "Anestesia lidocaína", "ml", 50, 20, "2027-06-30"]],
+  head: ["Código (opcional)", "Producto", "Unidad", "Cantidad", "Stock mínimo (opcional)", "Vencimiento (opcional)", "Costo por unidad S/ (opcional)"],
+  rows: [["", "Resina A2", "g", 30, 10, "", 4.5], ["", "Anestesia lidocaína", "ml", 50, 20, "2027-06-30", 0.8]],
 };
 
 /** Asigna código MAT-### a los productos que aún no lo tienen (en el orden del inventario). */

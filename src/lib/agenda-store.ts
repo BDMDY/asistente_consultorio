@@ -2,6 +2,7 @@
 import { type Appt, type AgendaState, seedAgenda } from "./agenda";
 import { isRemote } from "./backend/config";
 import { newId } from "./ids";
+import { undoLiquidation } from "./materials";
 import { defineStore } from "./store";
 
 export const agendaStore = defineStore<AgendaState>("da-agenda-v3", () => seedAgenda(), { remote: { name: "agenda", empty: () => ({ appts: [], nid: 0 }) } });
@@ -22,5 +23,7 @@ export function patchAppt(id: number, patch: Partial<Appt>) {
 }
 
 export function removeAppts(ids: number[]) {
+  // Al eliminar una cita, lo que se liquidó en ella vuelve al inventario.
+  for (const id of ids) undoLiquidation(id);
   agendaStore.update((s) => ({ ...s, appts: s.appts.filter((a) => !ids.includes(a.id)) }));
 }

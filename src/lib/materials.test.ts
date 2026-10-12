@@ -18,3 +18,12 @@ describe("liquidación de materiales", () => {
     expect(matUseOf(undefined, 7)).toBeUndefined();
   });
 });
+
+describe("costo de materiales", () => {
+  it("el Excel de materiales lee la columna de costo", async () => {
+    const { parseMaterialSheet } = await import("./bulk-materials");
+    const r = parseMaterialSheet([["Producto", "Cantidad", "Costo por unidad S/ (opcional)"], ["Resina", 10, 4.5], ["Guante", 5, "x"]], []);
+    expect(r.rows[0].cost).toBe(4.5);
+    expect(r.rows[1].cost).toBeUndefined();
+  });
+});

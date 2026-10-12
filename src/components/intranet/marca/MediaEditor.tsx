@@ -215,7 +215,7 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
     setBusy(false);
     if (!r.ok) return toast(r.error);
     add({ kind: "video", src: r.url });
-    toast("Video subido · ya está en el carrusel");
+    toast(f.size > 3 * 1048576 ? `Video subido · pesa ${(f.size / 1048576).toFixed(1)} MB: lo ideal es menos de 2 MB para que la portada cargue rápido` : "Video subido · ya está en el carrusel");
   }
   const drop = (sl: HeroSlide) => { if (sl.kind === "video" && sl.src && isHostedVideo(sl.src)) void removeHostedVideo(sl.src); set(slides.filter((x) => x.id !== sl.id)); };
   const add = (sl: Omit<HeroSlide, "id">) => set([...slides, { ...sl, id: nextId(slides) }]);
@@ -234,7 +234,7 @@ function HeroSlides({ slides }: { slides: HeroSlide[] }) {
   return (
     <>
       <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>
-        Con una sola diapositiva se muestra fija; con varias pasan solas según los «Segundos» de cada una (vacío = 6,5 s; 14 s en video; de 2 a 60) y se pausan al pasar el mouse. Los videos van en bucle y sin sonido: usa «+ Video» para subir un archivo <b>MP4</b> o <b>WebM</b> (de 5 a 15 s, máximo 10 MB) o «+ Video por enlace» si ya lo tienes alojado. Sin diapositivas se usa la «Foto hero» de Identidad.
+        Con una sola diapositiva se muestra fija; con varias pasan solas según los «Segundos» de cada una (vacío = 6,5 s; 14 s en video; de 2 a 60) y se pausan al pasar el mouse. Los videos van en bucle y sin sonido: usa «+ Video» para subir un archivo <b>MP4</b> o <b>WebM</b> (de 5 a 15 s; ideal menos de 2 MB, máximo 10 MB) o «+ Video por enlace» si ya lo tienes alojado. Sin diapositivas se usa la «Foto hero» de Identidad.
       </div>
       {slides.length === 0 && empty("Sin diapositivas: se usa la foto hero o un fondo de color.")}
       {slides.map((sl, k) => (

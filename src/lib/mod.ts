@@ -9,7 +9,7 @@ import { toast } from "./toast";
 /** Datos de los módulos de la intranet (planes, inventario, finanzas, servicios, campañas, personal, sedes…). */
 export interface PlanDiscount { t?: string; label: string; amt: number }
 export interface Plan { id: string; pac: string; trat: string; svcs?: string[]; n: number; paid: number; cuota: number; base?: number; disc?: PlanDiscount }
-export interface InvItem { id: string; /** código del producto (MAT-001…) */ code?: string; n: string; u: string; qty: number; min: number; venc: string }
+export interface InvItem { id: string; /** código del producto (MAT-001…) */ code?: string; n: string; u: string; qty: number; min: number; venc: string; /** costo por unidad (S/), para valorizar lo que se consume */ cost?: number }
 export type FinStatus = "pagado" | "pendiente" | "vencido" | "anulado";
 /** Cuenta por cobrar o registro manual. Los cobros reales (con fecha, comprobante y método) viven en los pagos; `payId` enlaza el pago que saldó este registro. */
 export interface FinItem { id: string; c: string; m: string; a: number; st: FinStatus; base?: number; disc?: PlanDiscount; pac?: string; con?: string; /** alta (ISO) */ at?: string; payId?: number }
@@ -24,7 +24,7 @@ export interface DiscountCode { id: string; code: string; type: "%" | "S/"; val:
 export interface DiscountCamp { id: string; n: string; type: "%" | "S/"; val: number; ap: string; from: string; to: string; on: boolean }
 
 /** Liquidación de materiales de una atención: lo consumido sale del inventario. */
-export interface MatUse { id: string; apptId: number; at: string; patient: string; service: string; lines: { invId: string; n: string; u: string; qty: number }[] }
+export interface MatUse { id: string; apptId: number; at: string; patient: string; service: string; lines: { invId: string; n: string; u: string; qty: number; /** costo por unidad al liquidar (S/) */ cost?: number }[] }
 
 export interface ModData {
   planes: Plan[];
