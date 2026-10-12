@@ -136,7 +136,7 @@ function UserForm({ rec, onDone }: { rec?: StaffUser; onDone: () => void }) {
   }
   async function invite(mail: string) {
     const r = await inviteStaff(mail);
-    toast(r === "ok" ? `Invitación enviada a ${mail}` : r === "linked" ? `${mail} ya tiene acceso` : r === "registered" ? `${mail} ya tiene cuenta: puede entrar con «Ya tengo cuenta» en el registro` : r === "limit" ? "Límite de correos alcanzado. Espera unos minutos y usa «Reenviar invitación»" : `No se pudo enviar la invitación a ${mail}. Usa «Reenviar invitación»`);
+    toast(r === "ok" ? `Invitación enviada a ${mail}` : r === "linked" ? `${mail} ya tiene acceso` : r === "registered" ? `${mail} ya tiene cuenta: puede entrar con «Ya tengo cuenta» en el registro` : r === "notauth" ? `Supabase no permite enviar a ${mail} con su correo integrado (solo a miembros de la organización). Configura un SMTP propio para invitar a cualquier correo` : r === "limit" ? "Límite de correos alcanzado. Espera unos minutos y usa «Reenviar invitación»" : `No se pudo enviar la invitación a ${mail}. Usa «Reenviar invitación»`);
   }
   return (
     <>

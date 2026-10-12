@@ -122,17 +122,18 @@ export function authMessage(m: string): string {
 }
 
 /** Envía la invitación por correo a una persona del personal. Reintenta mientras su ficha termina de guardarse. */
-export async function inviteStaff(email: string): Promise<"ok" | "linked" | "registered" | "limit" | "fail"> {
+export async function inviteStaff(email: string): Promise<"ok" | "linked" | "registered" | "limit" | "notauth" | "fail"> {
   const db = getClient();
   for (let i = 0; i < 5; i++) {
     const { data, error } = await db.functions.invoke("invite-staff", { body: { email, redirectTo: window.location.origin + "/intranet/nueva-clave" } });
     if (!error && (data as { ok?: boolean } | null)?.ok) return "ok";
-    let code = "";
-    try { code = ((await (error as { context?: Response } | null)?.context?.json()) as { error?: string } | undefined)?.error ?? ""; } catch { /* sin detalle */ }
+    let code = "", detail = "";
+    try { const b = (await (error as { context?: Response } | null)?.context?.json()) as { error?: string; detail?: string } | undefined; code = b?.error ?? ""; detail = b?.detail ?? ""; } catch { /* sin detalle */ }
     if (code === "not_staff" && i < 4) { await new Promise((r) => setTimeout(r, 1500)); continue; }
     if (code === "already_linked") return "linked";
     if (code === "already_registered") return "registered";
     if (code === "rate_limited") return "limit";
+    if (/not authorized|not allowed/i.test(detail)) return "notauth";
     return "fail";
   }
   return "fail";
