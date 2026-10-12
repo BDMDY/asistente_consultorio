@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { updatePassword, useAuth } from "@/lib/backend/auth";
+import { authMessage, passwordProblem, updatePassword, useAuth } from "@/lib/backend/auth";
 import { isRemote } from "@/lib/backend/config";
 import AuthCard, { field, labelStyle, primaryBtn } from "./AuthCard";
 
@@ -14,10 +14,10 @@ export default function NuevaClave() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (pass.length < 8) return setError("Usa al menos 8 caracteres");
+    if (passwordProblem(pass)) return setError(passwordProblem(pass));
     if (pass !== again) return setError("Las contraseñas no coinciden");
     const err = await updatePassword(pass);
-    if (err) return setError("El enlace venció. Pide uno nuevo desde «Recuperar contraseña».");
+    if (err) return setError(/expired|invalid|session/i.test(err.message) ? "El enlace venció. Pide uno nuevo desde «Recuperar contraseña»." : authMessage(err.message));
     setDone(true);
   }
 
@@ -26,7 +26,7 @@ export default function NuevaClave() {
   if (auth.status === "anon") return <AuthCard title="Enlace no válido" sub="Abre el enlace del correo de recuperación o pide uno nuevo."><Link href="/intranet" style={{ color: "var(--brand-text)", fontWeight: 600 }}>Volver a iniciar sesión</Link></AuthCard>;
 
   return (
-    <AuthCard title="Crea tu nueva contraseña" sub="Mínimo 8 caracteres.">
+    <AuthCard title="Crea tu nueva contraseña" sub="Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.">
       <form onSubmit={submit} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <label style={labelStyle}>Nueva contraseña<input type="password" autoComplete="new-password" value={pass} onChange={(e) => setPass(e.target.value)} style={field} /></label>
         <label style={labelStyle}>Repite la contraseña<input type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} style={field} /></label>

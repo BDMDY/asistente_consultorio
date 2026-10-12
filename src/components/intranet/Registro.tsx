@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { bootstrapClinic, signInWithPassword, signUp, useAuth } from "@/lib/backend/auth";
+import { authMessage, bootstrapClinic, passwordProblem, signInWithPassword, signUp, useAuth } from "@/lib/backend/auth";
 import { CLINIC_SLUG, isRemote } from "@/lib/backend/config";
 import { isEmail } from "@/lib/session";
 import AuthCard, { field, labelStyle, primaryBtn } from "./AuthCard";
@@ -35,6 +35,7 @@ export default function Registro() {
   async function account(e: React.FormEvent) {
     e.preventDefault();
     if (!isEmail(a.email)) return setError("Ingresa un correo válido");
+    if (mode === "signup" && passwordProblem(a.pass)) return setError(passwordProblem(a.pass));
     if (a.pass.length < 8) return setError("La contraseña debe tener al menos 8 caracteres");
     setError("");
     setBusy(true);
@@ -43,7 +44,7 @@ export default function Registro() {
       if (err) setError("Correo o contraseña incorrectos");
     } else {
       const r = await signUp(a.email.trim(), a.pass);
-      if (r.error) setError(r.error.message.includes("registered") ? "Ese correo ya tiene cuenta: usa «Ya tengo cuenta»" : r.error.message);
+      if (r.error) setError(authMessage(r.error.message));
       else if (r.needsConfirm) setNote("Te enviamos un correo. Confirma tu dirección con el enlace y vuelve a esta pantalla para continuar.");
     }
     setBusy(false);

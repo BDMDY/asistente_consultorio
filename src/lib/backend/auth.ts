@@ -104,3 +104,19 @@ export async function bootstrapClinic(a: { code: string; slug: string; name: str
   await entering;
   return null;
 }
+
+/** Regla de contraseña del proyecto (mayúscula, minúscula, número y símbolo, 8+), verificada antes de enviar. */
+export function passwordProblem(p: string): string {
+  if (p.length < 8) return "La contraseña debe tener al menos 8 caracteres";
+  if (!/[a-z]/.test(p) || !/[A-Z]/.test(p) || !/\d/.test(p) || !/[^A-Za-z0-9]/.test(p)) return "La contraseña debe incluir mayúscula, minúscula, número y un símbolo (por ejemplo ! @ # $ *)";
+  return "";
+}
+
+/** Mensajes de Supabase Auth en español. */
+export function authMessage(m: string): string {
+  if (/should contain at least one character/i.test(m)) return "La contraseña debe incluir mayúscula, minúscula, número y un símbolo (por ejemplo ! @ # $ *)";
+  if (/weak|pwned|leaked|easy to guess/i.test(m)) return "Esa contraseña es muy común o apareció en filtraciones. Elige otra";
+  if (/rate limit|too many/i.test(m)) return "Demasiados intentos. Espera unos minutos y vuelve a probar";
+  if (/registered/i.test(m)) return "Ese correo ya tiene cuenta: usa «Ya tengo cuenta»";
+  return m;
+}
