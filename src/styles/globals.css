@@ -17,3 +17,12 @@ input, select, textarea, button { font-family: inherit; }
 @keyframes da-sk { 0%, 100% { opacity: 1 } 50% { opacity: .45 } }
 .da-skeleton { animation: da-sk 1.4s infinite; }
 @media (prefers-reduced-motion: reduce) { .da-skeleton { animation: none; } }
+
+/* Editor de Medios: zonas táctiles cómodas (36 px con mouse, 44 px en pantallas táctiles). */
+.da-medios :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea, button) { min-height: 36px; }
+.da-medios :is(button, label:has(input[type="checkbox"])) { min-width: 36px; }
+@media (pointer: coarse) {
+  .da-medios :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea, button) { min-height: 44px; }
+  .da-medios :is(button, label:has(input[type="checkbox"])) { min-width: 44px; }
+  .da-medios input[type="checkbox"] { width: 24px; height: 24px; }
+}

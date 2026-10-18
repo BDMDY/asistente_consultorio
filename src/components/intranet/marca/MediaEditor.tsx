@@ -78,7 +78,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div className="da-medios" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {showIdentity && section("Identidad", null, null, (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 8 }}>
           {singles.map(([k, label, fit, bg, logo]) => (
@@ -86,7 +86,7 @@ export default function MediaEditor({ showIdentity = true }: { showIdentity?: bo
               <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
               <div style={{ fontSize: 11, color: "var(--ink-500)", lineHeight: 1.4, minHeight: 48 }}>{SIZE_HINT[k]}</div>
               <Pick src={m.img[k]} label={label} h={72} icon="upload" fit={fit} bg={bg} logoMode={logo} max={k === "favicon" ? 512 : undefined} onPick={(u) => setImg(k, u)} />
-              <button type="button" onClick={() => delImg(k)} style={{ cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--error-fg)", visibility: m.img[k] ? "visible" : "hidden", background: "transparent", border: 0, textAlign: "left", padding: 0 }}>Quitar</button>
+              <button type="button" onClick={() => delImg(k)} style={{ cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--error-fg)", display: m.img[k] ? "block" : "none", background: "transparent", border: 0, textAlign: "left", padding: 0 }}>Quitar</button>
             </div>
           ))}
         </div>
