@@ -10,6 +10,7 @@ import type { Payment } from "../payments";
 import {
   type Row, apptToRow, diffById, fileToRow, flatten, groupByPatient, noteToRow, outboxToRow, patientToRow, paymentToRow,
   rowToAppt, rowToFile, rowToNote, rowToOutbox, rowToPatient, rowToPayment,
+  modPatches,
 } from "./rows";
 import { type Ctx, type PublicSite, defineSpec } from "./sync";
 
@@ -166,9 +167,17 @@ export function registerSpecs() {
     save: async (prev, next, c) => {
       const { users: pu, ...pd } = prev;
       const { users: nu, ...nd } = next;
-      // Solo se envían las secciones que cambiaron y se fusionan en el servidor: dos personas editando secciones distintas no se pisan.
-      const patch: Record<string, unknown> = {};
-      for (const k of Object.keys(nd) as (keyof typeof nd)[]) if (JSON.stringify(pd[k]) !== JSON.stringify(nd[k])) patch[k] = nd[k];
+      // Solo se envía lo que cambió: cada elemento de las listas y cada sección suelta se fusiona en el servidor,
+      // así dos personas editando a la vez (incluso la misma lista) no se pisan.
+      const { items, whole } = modPatches(pd as Record<string, unknown>, nd as Record<string, unknown>);
+      let itemsOk = true;
+      for (const it of items) {
+        const r = await c.db.rpc("merge_doc_items", { p_clinic: c.clinicId, p_key: "mod", p_path: it.path, p_upsert: it.upsert, p_remove: it.remove.map(String) });
+        if (r.error) { itemsOk = false; break; }
+      }
+      // Si el servidor aún no tiene la función por elemento, se guarda la sección completa (como antes).
+      const patch: Record<string, unknown> = { ...whole };
+      if (!itemsOk) for (const k of Object.keys(nd) as (keyof typeof nd)[]) if (JSON.stringify(pd[k]) !== JSON.stringify(nd[k])) patch[k] = nd[k];
       if (Object.keys(patch).length) ok(await c.db.rpc("merge_clinic_doc", { p_clinic: c.clinicId, p_key: "mod", p_patch: patch }));
       const { upsert, remove } = diffById(pu, nu, (u) => u.id);
       if (upsert.length) ok(await c.db.from("staff").upsert(upsert.map((u) => staffToRow(c.clinicId, u)), { onConflict: "id" }));

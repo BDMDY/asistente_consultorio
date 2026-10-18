@@ -51,3 +51,28 @@ export function diffById<T>(prev: T[], next: T[], id: (t: T) => string | number)
 
 /** Aplana un mapa por paciente a una lista de {patientId, item}. */
 export const flatten = <T>(m: Record<number, T[]>) => Object.entries(m).flatMap(([pid, list]) => (list ?? []).map((item) => ({ pid: Number(pid), item })));
+
+type Idd = { id: string | number };
+const hasIds = (a: unknown): a is Idd[] => Array.isArray(a) && a.every((x) => x && typeof x === "object" && ("id" in x) && (typeof (x as Idd).id === "string" || typeof (x as Idd).id === "number"));
+
+/** Cambios del documento de módulos, listos para guardar sin pisar a otras personas: listas por elemento y el resto por sección. */
+export interface ModPatches { items: { path: string[]; upsert: Idd[]; remove: (string | number)[] }[]; whole: Record<string, unknown> }
+export function modPatches(prev: Record<string, unknown>, next: Record<string, unknown>): ModPatches {
+  const out: ModPatches = { items: [], whole: {} };
+  const list = (path: string[], a: unknown, b: unknown) => {
+    const d = diffById((a ?? []) as Idd[], b as Idd[], (x) => x.id);
+    if (d.upsert.length || d.remove.length) out.items.push({ path, upsert: d.upsert, remove: d.remove });
+  };
+  for (const k of Object.keys(next)) {
+    const a = prev[k], b = next[k];
+    if (JSON.stringify(a) === JSON.stringify(b)) continue;
+    if (hasIds(b) && (a === undefined || hasIds(a))) list([k], a, b);
+    else if (k === "desc" && b && typeof b === "object") {
+      for (const sub of Object.keys(b as object)) {
+        const sa = (a as Record<string, unknown> | undefined)?.[sub], sb = (b as Record<string, unknown>)[sub];
+        if (JSON.stringify(sa) !== JSON.stringify(sb) && hasIds(sb) && (sa === undefined || hasIds(sa))) list([k, sub], sa, sb);
+      }
+    } else out.whole[k] = b;
+  }
+  return out;
+}

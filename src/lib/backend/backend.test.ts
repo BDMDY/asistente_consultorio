@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 import type { Appt } from "../agenda";
 import type { Patient } from "../patients";
-import { apptToRow, diffById, flatten, groupByPatient, patientToRow, rowToAppt, rowToPatient, rowToPayment, paymentToRow } from "./rows";
+import { modPatches, apptToRow, diffById, flatten, groupByPatient, patientToRow, rowToAppt, rowToPatient, rowToPayment, paymentToRow } from "./rows";
 import { fetchAll, registerSpecs } from "./specs";
 import { defineSpec, getCtx, queueSave, refreshAll, refreshIfStale, registerStore, setCtx } from "./sync";
 
@@ -109,5 +109,19 @@ describe("adaptadores", () => {
     expect(n).toBe(base); // recién cargado: no repite
     await refreshIfStale(0);
     expect(n).toBe(base + 1);
+  });
+});
+
+describe("modPatches", () => {
+  it("envía por elemento las listas con id y por sección lo demás", () => {
+    const prev = { inv: [{ id: "a", q: 1 }, { id: "b", q: 2 }], notif: { x: 1 }, desc: { codes: [{ id: "k", v: 1 }], camps: [] }, sent: 0 };
+    const next = { inv: [{ id: "c", q: 9 }, { id: "a", q: 5 }], notif: { x: 2 }, desc: { codes: [{ id: "k", v: 1 }], camps: [{ id: "g", v: 1 }] }, sent: 0 };
+    const p = modPatches(prev, next);
+    expect(p.whole).toEqual({ notif: { x: 2 } });
+    expect(p.items).toEqual([
+      { path: ["inv"], upsert: [{ id: "c", q: 9 }, { id: "a", q: 5 }], remove: ["b"] },
+      { path: ["desc", "camps"], upsert: [{ id: "g", v: 1 }], remove: [] },
+    ]);
+    expect(modPatches(prev, prev)).toEqual({ items: [], whole: {} });
   });
 });
