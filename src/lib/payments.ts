@@ -42,10 +42,12 @@ export function addPayment(p: Omit<Payment, "id" | "no" | "at">): Payment {
 
 /** Número de comprobante para un nuevo cobro: el de la cita si ya tiene uno; si no, el siguiente de la serie. */
 export const receiptNoFor = (list: Payment[], apptId?: number) =>
-  (apptId !== undefined ? list.find((x) => x.apptId === apptId)?.no : undefined) ?? formatReceiptNo(takeNumber(lastReceiptNumber(list)) ?? nextReceiptNumber(list));
+  (apptId !== undefined ? list.find((x) => x.apptId === apptId)?.no : undefined) ?? formatReceiptNo(takeNumber(usedReceiptNumbers(list)) ?? nextReceiptNumber(list));
 
 const SERIES = "B001-";
 export const formatReceiptNo = (n: number) => SERIES + String(n).padStart(6, "0");
+/** Números de comprobante ya emitidos. */
+export const usedReceiptNumbers = (list: Pick<Payment, "no">[]) => new Set(list.map((p) => Number(/(\d+)$/.exec(p.no)?.[1] ?? 0)));
 /** Mayor correlativo emitido (123 si no hay ninguno). */
 export const lastReceiptNumber = (list: Pick<Payment, "no">[]) => list.reduce((m, p) => Math.max(m, Number(/(\d+)$/.exec(p.no)?.[1] ?? 0)), 123);
 /** Siguiente correlativo local: no se repite aunque se borren cobros. */

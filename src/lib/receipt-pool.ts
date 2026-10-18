@@ -24,14 +24,17 @@ const write = (list: number[]) => {
 
 /** Activa el guardado de la reserva para este usuario y recupera lo que quedó sin usar. */
 export const setPoolKey = (k: string | null) => { key = k; pool = k ? read() : []; };
-export const addToPool = (first: number, count: number) => write([...new Set([...read(), ...Array.from({ length: count }, (_, i) => first + i)])].sort((a, b) => a - b));
+export const addToPool = (first: number, count: number) => addNumbers(Array.from({ length: count }, (_, i) => first + i));
+export const addNumbers = (nums: number[]) => write([...new Set([...read(), ...nums.filter((n) => Number.isInteger(n))])].sort((a, b) => a - b));
+/** Saca de la reserva local todos los números sin usar y los devuelve (por ejemplo para liberarlos en el servidor al cerrar sesión). */
+export function drainPool(): number[] { const l = read(); write([]); return l; }
 export const setRefill = (fn: (() => void) | null) => { refill = fn; };
 export const clearPool = () => { key = null; pool = []; };
 export const poolSize = () => read().length;
 
-/** Siguiente número reservado que no esté ya emitido (`usedUpTo` = mayor correlativo conocido), o undefined si no hay. */
-export function takeNumber(usedUpTo = 0): number | undefined {
-  const list = read().filter((n) => n > usedUpTo);
+/** Siguiente número reservado que no esté ya emitido (`used` = números ya emitidos que se conocen), o undefined si no hay. */
+export function takeNumber(used: ReadonlySet<number> = new Set()): number | undefined {
+  const list = read().filter((n) => !used.has(n));
   const n = list.shift();
   write(list);
   if (list.length <= 2) refill?.();

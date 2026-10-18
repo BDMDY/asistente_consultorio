@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { sessionStore } from "../session";
 import { getClient } from "./client";
 import { CLINIC_SLUG, isRemote } from "./config";
-import { startReceiptPool, stopReceiptPool } from "./receipts";
+import { releaseReceiptPool, startReceiptPool, stopReceiptPool } from "./receipts";
 import { loadPublic, refreshAll, refreshIfStale, resetAll, setCtx, startRealtime, stopRealtime } from "./sync";
 import { registerSpecs } from "./specs";
 
@@ -87,7 +87,7 @@ export function initBackend() {
 }
 
 export const signInWithPassword = async (email: string, password: string) => (await getClient().auth.signInWithPassword({ email, password })).error;
-export const signOutRemote = async () => void (await getClient().auth.signOut());
+export const signOutRemote = async () => { await releaseReceiptPool(getClient()); void (await getClient().auth.signOut()); };
 export const sendReset = async (email: string) => (await getClient().auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/intranet/nueva-clave" })).error;
 export const updatePassword = async (password: string) => (await getClient().auth.updateUser({ password })).error;
 export const signUp = async (email: string, password: string) => {

@@ -53,6 +53,20 @@ describe("correlativo de comprobantes", () => {
   });
 });
 
+describe("correlativo sin huecos", () => {
+  it("usa los números reservados que quedaron por debajo del mayor emitido y salta los ya usados", async () => {
+    const { addNumbers, drainPool } = await import("./receipt-pool");
+    const list = [pay(1, "B001-000124", 10, "Yape", { apptId: 1 }), pay(2, "B001-000127", 5, "Yape", { apptId: 2 })];
+    addNumbers([125, 126, 127]); // 127 ya fue emitido por otra persona: se salta
+    expect(receiptNoFor(list)).toBe("B001-000125");
+    expect(receiptNoFor(list)).toBe("B001-000126");
+    expect(receiptNoFor(list)).toBe("B001-000128");
+    addNumbers([300, 301]);
+    expect(drainPool()).toEqual([300, 301]);
+    clearPool();
+  });
+});
+
 describe("imágenes del sitio", () => {
   it("cuenta solo las imágenes incrustadas grandes", async () => {
     const { countInlineImages, isDataImage } = await import("./backend/storage");
