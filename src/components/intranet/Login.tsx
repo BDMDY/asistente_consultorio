@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import Icon from "@/components/ui/Icon";
-import { sendReset, signInWithPassword, useAuth } from "@/lib/backend/auth";
+import { sendReset, signInWithGoogle, signInWithPassword, useAuth } from "@/lib/backend/auth";
 import { isRemote } from "@/lib/backend/config";
 import { useMounted } from "@/lib/hooks";
 import { useMedia } from "@/lib/media";
@@ -54,6 +54,15 @@ export default function Login() {
     router.push("/intranet/inicio");
   }
 
+  async function google() {
+    if (!isRemote) return toast("El acceso con Google se activa al conectar la autenticación");
+    setError("");
+    setBusy(true);
+    const msg = await signInWithGoogle(); // si todo va bien, el navegador sale hacia Google
+    setBusy(false);
+    if (msg) setError(msg);
+  }
+
   async function recover() {
     if (!isEmail(f.rec)) return setRecErr(true);
     setRecErr(false);
@@ -87,7 +96,7 @@ export default function Login() {
             {error && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>{error}</div>}
             {isRemote && auth.status === "denied" && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>Tu cuenta aún no está asociada a una clínica. Pide a tu administrador que te registre con este correo. Si eres quien configura la clínica por primera vez, <Link href="/intranet/registro" style={{ color: "var(--brand-text)" }}>crea la clínica aquí</Link>.</div>}
             <button type="submit" disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? "Ingresando…" : "Iniciar sesión"}</button>
-            <button type="button" onClick={() => toast("El acceso con Google se activa al conectar la autenticación")} style={{ ...primary, background: "var(--surface)", color: "inherit", boxShadow: "inset 0 0 0 1px var(--line)", fontWeight: 600, gap: 8 }}>
+            <button type="button" onClick={google} style={{ ...primary, background: "var(--surface)", color: "inherit", boxShadow: "inset 0 0 0 1px var(--line)", fontWeight: 600, gap: 8 }}>
               <GoogleG />Entrar con Google
             </button>
           </form>

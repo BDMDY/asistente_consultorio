@@ -3,7 +3,7 @@ import type { Session as SbSession } from "@supabase/supabase-js";
 import { useSyncExternalStore } from "react";
 import { sessionStore } from "../session";
 import { getClient } from "./client";
-import { CLINIC_SLUG, isRemote } from "./config";
+import { CLINIC_SLUG, SUPABASE_KEY, SUPABASE_URL, isRemote } from "./config";
 import { releaseReceiptPool, startReceiptPool, stopReceiptPool } from "./receipts";
 import { loadPublic, refreshAll, refreshIfStale, resetAll, setCtx, startRealtime, stopRealtime } from "./sync";
 import { registerSpecs } from "./specs";
@@ -159,4 +159,22 @@ export async function redeemStaffCode(a: { email: string; dni: string; code: str
   }
   const err = await signInWithPassword(a.email.trim(), a.password);
   return err ? "Cuenta creada. Ahora inicia sesión con tu correo y contraseña" : "";
+}
+
+/** ¿Está activado el acceso con Google en el proyecto? (se consulta antes para no mandar al usuario a una página de error) */
+export async function googleEnabled(): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_KEY } });
+    if (!r.ok) return false;
+    return Boolean(((await r.json()) as { external?: { google?: boolean } }).external?.google);
+  } catch {
+    return false;
+  }
+}
+
+/** Entrar con Google. Devuelve un mensaje si no se pudo iniciar; si todo va bien el navegador sale hacia Google. */
+export async function signInWithGoogle(): Promise<string> {
+  if (!(await googleEnabled())) return "El acceso con Google aún no está activado. Entra con tu correo y contraseña.";
+  const { error } = await getClient().auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin + "/intranet" } });
+  return error ? "No se pudo iniciar con Google. Intenta de nuevo o usa tu correo y contraseña." : "";
 }
