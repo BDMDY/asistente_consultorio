@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isRemote } from "@/lib/backend/config";
 import { createStaffCode, inviteStaff } from "@/lib/backend/auth";
+import { type PushState, disablePush, enablePush, usePushState } from "@/lib/backend/push";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
 import { hm } from "@/lib/agenda";
 import { agendaStore } from "@/lib/agenda-store";
@@ -34,6 +35,7 @@ export function Configuracion() {
   const { data: d } = useMod();
   const brand = useBrand();
   const [tab, setTab] = useState(0);
+  const [push, refreshPush] = usePushState();
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<Sel>(null);
   const switchTab = (i: number) => { setTab(i); setSel(null); setQ(""); };
@@ -58,7 +60,10 @@ export function Configuracion() {
       ...d.desc.codes.map((c) => ({ id: c.id, t: c.code, sub: `${c.type === "%" ? `${c.val}%` : money0(c.val)} · usado ${c.used || 0}${c.max ? ` de ${c.max}` : " veces"}`, badge: c.on ? "Activo" : "Inactivo", tone: c.on ? G : N })),
       ...d.desc.camps.map((c) => ({ id: c.id, t: c.n, sub: `${c.type === "%" ? `${c.val}%` : money0(c.val)} · ${c.ap}${c.from ? ` · ${c.from} → ${c.to}` : ""}`, badge: c.on ? "Activa" : "Inactiva", tone: c.on ? G : N })),
     ];
-    return NOTIF.map(([k, t, s]) => ({ id: `n:${k}`, t, sub: s, badge: d.notif[k] ? "Activa" : "Apagada", tone: d.notif[k] ? G : N }));
+    return [
+      ...NOTIF.map(([k, t, s]) => ({ id: `n:${k}`, t, sub: s, badge: d.notif[k] ? "Activa" : "Apagada", tone: d.notif[k] ? G : N })),
+      ...(isRemote ? [{ id: "push:device", t: "Avisos en este dispositivo", sub: "Te avisa en el celular o la computadora cuando entra una reserva web", badge: push === "activo" ? "Activos" : push === "bloqueado" ? "Bloqueados" : "Apagados", tone: push === "activo" ? G : push === "bloqueado" ? E : N }] : []),
+    ];
   })().filter((r) => !q.trim() || `${r.t} ${r.sub}`.toLowerCase().includes(q.trim().toLowerCase()));
 
   const onCta = () => {
@@ -78,6 +83,7 @@ export function Configuracion() {
     if (tab === 1) { title = "mode" in sel ? "Invitar usuario" : (d.users.find((u) => u.id === id)?.nom ?? ""); panel = <UserForm key={id || "new"} rec={d.users.find((u) => u.id === id)} onDone={() => setSel(null)} />; }
     else if (tab === 2) { title = "mode" in sel ? "Nueva sede" : (d.sedes.find((z) => z.id === id)?.n ?? ""); panel = <SedeForm key={id || "new"} rec={d.sedes.find((z) => z.id === id)} onDone={() => setSel(null)} />; }
     else if (tab === 4) { const c = d.desc.codes.find((x) => x.id === id), g = d.desc.camps.find((x) => x.id === id); title = "mode" in sel ? "Nuevo descuento" : (c?.code ?? g?.n ?? ""); panel = <DiscountForm key={id || "new"} code={c} camp={g} onDone={() => setSel(null)} />; }
+    else if (tab === 3 && id === "push:device") { title = "Avisos en este dispositivo"; panel = <PushSheet state={push} onChange={refreshPush} />; }
     else if (tab === 3) { const k = id.slice(2) as keyof typeof d.notif; const n = NOTIF.find((x) => x[0] === k); if (n) { title = n[1]; panel = <NotifSheet n={n} on={d.notif[k]} onDone={() => setSel(null)} />; } }
     else if (tab === 5) { title = "Roles y permisos"; panel = <RolesSheet initial={id.slice(5) as Role} />; }
     else if (tab === 6) {
@@ -241,6 +247,33 @@ function DiscountForm({ code, camp, onDone }: { code?: DiscountCode; camp?: Disc
         { t: rec ? "Guardar cambios" : "Crear descuento", kind: "p", icon: rec ? "save" : "tag", run: save },
         ...(rec ? [{ t: "Eliminar", kind: "x" as const, icon: "trash-2" as const, run: () => commit({ ...d.desc, codes: d.desc.codes.filter((x) => x.id !== rec.id), camps: d.desc.camps.filter((x) => x.id !== rec.id) }, "Descuento eliminado") }] : []),
       ]} />
+    </>
+  );
+}
+
+const PUSH_TEXT: Record<PushState, string> = {
+  cargando: "Comprobando este dispositivo…",
+  "no-disponible": "Este navegador o dispositivo no admite notificaciones. En iPhone funcionan al instalar la app («Agregar a pantalla de inicio»).",
+  "sin-configurar": "Las notificaciones aún no están configuradas en el servidor (falta la clave VAPID).",
+  bloqueado: "El navegador bloqueó las notificaciones de este sitio. Actívalas en los ajustes del navegador y vuelve aquí.",
+  apagado: "Recibirás un aviso en este dispositivo cuando entre una reserva desde la web.",
+  activo: "Este dispositivo recibe un aviso cuando entra una reserva desde la web.",
+};
+
+function PushSheet({ state, onChange }: { state: PushState; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const on = state === "activo";
+  async function toggle() {
+    setBusy(true);
+    if (on) { await disablePush(); toast("Avisos apagados en este dispositivo"); }
+    else { const err = await enablePush(); toast(err || "Avisos activados en este dispositivo"); }
+    setBusy(false);
+    onChange();
+  }
+  return (
+    <>
+      <SheetSub sub={PUSH_TEXT[state]} badge={on ? "Activos" : "Apagados"} tone={on ? G : N} />
+      {(state === "apagado" || state === "activo") && <Actions items={[{ t: busy ? "Un momento…" : on ? "Apagar en este dispositivo" : "Activar en este dispositivo", kind: "p", icon: on ? "bell-off" : "bell", run: () => { if (!busy) void toggle(); } }]} />}
     </>
   );
 }
