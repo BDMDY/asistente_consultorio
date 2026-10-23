@@ -87,3 +87,22 @@ export async function downloadExcel(onProgress?: (done: number, total: number) =
 }
 
 export const lastBackup = (): string | null => { try { return localStorage.getItem("da-last-backup"); } catch { return null; } };
+
+export interface BackupRun { id: number; ran_at: string; ok: boolean; file: string | null; bytes: number | null; counts: Record<string, number> | null; error: string | null }
+
+/** Últimas ejecuciones de la copia automática (solo las ve un administrador). */
+export async function fetchRuns(limit = 10): Promise<BackupRun[]> {
+  const { data } = await getClient().from("backup_runs").select("id, ran_at, ok, file, bytes, counts, error").order("ran_at", { ascending: false }).limit(limit);
+  return (data ?? []) as BackupRun[];
+}
+
+/** Resumen para la lista: ¿la copia automática funciona y qué tan reciente es? */
+export function runsStatus(runs: BackupRun[]): { badge: string; sub: string; tone: "ok" | "warn" | "bad" | "none" } {
+  const last = runs[0];
+  if (!last) return { badge: "Sin datos", sub: "Aún no se ejecutó ninguna copia automática", tone: "none" };
+  const ok = runs.find((r) => r.ok);
+  const hours = ok ? Math.round((Date.now() - new Date(ok.ran_at).getTime()) / 3_600_000) : null;
+  const ago = hours === null ? "" : hours < 1 ? "hace menos de una hora" : hours < 48 ? `hace ${hours} h` : `hace ${Math.round(hours / 24)} días`;
+  if (last.ok) return { badge: "Activa", sub: `Última copia ${ago}${last.bytes ? ` · ${(last.bytes / 1024).toFixed(0)} KB` : ""}`, tone: "ok" };
+  return { badge: "Falló", sub: ok ? `La última exitosa fue ${ago}. Error: ${last.error ?? "desconocido"}` : `Sin copias exitosas. Error: ${last.error ?? "desconocido"}`, tone: "bad" };
+}

@@ -1,9 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { isRemote } from "@/lib/backend/config";
 import { createStaffCode, inviteStaff } from "@/lib/backend/auth";
-import { downloadBackup, downloadExcel, lastBackup } from "@/lib/backend/backup";
+import { type BackupRun, downloadBackup, downloadExcel, fetchRuns, lastBackup, runsStatus } from "@/lib/backend/backup";
 import { type PushState, disablePush, enablePush, usePushState } from "@/lib/backend/push";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
 import { hm } from "@/lib/agenda";
@@ -41,6 +41,8 @@ export function Configuracion() {
   const brand = useBrand();
   const [tab, setTab] = useState(0);
   const [push, refreshPush] = usePushState();
+  const [runs, setRuns] = useState<BackupRun[] | null>(null);
+  useEffect(() => { if (isRemote && tab === 7) void fetchRuns().then(setRuns).catch(() => setRuns([])); }, [tab]);
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<Sel>(null);
   const switchTab = (i: number) => { setTab(i); setSel(null); setQ(""); };
@@ -55,6 +57,7 @@ export function Configuracion() {
       return [
         { id: "bk:full", t: "Respaldo completo", sub: `${when} · para restaurar todo`, badge: "JSON", tone: G },
         { id: "bk:xlsx", t: "Libro de Excel", sub: "Pacientes, citas, cobros y personal para consultar", badge: "Excel", tone: N },
+        (() => { const st = runsStatus(runs ?? []); return { id: "bk:auto", t: "Copia automática diaria", sub: runs === null ? "Comprobando…" : st.sub, badge: st.badge, tone: st.tone === "ok" ? G : st.tone === "bad" ? E : N }; })(),
       ];
     }
     if (tab === 6) return [
@@ -94,7 +97,8 @@ export function Configuracion() {
   const id = sel && "id" in sel ? sel.id : "";
   let panel: React.ReactNode = null, title = "";
   if (sel) {
-    if (tab === 7) { title = id === "bk:xlsx" ? "Libro de Excel" : "Respaldo completo"; panel = <BackupSheet key={id} kind={id === "bk:xlsx" ? "xlsx" : "full"} />; }
+    if (tab === 7 && id === "bk:auto") { title = "Copia automática diaria"; panel = <AutoBackupSheet runs={runs ?? []} />; }
+    else if (tab === 7) { title = id === "bk:xlsx" ? "Libro de Excel" : "Respaldo completo"; panel = <BackupSheet key={id} kind={id === "bk:xlsx" ? "xlsx" : "full"} />; }
     else if (tab === 1) { title = "mode" in sel ? "Invitar usuario" : (d.users.find((u) => u.id === id)?.nom ?? ""); panel = <UserForm key={id || "new"} rec={d.users.find((u) => u.id === id)} onDone={() => setSel(null)} />; }
     else if (tab === 2) { title = "mode" in sel ? "Nueva sede" : (d.sedes.find((z) => z.id === id)?.n ?? ""); panel = <SedeForm key={id || "new"} rec={d.sedes.find((z) => z.id === id)} onDone={() => setSel(null)} />; }
     else if (tab === 4) { const c = d.desc.codes.find((x) => x.id === id), g = d.desc.camps.find((x) => x.id === id); title = "mode" in sel ? "Nuevo descuento" : (c?.code ?? g?.n ?? ""); panel = <DiscountForm key={id || "new"} code={c} camp={g} onDone={() => setSel(null)} />; }
@@ -289,6 +293,24 @@ function PushSheet({ state, onChange }: { state: PushState; onChange: () => void
     <>
       <SheetSub sub={PUSH_TEXT[state]} badge={on ? "Activos" : "Apagados"} tone={on ? G : N} />
       {(state === "apagado" || state === "activo") && <Actions items={[{ t: busy ? "Un momento…" : on ? "Apagar en este dispositivo" : "Activar en este dispositivo", kind: "p", icon: on ? "bell-off" : "bell", run: () => { if (!busy) void toggle(); } }]} />}
+    </>
+  );
+}
+
+function AutoBackupSheet({ runs }: { runs: BackupRun[] }) {
+  const st = runsStatus(runs);
+  const when = (iso: string) => new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  return (
+    <>
+      <SheetSub sub="Cada madrugada (03:00, hora de Lima) se guarda una copia cifrada de todos los datos en un almacenamiento externo. Si la copia falla, aquí se ve el motivo." badge={st.badge} tone={st.tone === "ok" ? G : st.tone === "bad" ? E : N} />
+      {runs.length === 0 && <div style={{ fontSize: 13, color: "var(--ink-500)" }}>Todavía no hay ejecuciones registradas.</div>}
+      {runs.map((r) => (
+        <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+          <b style={{ fontSize: 13, color: r.ok ? "var(--success-fg)" : "var(--error-fg)" }}>{r.ok ? "Correcta" : "Falló"} · {when(r.ran_at)}</b>
+          <span style={{ fontSize: 12, color: "var(--ink-500)", overflowWrap: "anywhere" }}>{r.ok ? `${r.file ?? ""}${r.counts ? ` · ${r.counts.patients ?? 0} pacientes, ${r.counts.appointments ?? 0} citas, ${r.counts.payments ?? 0} cobros` : ""}` : r.error}</span>
+        </div>
+      ))}
+      <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Los archivos van cifrados con la clave de respaldo. Para abrir uno: <code>node scripts/descifrar-respaldo.mjs archivo.cifrado.json salida.json</code>. Guarda esa clave fuera del sistema: sin ella la copia no se puede abrir.</div>
     </>
   );
 }

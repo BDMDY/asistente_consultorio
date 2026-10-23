@@ -23,3 +23,11 @@ describe("respaldo cifrado", () => {
     expect(Buffer.concat([d.update(raw.subarray(0, raw.length - 16)), d.final()]).toString()).toBe("hola");
   });
 });
+
+describe("función de copia automática", () => {
+  it("usa el mismo cifrado que la app", async () => {
+    const { encryptBackup: enc2 } = await import("../../supabase/functions/backup-b2/crypto");
+    const { decryptBackup: dec1 } = await import("./backup-crypto");
+    expect(await dec1(await enc2("copia diaria", "pw"), "pw")).toBe("copia diaria");
+  });
+});
