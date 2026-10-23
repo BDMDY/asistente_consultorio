@@ -63,11 +63,11 @@ export const seedMod = (): ModData => ({
     { id: "m3", n: "Promoción blanqueamiento", aud: "Todos", txt: "20% en blanqueamiento este mes.", st: "borrador", sent: 0 },
   ],
   users: [
-    { id: "u1", nom: "Ana Quispe Huamán", dni: "40123456", cmp: "45821", mail: "ana@clinicasonrie.pe", tel: "987654321", rol: "Doctor", on: true, agenda: 1, titulo: "Dra." },
-    { id: "u2", nom: "Luis Paredes Salazar", dni: "41234567", cmp: "51376", mail: "luis@clinicasonrie.pe", tel: "986543210", rol: "Doctor", on: true, agenda: 2, titulo: "Dr." },
-    { id: "u5", nom: "Carla Vega Ríos", dni: "42345678", cmp: "34567", mail: "carla@clinicasonrie.pe", tel: "985432100", rol: "Doctor", on: true, agenda: 3, titulo: "Dra." },
-    { id: "u3", nom: "Rosa Medina Flores", dni: "45678901", cmp: "", mail: "recepcion@clinicasonrie.pe", tel: "985432109", rol: "Asistente", on: true },
-    { id: "u4", nom: "Ana Cruz Torres", dni: "45218790", cmp: "", mail: "admin@clinicasonrie.pe", tel: "984321098", rol: "Administrador", on: true },
+    { id: "u1", nom: "Ana Quispe Huamán", dni: "40123456", cmp: "45821", mail: "ana@clinicademo.pe", tel: "987654321", rol: "Doctor", on: true, agenda: 1, titulo: "Dra." },
+    { id: "u2", nom: "Luis Paredes Salazar", dni: "41234567", cmp: "51376", mail: "luis@clinicademo.pe", tel: "986543210", rol: "Doctor", on: true, agenda: 2, titulo: "Dr." },
+    { id: "u5", nom: "Carla Vega Ríos", dni: "42345678", cmp: "34567", mail: "carla@clinicademo.pe", tel: "985432100", rol: "Doctor", on: true, agenda: 3, titulo: "Dra." },
+    { id: "u3", nom: "Rosa Medina Flores", dni: "45678901", cmp: "", mail: "recepcion@clinicademo.pe", tel: "985432109", rol: "Asistente", on: true },
+    { id: "u4", nom: "Ana Cruz Torres", dni: "45218790", cmp: "", mail: "admin@clinicademo.pe", tel: "984321098", rol: "Administrador", on: true },
   ],
   sedes: [
     { id: "z1", n: "Sede Miraflores", dir: "Av. Larco 345", h: "Lun–Sáb 9:00–19:00" },

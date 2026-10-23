@@ -42,7 +42,7 @@ describe("avisos de demora", () => {
     expect(delayAlerts(list, T, -1)).toEqual([]);
   });
   it("redacta el mensaje de demora", () => {
-    const m = delayMessage({ name: "Mario Soto", clinic: "Clínica Sonríe", minutes: 15, when: "10:30" });
+    const m = delayMessage({ name: "Mario Soto", clinic: "Clínica Demo", minutes: 15, when: "10:30" });
     expect(m).toContain("Hola Mario");
     expect(m).toContain("15 minutos");
   });

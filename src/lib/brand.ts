@@ -30,7 +30,7 @@ export interface BrandConfig {
 export const DEFAULT_BRAND: BrandConfig = {
   hex: "#00A86B",
   accent: "#F5A524",
-  name: "Clínica Sonríe",
+  name: "Clínica Demo",
   slogan: "Sonrisas que cuidamos contigo",
   f: 0,
   kicker: "ORTODONCIA · ODONTOLOGÍA · LIMA",
@@ -40,9 +40,9 @@ export const DEFAULT_BRAND: BrandConfig = {
   address: "Av. Larco 345, Miraflores, Lima",
   phone: "+51 1 555 0123",
   whatsapp: "+51 987 654 321",
-  email: "hola@clinicasonrie.pe",
-  instagram: "@clinicasonrie",
-  facebook: "/clinicasonrie",
+  email: "hola@clinicademo.pe",
+  instagram: "@clinicademo",
+  facebook: "/clinicademo",
   hours: "Lun–Vie 9:00–19:00 · Sáb 9:00–13:00",
 };
 

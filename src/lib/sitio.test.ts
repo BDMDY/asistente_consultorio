@@ -27,9 +27,9 @@ describe("subida de video", () => {
 describe("enlaces de redes sociales", () => {
   it("arma el enlace desde @usuario, /pagina, dominio o URL y rechaza lo que no es http(s)", async () => {
     const { socialUrl } = await import("./brand");
-    expect(socialUrl("instagram", "@clinicasonrie")).toBe("https://instagram.com/clinicasonrie");
-    expect(socialUrl("facebook", "/clinicasonrie")).toBe("https://facebook.com/clinicasonrie");
-    expect(socialUrl("facebook", "clinica.sonrie")).toBe("https://facebook.com/clinica.sonrie");
+    expect(socialUrl("instagram", "@clinicademo")).toBe("https://instagram.com/clinicademo");
+    expect(socialUrl("facebook", "/clinicademo")).toBe("https://facebook.com/clinicademo");
+    expect(socialUrl("facebook", "clinica.demo")).toBe("https://facebook.com/clinica.demo");
     expect(socialUrl("instagram", "instagram.com/dental")).toBe("https://instagram.com/dental");
     expect(socialUrl("facebook", "https://www.facebook.com/dental.mavila")).toBe("https://www.facebook.com/dental.mavila");
     expect(socialUrl("instagram", "  ")).toBeNull();
