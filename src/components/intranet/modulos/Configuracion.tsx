@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isRemote } from "@/lib/backend/config";
 import { createStaffCode, inviteStaff } from "@/lib/backend/auth";
+import { downloadBackup, downloadExcel, lastBackup } from "@/lib/backend/backup";
 import { type PushState, disablePush, enablePush, usePushState } from "@/lib/backend/push";
 import { type BrandConfig, brandStore, useBrand } from "@/lib/brand";
 import { hm } from "@/lib/agenda";
@@ -17,9 +18,13 @@ import { toast } from "@/lib/toast";
 import { Actions, AreaField, ChipField, E, Field, G, ModuleLayout, N, type Row, SheetSub, TextField } from "./kit";
 import { LinkBtn } from "./Planes";
 
-const TABS = ["Marca y contacto", "Usuarios", "Sedes", "Notificaciones", "Descuentos", "Roles y permisos", "Horario"];
-const CTA = ["Logo y colores", "Invitar usuario", "Nueva sede", "Restablecer", "Nuevo descuento", "Logo y colores", "Cierre especial"];
-const TAB_SUB = ["Datos del consultorio", "Equipo con acceso", "Sedes y horarios", "Avisos automáticos", "Códigos y campañas de descuento", "Qué módulos ve cada rol", "Días y horas de atención"];
+const BASE_TABS = ["Marca y contacto", "Usuarios", "Sedes", "Notificaciones", "Descuentos", "Roles y permisos", "Horario"];
+const BASE_CTA = ["Logo y colores", "Invitar usuario", "Nueva sede", "Restablecer", "Nuevo descuento", "Logo y colores", "Cierre especial"];
+const BASE_SUB = ["Datos del consultorio", "Equipo con acceso", "Sedes y horarios", "Avisos automáticos", "Códigos y campañas de descuento", "Qué módulos ve cada rol", "Días y horas de atención"];
+// «Respaldo» solo existe con la base de datos conectada.
+const TABS = isRemote ? [...BASE_TABS, "Respaldo"] : BASE_TABS;
+const CTA = isRemote ? [...BASE_CTA, "Descargar respaldo"] : BASE_CTA;
+const TAB_SUB = isRemote ? [...BASE_SUB, "Copia de tus datos para guardarla"] : BASE_SUB;
 const ROLES: readonly Role[] = ["Administrador", "Doctor", "Asistente"];
 const BRAND_FIELDS: [keyof BrandConfig, string, boolean?][] = [
   ["name", "Nombre comercial"], ["slogan", "Eslogan"], ["whatsapp", "WhatsApp"], ["phone", "Teléfono"], ["address", "Dirección", true], ["instagram", "Instagram"],
@@ -44,6 +49,14 @@ export function Configuracion() {
   const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
   const rows: Row[] = (() => {
+    if (tab === 7) {
+      const last = lastBackup();
+      const when = last ? `Último en este equipo: ${new Date(last).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}` : "Aún no descargas un respaldo en este equipo";
+      return [
+        { id: "bk:full", t: "Respaldo completo", sub: `${when} · para restaurar todo`, badge: "JSON", tone: G },
+        { id: "bk:xlsx", t: "Libro de Excel", sub: "Pacientes, citas, cobros y personal para consultar", badge: "Excel", tone: N },
+      ];
+    }
     if (tab === 6) return [
       ...DAY_ORDER.map((i) => ({ id: `d:${i}`, t: cap(WEEKDAYS_LONG[i]), sub: sch.days[i].open ? `${hm(sch.days[i].from)}–${hm(sch.days[i].to)}` : "Día de descanso: no se crean citas", badge: sch.days[i].open ? "Abierto" : "Descanso", tone: sch.days[i].open ? G : N })),
       ...sch.closures.slice().sort((a, b) => a.date.localeCompare(b.date)).map((c) => ({ id: `c:${c.id}`, t: c.label || "Cierre especial", sub: labelLong(c.date), badge: "Cierre", tone: E })),
@@ -67,6 +80,7 @@ export function Configuracion() {
   })().filter((r) => !q.trim() || `${r.t} ${r.sub}`.toLowerCase().includes(q.trim().toLowerCase()));
 
   const onCta = () => {
+    if (tab === 7) return setSel({ id: "bk:full" });
     if (tab === 0 || tab === 5) return router.push("/intranet/marca");
     if (tab === 6) return setSel({ mode: "new" });
     if (tab === 3) {
@@ -80,7 +94,8 @@ export function Configuracion() {
   const id = sel && "id" in sel ? sel.id : "";
   let panel: React.ReactNode = null, title = "";
   if (sel) {
-    if (tab === 1) { title = "mode" in sel ? "Invitar usuario" : (d.users.find((u) => u.id === id)?.nom ?? ""); panel = <UserForm key={id || "new"} rec={d.users.find((u) => u.id === id)} onDone={() => setSel(null)} />; }
+    if (tab === 7) { title = id === "bk:xlsx" ? "Libro de Excel" : "Respaldo completo"; panel = <BackupSheet key={id} kind={id === "bk:xlsx" ? "xlsx" : "full"} />; }
+    else if (tab === 1) { title = "mode" in sel ? "Invitar usuario" : (d.users.find((u) => u.id === id)?.nom ?? ""); panel = <UserForm key={id || "new"} rec={d.users.find((u) => u.id === id)} onDone={() => setSel(null)} />; }
     else if (tab === 2) { title = "mode" in sel ? "Nueva sede" : (d.sedes.find((z) => z.id === id)?.n ?? ""); panel = <SedeForm key={id || "new"} rec={d.sedes.find((z) => z.id === id)} onDone={() => setSel(null)} />; }
     else if (tab === 4) { const c = d.desc.codes.find((x) => x.id === id), g = d.desc.camps.find((x) => x.id === id); title = "mode" in sel ? "Nuevo descuento" : (c?.code ?? g?.n ?? ""); panel = <DiscountForm key={id || "new"} code={c} camp={g} onDone={() => setSel(null)} />; }
     else if (tab === 3 && id === "push:device") { title = "Avisos en este dispositivo"; panel = <PushSheet state={push} onChange={refreshPush} />; }
@@ -274,6 +289,47 @@ function PushSheet({ state, onChange }: { state: PushState; onChange: () => void
     <>
       <SheetSub sub={PUSH_TEXT[state]} badge={on ? "Activos" : "Apagados"} tone={on ? G : N} />
       {(state === "apagado" || state === "activo") && <Actions items={[{ t: busy ? "Un momento…" : on ? "Apagar en este dispositivo" : "Activar en este dispositivo", kind: "p", icon: on ? "bell-off" : "bell", run: () => { if (!busy) void toggle(); } }]} />}
+    </>
+  );
+}
+
+function BackupSheet({ kind }: { kind: "full" | "xlsx" }) {
+  const [pass, setPass] = useState("");
+  const [again, setAgain] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  async function run() {
+    setErr(""); setMsg("");
+    if (kind === "full" && pass && pass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
+    if (kind === "full" && pass !== again) return setErr("Las contraseñas no coinciden");
+    setBusy(true);
+    try {
+      if (kind === "xlsx") setMsg(`Descargado: ${await downloadExcel()}`);
+      else {
+        const r = await downloadBackup(pass);
+        setMsg(`Descargado: ${r.file} · ${r.counts.patients ?? 0} pacientes, ${r.counts.appointments ?? 0} citas, ${r.counts.payments ?? 0} cobros`);
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "No se pudo generar el respaldo");
+    }
+    setBusy(false);
+  }
+  return (
+    <>
+      <SheetSub sub={kind === "full" ? "Una copia de todos los datos de la clínica (pacientes, citas, historia clínica, cobros, planes, inventario, personal y configuración) en un solo archivo." : "Un libro de Excel legible con pacientes, citas, cobros y personal. Sirve para consultar, no para restaurar."} />
+      {kind === "full" ? (
+        <>
+          <TextField label="Contraseña del archivo (recomendado)" type="password" value={pass} onChange={setPass} />
+          {pass && <TextField label="Repite la contraseña" type="password" value={again} onChange={setAgain} />}
+          <div style={{ fontSize: 12, color: "var(--ink-500)", lineHeight: 1.5 }}>Contiene datos de salud. Con contraseña el archivo se cifra en tu equipo antes de guardarse. <b>Si la pierdes, no se puede abrir</b>: guárdala en un lugar seguro.</div>
+        </>
+      ) : (
+        <div style={{ fontSize: 12, color: "var(--warning-fg)", lineHeight: 1.5, fontWeight: 600 }}>Este archivo NO va cifrado y contiene datos personales: guárdalo en un lugar privado y bórralo cuando no lo necesites.</div>
+      )}
+      {err && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>{err}</div>}
+      {msg && <div role="status" style={{ fontSize: 13, color: "var(--success-fg)", fontWeight: 600 }}>{msg}</div>}
+      <Actions items={[{ t: busy ? "Preparando…" : kind === "full" ? "Descargar respaldo" : "Descargar Excel", kind: "p", icon: "download", run: () => { if (!busy) void run(); } }]} />
     </>
   );
 }
