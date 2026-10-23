@@ -22,7 +22,9 @@ Deno.serve(async (req) => {
   if (ok.error || ok.data !== true) return json({ error: "unauthorized" }, 401);
 
   const keyId = Deno.env.get("B2_KEY_ID"), appKey = Deno.env.get("B2_APP_KEY"), bucket = Deno.env.get("B2_BUCKET");
-  const endpoint = (Deno.env.get("B2_ENDPOINT") ?? "").replace(/\/$/, ""), pass = Deno.env.get("BACKUP_PASSPHRASE");
+  // Se acepta con o sin «https://», con espacios o con una barra final: se normaliza a https://s3.<región>.backblazeb2.com
+  const rawEndpoint = (Deno.env.get("B2_ENDPOINT") ?? "").trim().replace(/^https?:\/\//i, "").split("/")[0];
+  const endpoint = rawEndpoint ? `https://${rawEndpoint}` : "", pass = Deno.env.get("BACKUP_PASSPHRASE");
   const log = (r: Record<string, unknown>) => db.from("backup_runs").insert(r);
   if (!keyId || !appKey || !bucket || !endpoint || !pass) {
     await log({ ok: false, error: "Falta configurar los secretos de la copia automática (B2_KEY_ID, B2_APP_KEY, B2_BUCKET, B2_ENDPOINT o BACKUP_PASSPHRASE)" });
