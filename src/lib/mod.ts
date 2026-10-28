@@ -2,6 +2,8 @@
 import { useMemo } from "react";
 import { isRemote } from "./backend/config";
 import { withMatCodes } from "./bulk-materials";
+import { discountLines } from "./charge-discount";
+import type { DiscResult } from "./discounts";
 import { addPayment } from "./payments";
 import { defineStore } from "./store";
 import { toast } from "./toast";
@@ -124,12 +126,14 @@ export const money0 = (n: number) => "S/ " + Number(n || 0).toLocaleString("en-U
 export const uid = () => (isRemote ? crypto.randomUUID() : "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
 
 /** Registra el pago de la siguiente cuota de un plan de pago: suma la cuota y deja el cobro (con fecha y comprobante) en Finanzas y Reportes. */
-export function payInstallment(planId: string, cuota?: number): boolean {
+export function payInstallment(planId: string, cuota?: number, disc?: DiscResult): boolean {
   const prev = modStore.get();
   const plan = prev.planes.find((x) => x.id === planId);
   if (!plan || plan.paid >= plan.n) return false;
   const monto = cuota && cuota > 0 ? cuota : plan.cuota;
-  addPayment({ patient: plan.pac, concept: plan.trat, amount: monto, method: "Efectivo", date: `Cuota ${plan.paid + 1} de ${plan.n}` });
+  // Con descuento se cobra menos y el comprobante deja constancia; la cuota del plan (lo que corresponde a las siguientes) no cambia.
+  const d = discountLines([{ concept: plan.trat, amount: monto }], disc)[0];
+  addPayment({ patient: plan.pac, concept: d.concept, amount: d.amount, method: "Efectivo", date: `Cuota ${plan.paid + 1} de ${plan.n}` });
   saveMod({ ...prev, planes: prev.planes.map((x) => (x.id === planId ? { ...x, paid: x.paid + 1, cuota: monto } : x)) }, "Cuota registrada · ya figura en Finanzas y Reportes", prev);
   return true;
 }

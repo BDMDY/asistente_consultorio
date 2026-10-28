@@ -2,9 +2,11 @@
 import Link from "next/link";
 import Icon, { type IconName } from "@/components/ui/Icon";
 import { useState } from "react";
-import { type PlanItem, addItems, applyLines, itemBalance, planItems, plansStore, removeItem, suggestedPayment, payItem } from "@/lib/clinical";
+import { type PlanItem, addItems, applyLines, discountItems, itemBalance, planItems, plansStore, removeItem, suggestedPayment, payItem } from "@/lib/clinical";
 import { todayISO } from "@/lib/dates";
-import { consumeCode } from "@/lib/discounts";
+import { discountLines } from "@/lib/charge-discount";
+import { commitDiscount, consumeCode } from "@/lib/discounts";
+import DiscountSection, { useChargeDiscount } from "../DiscountSection";
 import { type Plan, modStore, money0, payInstallment, saveMod, uid, useMod } from "@/lib/mod";
 import { parsePrice, serviceSessions, useMedia, activeServices } from "@/lib/media";
 import { patientsStore } from "@/lib/patients";
@@ -131,20 +133,27 @@ function ItemDetail({ pid, pac, item, onDone }: { pid: number; pac: string; item
   const pc = Math.round((item.done / Math.max(1, item.total)) * 100);
   const patch = (fn: (plan: NonNullable<ReturnType<typeof plansStore.get>[number]>) => ReturnType<typeof applyLines> | undefined) =>
     plansStore.update((all) => { const cur = all[pid]; if (!cur) return all; const next = fn(cur); const out = { ...all }; if (next) out[pid] = next; else delete out[pid]; return out; });
+  const dc = useChargeDiscount(amt);
+  const disc = dc.result;
+  const discOn = amt > 0 && disc.t !== "" && !disc.err;
   const charge = (withSession: boolean) => {
     if (withSession && finished) return toast("Las sesiones de este tratamiento ya están completas");
-    if (amt > 0) addPayment({ patient: pac, concept: item.name, amount: amt, method, date: todayISO(), itemId: item.id, patientId: pid });
-    patch((pl) => (withSession ? applyLines(pl, [{ planItem: item.id, amount: amt }]) : payItem(pl, item.id, amt)));
-    toast(withSession ? `Sesión ${Math.min(item.total, item.done + 1)} de ${item.total} registrada${amt > 0 ? ` · cobro ${money0(amt)}` : ""}` : `Pago registrado · ${money0(amt)}`);
+    if (amt > 0 && disc.t !== "" && (disc.err || !(disc.total > 0))) return toast(disc.err || "El descuento cubre todo el monto: el cobro debe ser mayor a S/ 0");
+    const d = discountLines([{ concept: item.name, amount: amt }], discOn ? disc : undefined)[0];
+    if (amt > 0) addPayment({ patient: pac, concept: d.concept, amount: d.amount, method, date: todayISO(), itemId: item.id, patientId: pid });
+    patch((pl) => discountItems(withSession ? applyLines(pl, [{ planItem: item.id, amount: d.amount }]) : payItem(pl, item.id, d.amount), [{ id: item.id, amt: d.share }]));
+    if (discOn) commitDiscount(disc);
+    toast(withSession ? `Sesión ${Math.min(item.total, item.done + 1)} de ${item.total} registrada${amt > 0 ? ` · cobro ${money0(d.amount)}` : ""}${discOn ? ` · descuento ${disc.label}` : ""}` : `Pago registrado · ${money0(d.amount)}${discOn ? ` · descuento ${disc.label}` : ""}`);
     onDone();
   };
   return (
     <>
       <SheetSub sub={`Sesión ${item.done} de ${item.total} · pagado ${money0(item.paid ?? 0)} de ${money0(item.price)} · saldo ${money0(bal)}`} badge={finished ? "Completo" : `${pc}%`} tone={finished ? G : pc < 30 ? N : W} />
       <TextField label="Monto a cobrar (S/)" value={amount} num onChange={setAmount} />
+      {amt > 0 && <DiscountSection dc={dc} base={amt} />}
       <ChipField label="Método de pago" value={method} options={PAY_METHODS} onChange={setMethod} />
       <Actions items={[
-        { t: `Registrar sesión ${Math.min(item.total, item.done + 1)} y cobro`, kind: "p", icon: "check", off: finished, run: () => charge(true) },
+        { t: `Registrar sesión ${Math.min(item.total, item.done + 1)} y cobro${discOn ? ` · ${money0(disc.total)}` : ""}`, kind: "p", icon: "check", off: finished, run: () => charge(true) },
         { t: "Solo registrar la sesión (sin cobro)", icon: "check", off: finished, run: () => { patch((pl) => applyLines(pl, [{ planItem: item.id, amount: 0 }])); toast(`Sesión ${item.done + 1} de ${item.total} registrada`); onDone(); } },
         { t: "Solo registrar un pago", icon: "banknote", off: !(amt > 0), run: () => charge(false) },
       ]} />
@@ -164,6 +173,9 @@ function PlanDetail({ rec, onDone }: { rec: Plan; onDone: () => void }) {
   const cuota = Number(cuotaStr) || rec.cuota;
   const pc = Math.round((rec.paid / rec.n) * 100);
   const patient = patients.find((p) => p.name.toLowerCase() === rec.pac.toLowerCase());
+  const dc = useChargeDiscount(cuota);
+  const disc = dc.result;
+  const discOn = disc.t !== "" && !disc.err;
   const patchPlan = (p: Partial<Plan>, msg: string) => {
     const prev = modStore.get();
     saveMod({ ...prev, planes: prev.planes.map((x) => (x.id === rec.id ? { ...x, ...p } : x)) }, msg, prev);
@@ -173,10 +185,13 @@ function PlanDetail({ rec, onDone }: { rec: Plan; onDone: () => void }) {
     <>
       <SheetSub sub={`${rec.trat} · cuota ${rec.paid} de ${rec.n} · saldo ${money0((rec.n - rec.paid) * rec.cuota)}${rec.disc ? ` · descuento ${rec.disc.label} −${money0(rec.disc.amt)} sobre ${money0(rec.base ?? 0)}` : ""}`} badge={done ? "Completo" : `${pc}%`} tone={done ? G : pc < 30 ? N : W} />
       <TextField label="Monto por cuota (S/)" value={cuotaStr} num onChange={setCuotaStr} />
+      {!done && <DiscountSection dc={dc} base={cuota} />}
       <Actions items={[
-        { t: `Registrar pago de cuota ${rec.paid + 1}`, kind: "p", icon: "banknote", off: done, run: () => {
+        { t: `Registrar pago de cuota ${rec.paid + 1}${discOn ? ` · ${money0(disc.total)}` : ""}`, kind: "p", icon: "banknote", off: done, run: () => {
           if (done) return toast("No disponible en este estado");
-          payInstallment(rec.id, cuota);
+          if (disc.t !== "" && (disc.err || !(disc.total > 0))) return toast(disc.err || "El descuento cubre todo el monto: el cobro debe ser mayor a S/ 0");
+          payInstallment(rec.id, cuota, discOn ? disc : undefined);
+          if (discOn) commitDiscount(disc);
           onDone();
         } },
         { t: "Guardar nueva cuota", icon: "save", run: () => patchPlan({ cuota }, "Cuota actualizada") },

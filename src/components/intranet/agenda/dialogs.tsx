@@ -14,6 +14,7 @@ import { delayMessage, rescheduleMessage } from "@/lib/attention";
 import { enqueue } from "@/lib/outbox";
 import { patientOf, patientsStore, samePatientName } from "@/lib/patients";
 import NewPatientDialog from "../pacientes/NewPatientDialog";
+import DiscountSection, { useChargeDiscount } from "../DiscountSection";
 import { toast } from "@/lib/toast";
 import { getSchedule, useBrand } from "@/lib/brand";
 import { closedReason } from "@/lib/schedule";
@@ -330,7 +331,10 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   const on = lines.filter((l) => l.on);
   const num = (l: PayLine) => parseFloat(l.amount.replace(",", "."));
   const total = on.reduce((n, l) => n + (num(l) > 0 ? num(l) : 0), 0);
-  const ok = on.length > 0 && on.every((l) => num(l) > 0);
+  const dc = useChargeDiscount(total);
+  const disc = dc.result;
+  const discBad = !!disc.err || (disc.t !== "" && !(disc.total > 0));
+  const ok = on.length > 0 && on.every((l) => num(l) > 0) && !discBad;
   const patch = (key: string, p: Partial<PayLine>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...p } : l)));
   const extra = activeServices(media).filter((sv) => !lines.some((l) => l.concept === sv.name));
   // Tratamiento nuevo indicado durante la sesión (por ejemplo, tras la evaluación): entra al plan del paciente y a este cobro.
@@ -362,7 +366,7 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
   function charge() {
     if (!ok) return;
     const progress = on.filter((l) => l.planItem).map((l) => { const it = pending.find((x) => x.id === l.planItem)!; return `${it.name}: ${it.done + 1} de ${it.total} sesiones`; });
-    const pays = chargeSession(a, on.map((l) => ({ concept: l.concept, amount: num(l), planItem: l.planItem })), method, patient?.id);
+    const pays = chargeSession(a, on.map((l) => ({ concept: l.concept, amount: num(l), planItem: l.planItem })), method, patient?.id, disc.t ? disc : undefined);
     setReceipt({ pays, progress });
   }
 
@@ -425,7 +429,9 @@ export function PayDialog({ a, alerts, sheet, onClose }: { a: Appt; alerts: stri
                 </select>
               )}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 14 }}><span>Total a cobrar ({on.length} {on.length === 1 ? "tratamiento" : "tratamientos"})</span><b className="tnum" style={{ fontSize: 22 }}>{money(total)}</b></div>
+            <DiscountSection dc={dc} base={total} />
+            {disc.t !== "" && !disc.err && !(disc.total > 0) && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>El descuento cubre todo el monto: el cobro debe ser mayor a S/ 0.</div>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 14 }}><span>Total a cobrar ({on.length} {on.length === 1 ? "tratamiento" : "tratamientos"}){disc.t !== "" && !disc.err ? ` · con descuento` : ""}</span><b className="tnum" style={{ fontSize: 22 }}>{money(disc.t !== "" && !disc.err ? disc.total : total)}</b></div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Método de pago</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

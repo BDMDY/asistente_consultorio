@@ -7,7 +7,7 @@ import { CloseBtn, Modal, btnOutline, btnPrimary, chipStyle, fieldStyle, labelSt
 import { agendaStore } from "@/lib/agenda-store";
 import MaterialsDialog from "../agenda/MaterialsDialog";
 import { inProgress } from "@/lib/attention";
-import { type PlanItem, addItems, initialDue, anamnesisStore, emptyAnam, itemBalance, payItem, planItems, plansStore, sessionPrice, suggestedPayment } from "@/lib/clinical";
+import { type PlanItem, addItems, initialDue, anamnesisStore, emptyAnam, itemBalance, discountItems, payItem, planItems, plansStore, sessionPrice, suggestedPayment } from "@/lib/clinical";
 import { useMediaQuery } from "@/lib/media-query";
 import { activeServices, initials, parsePrice, serviceSessions, useMedia } from "@/lib/media";
 import { matUseOf } from "@/lib/materials";
@@ -18,6 +18,9 @@ import { type Appt, apptWhenShort } from "@/lib/agenda";
 import { apptCode, todaysApptOf } from "@/lib/receipts";
 import { toast } from "@/lib/toast";
 import { todayISO } from "@/lib/dates";
+import DiscountSection, { useChargeDiscount } from "../DiscountSection";
+import { discountLines } from "@/lib/charge-discount";
+import { commitDiscount } from "@/lib/discounts";
 import { Anamnesis } from "./Anamnesis";
 import AtencionBanner from "./AtencionBanner";
 import NewPatientDialog from "./NewPatientDialog";
@@ -240,21 +243,27 @@ function PayDialog({ p, concept, itemId, sheet, onClose, onSaved }: { p: Patient
   const patchLine = (k: string, x: Partial<PayLineState>) => setLines((l) => ({ ...l, [k]: { ...l[k], ...x } }));
   const chosen = [...items.map((x) => ({ key: x.id, item: x as PlanItem | undefined })), { key: "free", item: undefined as PlanItem | undefined }].filter((c) => lines[c.key]?.on);
   const total = chosen.reduce((n, c) => n + (num(lines[c.key].amount) > 0 ? num(lines[c.key].amount) : 0), 0);
-  const valid = chosen.length > 0 && chosen.every((c) => num(lines[c.key].amount) > 0);
+  const dc = useChargeDiscount(total);
+  const disc = dc.result;
+  const discBad = !!disc.err || (disc.t !== "" && !(disc.total > 0));
+  const valid = chosen.length > 0 && chosen.every((c) => num(lines[c.key].amount) > 0) && !discBad;
   function save() {
     if (!valid) return setTried(true);
     const appt = appts.find((a) => String(a.id) === apptId);
     const payLines = chosen.map((c) => ({ concept: c.item ? c.item.name : free.trim() || "Pago", amount: num(lines[c.key].amount), ...(c.item ? { itemId: c.item.id } : {}) }));
-    addPayments(payLines, { patient: p.name, method, date: appt ? apptWhenShort(appt) : todayISO(), patientId: p.id, ...(appt ? { apptId: appt.id } : {}) });
+    const dl = discountLines(payLines, disc.t ? disc : undefined);
+    addPayments(dl.map((d) => ({ concept: d.concept, amount: d.amount, ...(d.line.itemId ? { itemId: d.line.itemId } : {}) })), { patient: p.name, method, date: appt ? apptWhenShort(appt) : todayISO(), patientId: p.id, ...(appt ? { apptId: appt.id } : {}) });
     plansStore.update((all) => {
       let plan = all[p.id];
       if (!plan) return all;
-      for (const l of payLines) if (l.itemId) plan = payItem(plan, l.itemId, l.amount);
+      for (const d of dl) if (d.line.itemId) plan = payItem(plan, d.line.itemId, d.amount);
+      plan = discountItems(plan, dl.filter((d) => d.line.itemId).map((d) => ({ id: d.line.itemId as string, amt: d.share })));
       return { ...all, [p.id]: plan };
     });
+    commitDiscount(disc.t ? disc : undefined);
     onSaved();
     onClose();
-    toast(`Pago registrado · ${money(total)}${payLines.length > 1 ? ` · ${payLines.length} tratamientos en un comprobante` : ` · ${payLines[0].concept}`}${appt ? ` · ${apptCode(appt.id)}` : ""}`);
+    toast(`Pago registrado · ${money(disc.t ? disc.total : total)}${disc.t ? ` · descuento ${disc.label}` : ""}${payLines.length > 1 ? ` · ${payLines.length} tratamientos en un comprobante` : ` · ${payLines[0].concept}`}${appt ? ` · ${apptCode(appt.id)}` : ""}`);
   }
   const check = (k: string, label: React.ReactNode, hint?: string) => (
     <div key={k} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 10, borderRadius: 12, boxShadow: `inset 0 0 0 ${lines[k].on ? 1.5 : 1}px ${lines[k].on ? "var(--brand-200)" : "var(--line)"}` }}>
@@ -286,7 +295,9 @@ function PayDialog({ p, concept, itemId, sheet, onClose, onSaved }: { p: Patient
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {PAY_METHODS.map((m) => <button key={m} type="button" aria-pressed={m === method} onClick={() => setMethod(m)} style={chipStyle(m === method, { padding: "11px 14px" })}>{m}</button>)}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 15 }}><span>Total a cobrar</span><b className="tnum" style={{ fontSize: 20 }}>{money(total)}</b></div>
+      <DiscountSection dc={dc} base={total} />
+      {tried && discBad && <div role="alert" style={{ fontSize: 13, color: "var(--error-fg)", fontWeight: 600 }}>{disc.err || "El descuento cubre todo el monto: el cobro debe ser mayor a S/ 0."}</div>}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 15 }}><span>Total a cobrar{disc.t !== "" && !disc.err ? " · con descuento" : ""}</span><b className="tnum" style={{ fontSize: 20 }}>{money(disc.t !== "" && !disc.err ? disc.total : total)}</b></div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
         <button type="button" onClick={onClose} style={btnOutline}>Cancelar</button>
         <button type="button" onClick={save} style={btnPrimary()}>Registrar pago</button>

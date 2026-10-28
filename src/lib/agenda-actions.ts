@@ -6,7 +6,9 @@ import { addDays, isISODate } from "./dates";
 import { newId } from "./ids";
 import { mediaStore, resolveMedia, sessionValue } from "./media";
 import { enqueue } from "./outbox";
-import { applyLines, plansStore } from "./clinical";
+import { discountLines } from "./charge-discount";
+import { applyLines, discountItems, plansStore } from "./clinical";
+import { type DiscResult, commitDiscount } from "./discounts";
 import { type PayMethod, type Payment, addPayment, addPayments, paymentsStore } from "./payments";
 import { patientsStore } from "./patients";
 
@@ -61,13 +63,16 @@ export interface SessionLine { concept: string; amount: number; planItem?: strin
 /**
  * Cobra una sesión con varios tratamientos: un comprobante con una línea por tratamiento,
  * suma un control a cada tratamiento del plan que se realizó y deja la cita como atendida.
+ * Con `disc` (código, campaña o manual) el monto cobrado baja, el comprobante deja constancia y el plan reduce su precio por el descuento.
  */
-export function chargeSession(a: Appt, lines: SessionLine[], method: PayMethod, patientId?: number): Payment[] {
-  const pays = addPayments(lines.map((l) => ({ concept: l.concept, amount: l.amount, ...(l.planItem && patientId !== undefined ? { itemId: l.planItem } : {}) })), { apptId: a.id, patient: a.p, method, date: apptWhenShort(a), ...(patientId !== undefined ? { patientId } : {}) });
-  const linked = lines.filter((l): l is SessionLine & { planItem: string } => !!l.planItem).map((l) => ({ planItem: l.planItem, amount: l.amount }));
+export function chargeSession(a: Appt, lines: SessionLine[], method: PayMethod, patientId?: number, disc?: DiscResult): Payment[] {
+  const dl = discountLines(lines, disc);
+  const pays = addPayments(dl.map((d) => ({ concept: d.concept, amount: d.amount, ...(d.line.planItem && patientId !== undefined ? { itemId: d.line.planItem } : {}) })), { apptId: a.id, patient: a.p, method, date: apptWhenShort(a), ...(patientId !== undefined ? { patientId } : {}) });
+  const linked = dl.filter((d): d is typeof d & { line: SessionLine & { planItem: string } } => !!d.line.planItem).map((d) => ({ planItem: d.line.planItem, amount: d.amount, share: d.share }));
   if (patientId !== undefined && linked.length) {
-    plansStore.update((all) => (all[patientId] ? { ...all, [patientId]: applyLines(all[patientId], linked) } : all));
+    plansStore.update((all) => (all[patientId] ? { ...all, [patientId]: discountItems(applyLines(all[patientId], linked), linked.map((l) => ({ id: l.planItem, amt: l.share }))) } : all));
   }
+  commitDiscount(disc);
   patchAppt(a.id, { st: "atendida" });
   return pays;
 }

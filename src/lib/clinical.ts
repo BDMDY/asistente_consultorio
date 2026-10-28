@@ -79,6 +79,14 @@ export function applyLines(plan: TreatmentPlan, lines: { planItem: string; amoun
   }));
 }
 
+/** Un descuento aplicado al cobrar reduce el precio del tratamiento (sin bajar de lo ya pagado), para que el saldo siga cuadrando. */
+export function discountItems(plan: TreatmentPlan, discounts: { id: string; amt: number }[]): TreatmentPlan {
+  return withItems(plan, planItems(plan).map((it) => {
+    const d = discounts.filter((x) => x.id === it.id).reduce((n, x) => n + x.amt, 0);
+    return d > 0 ? { ...it, price: Math.max(it.paid ?? 0, round2(it.price - d)) } : it;
+  }));
+}
+
 /** Registra un pago a un tratamiento sin contar una sesión. */
 export function payItem(plan: TreatmentPlan, id: string, amount: number): TreatmentPlan {
   return withItems(plan, planItems(plan).map((it) => (it.id === id ? { ...it, paid: round2((it.paid ?? 0) + amount) } : it)));

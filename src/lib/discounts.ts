@@ -1,4 +1,4 @@
-import type { ModData } from "./mod";
+import { type ModData, modStore } from "./mod";
 
 export type DiscMode = "Sin descuento" | "Código" | "Campaña" | "Manual";
 export interface DiscInput { mode: DiscMode; code: string; camp: string; type: "%" | "S/"; val: number; motive: string }
@@ -44,3 +44,9 @@ export function consumeCode(desc: ModData["desc"], r: DiscResult): ModData["desc
 }
 
 export const NO_DISCOUNT: DiscInput = { mode: "Sin descuento", code: "", camp: "", type: "%", val: 0, motive: "" };
+
+/** Si el descuento fue un código, descuenta un uso en la configuración. Se llama una sola vez por cobro, después de registrarlo. */
+export function commitDiscount(r?: DiscResult) {
+  if (!r || r.t !== "code") return;
+  modStore.update((m) => ({ ...m, desc: consumeCode(m.desc, r) }));
+}
